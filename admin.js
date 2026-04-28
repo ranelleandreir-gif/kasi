@@ -223,6 +223,19 @@ window.approveUser = async (id, role) => {
     status: "approved",
     assignedName: name
   });
+
+  alert("User approved!");
+};
+
+
+// =====================
+// ❌ REJECT USER
+// =====================
+window.rejectUser = async (id) => {
+  await updateDoc(doc(db, "users", id), {
+    status: "rejected"
+  });
+  alert("User rejected!");
 };
 
 
@@ -231,6 +244,106 @@ window.approveUser = async (id, role) => {
 // =====================
 window.setRole = async (id, role) => {
   await updateDoc(doc(db, "users", id), { role });
+  alert(`Role changed to ${role}`);
+};
+
+
+// =====================
+// ➕ CREATE LOAN
+// =====================
+window.createLoan = async () => {
+  const borrowerName = document.getElementById("borrowerName")?.value.trim();
+  const amount = document.getElementById("amount")?.value.trim();
+  const address = document.getElementById("address")?.value.trim();
+
+  if (!borrowerName || !amount || !address) {
+    alert("Fill all fields!");
+    return;
+  }
+
+  try {
+    const docRef = await addDoc(collection(db, "loans"), {
+      borrowerName,
+      amount: Number(amount),
+      address,
+      balance: Number(amount),
+      status: "pending",
+      assignedCollectorId: null,
+      assignedCollectorName: null,
+      createdAt: serverTimestamp()
+    });
+
+    alert("Loan created! Now assign a collector.");
+    
+    // Clear inputs
+    document.getElementById("borrowerName").value = "";
+    document.getElementById("amount").value = "";
+    document.getElementById("address").value = "";
+
+    // Optional: auto-assign first available collector
+    await autoAssignCollector(docRef.id);
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+};
+
+
+// =====================
+// 🚚 AUTO ASSIGN FIRST COLLECTOR
+// =====================
+async function autoAssignCollector(loanId) {
+  try {
+    const usersSnap = await getDocs(collection(db, "users"));
+    
+    let collectors = [];
+    usersSnap.forEach(d => {
+      const u = d.data();
+      if (u.role === "collector" && u.status === "approved") {
+        collectors.push({
+          id: d.id,
+          name: u.assignedName || u.name
+        });
+      }
+    });
+
+    if (collectors.length > 0) {
+      const selected = collectors[0];
+      await updateDoc(doc(db, "loans", loanId), {
+        assignedCollectorId: selected.id,
+        assignedCollectorName: selected.name,
+        status: "assigned"
+      });
+    }
+  } catch (error) {
+    console.log("Auto-assign failed:", error);
+  }
+}
+
+
+// =====================
+// 🚚 MANUAL ASSIGN COLLECTOR
+// =====================
+window.assignCollector = async (loanId) => {
+  const collectorId = prompt("Enter Collector ID:");
+  if (!collectorId) return;
+
+  const userSnap = await getDocs(collection(db, "users"));
+  let found = false;
+
+  userSnap.forEach(d => {
+    if (d.id === collectorId) {
+      const u = d.data();
+      updateDoc(doc(db, "loans", loanId), {
+        assignedCollectorId: d.id,
+        assignedCollectorName: u.assignedName || u.name,
+        status: "assigned"
+      });
+      alert("Assigned to " + (u.assignedName || u.name));
+      found = true;
+    }
+  });
+
+  if (!found) alert("Collector not found!");
 };
 
 

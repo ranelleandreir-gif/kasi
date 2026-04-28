@@ -53,20 +53,23 @@ function loadLoans() {
 
       const l = d.data();
 
-      if (l.status === "paid") return;
+      // Show only COLLECTED loans for cashier to confirm
+      if (l.status !== "collected") return;
 
       const div = document.createElement("div");
       div.className = "card";
 
       div.innerHTML = `
         <h3>👤 ${l.borrowerName}</h3>
-        💰 Balance: ₱${l.balance}<br>
-        🚚 Collector: ${l.assignedCollectorName}<br><br>
+        💰 Amount: ₱${l.amount}<br>
+        💵 Balance: ₱${l.balance}<br>
+        🚚 Collector: ${l.assignedCollectorName}<br>
+        📍 Address: ${l.address || "N/A"}<br><br>
 
-        <input type="number" placeholder="Amount Paid" id="pay-${d.id}" />
+        <input type="number" placeholder="Amount Paid" id="pay-${d.id}" min="0" max="${l.balance}" />
 
         <button onclick="payLoan('${d.id}','${l.borrowerName}',${l.balance})">
-          💰 Receive Payment
+          ✔ Confirm Payment
         </button>
       `;
 
@@ -85,35 +88,42 @@ window.payLoan = async (loanId, borrowerName, currentBalance) => {
   const amountPaid = Number(input.value);
 
   if (!amountPaid || amountPaid <= 0) {
-    alert("Invalid amount");
+    alert("Enter valid amount");
     return;
   }
 
   if (amountPaid > currentBalance) {
-    alert("Overpayment not allowed");
+    alert(`Cannot pay more than balance (₱${currentBalance})`);
     return;
   }
 
   const newBalance = currentBalance - amountPaid;
 
-  // 1. UPDATE LOAN
-  await updateDoc(doc(db, "loans", loanId), {
-    balance: newBalance,
-    status: newBalance === 0 ? "paid" : "active"
-  });
+  try {
+    // 1. UPDATE LOAN
+    await updateDoc(doc(db, "loans", loanId), {
+      balance: newBalance,
+      status: newBalance === 0 ? "paid" : "collected",
+      confirmedAt: serverTimestamp(),
+      confirmedById: cashierId
+    });
 
-  // 2. SAVE PAYMENT HISTORY
-  await addDoc(collection(db, "payments"), {
-    loanId,
-    borrowerName,
-    amountPaid,
-    remainingBalance: newBalance,
-    cashierId,
-    cashierName,
-    createdAt: serverTimestamp()
-  });
+    // 2. SAVE PAYMENT HISTORY
+    await addDoc(collection(db, "payments"), {
+      loanId,
+      borrowerName,
+      amountPaid,
+      remainingBalance: newBalance,
+      cashierId,
+      cashierName,
+      createdAt: serverTimestamp()
+    });
 
-  alert("Payment recorded!");
+    alert(`✅ Payment confirmed! Remaining: ₱${newBalance}`);
+    input.value = "";
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
 };
 
 

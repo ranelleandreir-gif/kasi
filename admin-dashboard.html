@@ -86,7 +86,8 @@ button{
   <h3>➕ Create Borrower</h3>
 
   <input id="borrowerName" placeholder="Borrower Name"><br><br>
-  <input id="amount" placeholder="Amount"><br><br>
+  <input id="amount" type="number" placeholder="Amount"><br><br>
+  <input id="address" placeholder="Address/Location"><br><br>
 
   <select id="collectorSelect"></select><br><br>
 
@@ -95,7 +96,7 @@ button{
 </div>
 
 <script type="module">
-import { db } from "./firebase.js";
+import { db, auth } from "./firebase.js";
 import {
   collection,
   onSnapshot,
@@ -106,6 +107,30 @@ import {
   getDocs,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+/* AUTH PROTECTION */
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  // Verify user is admin
+  const userSnap = await getDocs(collection(db, "users"));
+  let isAdmin = false;
+  userSnap.forEach(d => {
+    if (d.id === user.uid && d.data().role === "admin") {
+      isAdmin = true;
+    }
+  });
+
+  if (!isAdmin) {
+    alert("Admin access only!");
+    window.location.href = "login.html";
+  }
+});
 
 /* =========================
    TAB SWITCH
@@ -239,11 +264,12 @@ window.markPaid = async (id)=>{
 ========================= */
 window.createLoan = async ()=>{
 
-  const name=document.getElementById("borrowerName").value;
+  const name=document.getElementById("borrowerName").value.trim();
   const amount=Number(document.getElementById("amount").value);
+  const address=document.getElementById("address").value.trim();
   const collectorId=document.getElementById("collectorSelect").value;
 
-  if(!name || !amount || !collectorId){
+  if(!name || !amount || !address || !collectorId){
     alert("Fill all fields");
     return;
   }
@@ -262,13 +288,19 @@ window.createLoan = async ()=>{
     borrowerName:name,
     amount,
     balance:amount,
-    status:"active",
+    address,
+    status:"assigned",
     assignedCollectorId:collectorId,
     assignedCollectorName:collectorName,
     createdAt:serverTimestamp()
   });
 
-  alert("Loan Created!");
+  alert("✅ Loan Created and Assigned!");
+  
+  // Clear fields
+  document.getElementById("borrowerName").value = "";
+  document.getElementById("amount").value = "";
+  document.getElementById("address").value = "";
 };
 
 </script>

@@ -1,3 +1,6 @@
+import { db } from "./firebase.js";
+import { getDocs, collection, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 window.assignCollector = async (loanId) => {
 
   const usersSnap = await getDocs(collection(db, "users"));

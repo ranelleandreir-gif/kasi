@@ -74,26 +74,21 @@ button:hover{
 
 <div class="header">
   <h1>💰 CASHIER SYSTEM PRO</h1>
-  <p>Payments & Loan Management</p>
+  <p>Confirm Payments from Collectors</p>
 </div>
 
 <div class="container">
 
-  <!-- PAYMENT FORM -->
+  <!-- COLLECTED LOANS -->
   <div class="card">
-    <h2>💳 Accept Payment</h2>
-
-    <input id="loanId" placeholder="Loan ID">
-    <input id="borrower" placeholder="Borrower Name">
-    <input id="amountPaid" type="number" placeholder="Amount Paid">
-
-    <button onclick="payLoan()">Submit Payment</button>
+    <h2>📦 Collected by Riders</h2>
+    <div id="loansList"></div>
   </div>
 
-  <!-- TRANSACTIONS -->
+  <!-- PAYMENT HISTORY -->
   <div class="card">
-    <h2>📊 Transactions</h2>
-    <div id="transactions"></div>
+    <h2>📜 Payment History</h2>
+    <div id="paymentsList"></div>
   </div>
 
 </div>
@@ -127,77 +122,141 @@ onAuthStateChanged(auth, async (user)=>{
   cashierId = user.uid;
 
   const snap = await getDoc(doc(db,"users",user.uid));
-  cashierName = snap.data().assignedName;
+  if (snap.exists()) {
+    cashierName = snap.data().assignedName || snap.data().name || "Cashier";
+  }
 
-  loadTransactions();
+  loadLoans();
+  loadPayments();
 });
+
+/* =========================
+   📦 LOAD COLLECTED LOANS
+========================= */
+function loadLoans(){
+
+  onSnapshot(collection(db,"loans"), (snap)=>{
+
+    const loansDiv = document.getElementById("loansList");
+    if(!loansDiv) return;
+
+    loansDiv.innerHTML = "";
+
+    snap.forEach(d=>{
+
+      const l = d.data();
+
+      // Show only COLLECTED loans
+      if(l.status !== "collected") return;
+
+      const div = document.createElement("div");
+      div.className = "item";
+
+      div.innerHTML = `
+        <b>👤 ${l.borrowerName}</b><br>
+        💰 Amount: ₱${l.amount}<br>
+        💵 Balance: ₱${l.balance}<br>
+        🚚 Collector: ${l.assignedCollectorName || "N/A"}<br>
+        📍 Address: ${l.address || "N/A"}<br><br>
+        
+        <input type="number" placeholder="Enter amount paid" id="pay-${d.id}" min="0" max="${l.balance}" style="width:100%; padding:8px; margin:8px 0; border-radius:6px; border:none;"><br>
+        
+        <button onclick="payLoan('${d.id}','${l.borrowerName}',${l.balance})" style="width:100%; padding:10px; margin:8px 0; background:#10b981; border:none; border-radius:6px; color:white; cursor:pointer; font-weight:bold;">
+          ✔ Confirm Payment
+        </button>
+      `;
+
+      loansDiv.appendChild(div);
+    });
+
+    if(loansDiv.innerHTML === "") {
+      loansDiv.innerHTML = "<p>📭 No collected loans to confirm</p>";
+    }
+  });
+}
 
 /* =========================
    💰 PAY LOAN FUNCTION
 ========================= */
-window.payLoan = async function(){
+window.payLoan = async (loanId, borrowerName, currentBalance) => {
 
-  const loanId = document.getElementById("loanId").value;
-  const borrower = document.getElementById("borrower").value;
-  const amountPaid = Number(document.getElementById("amountPaid").value);
+  const input = document.getElementById("pay-" + loanId);
+  const amountPaid = Number(input.value);
 
-  if(!loanId || !amountPaid){
-    alert("Fill all fields");
+  if(!amountPaid || amountPaid <= 0) {
+    alert("Enter valid amount");
     return;
   }
 
-  const loanRef = doc(db,"loans",loanId);
-  const loanSnap = await getDoc(loanRef);
-
-  if(!loanSnap.exists()){
-    alert("Loan not found");
+  if(amountPaid > currentBalance) {
+    alert(`Cannot pay more than balance (₱${currentBalance})`);
     return;
   }
 
-  const loan = loanSnap.data();
+  const newBalance = currentBalance - amountPaid;
 
-  let newBalance = loan.balance - amountPaid;
+  try {
+    const loanRef = doc(db, "loans", loanId);
 
-  if(newBalance < 0) newBalance = 0;
+    /* UPDATE LOAN BALANCE */
+    await updateDoc(loanRef, {
+      balance: newBalance,
+      status: newBalance === 0 ? "paid" : "collected",
+      confirmedAt: serverTimestamp(),
+      confirmedById: cashierId
+    });
 
-  /* UPDATE LOAN BALANCE */
-  await updateDoc(loanRef,{
-    balance: newBalance,
-    status: newBalance === 0 ? "paid" : "active"
-  });
+    /* SAVE PAYMENT HISTORY */
+    await addDoc(collection(db, "payments"), {
+      loanId,
+      borrowerName,
+      amountPaid,
+      remainingBalance: newBalance,
+      cashierId,
+      cashierName,
+      createdAt: serverTimestamp()
+    });
 
-  /* SAVE PAYMENT HISTORY */
-  await addDoc(collection(db,"payments"),{
-    loanId,
-    borrowerName: borrower,
-    amountPaid,
-    remainingBalance: newBalance,
-    cashierId,
-    cashierName,
-    createdAt: serverTimestamp()
-  });
-
-  alert("Payment recorded!");
+    alert(`✅ Payment confirmed! Remaining: ₱${newBalance}`);
+    input.value = "";
+  } catch(error) {
+    alert("Error: " + error.message);
+  }
 };
 
 /* =========================
-   📊 LOAD TRANSACTIONS
+   📊 LOAD PAYMENT HISTORY
 ========================= */
-function loadTransactions(){
+function loadPayments(){
 
-  onSnapshot(collection(db,"payments"),(snap)=>{
+  onSnapshot(collection(db, "payments"), (snap)=>{
 
-    const div = document.getElementById("transactions");
-    div.innerHTML="";
+    const div = document.getElementById("paymentsList");
+    if(!div) return;
+
+    div.innerHTML = "";
 
     snap.forEach(d=>{
 
       const p = d.data();
 
       const item = document.createElement("div");
-      item.className="item";
+      item.className = "item";
 
-      item.innerHTML=`
+      item.innerHTML = `
+        👤 ${p.borrowerName}<br>
+        💰 Paid: ₱${p.amountPaid}<br>
+        📉 Balance: ₱${p.remainingBalance}<br>
+        👨‍💼 Cashier: ${p.cashierName}<br>
+        ⏰ ${new Date(p.createdAt.toDate()).toLocaleString()}
+      `;
+
+      div.appendChild(item);
+    });
+  });
+}
+
+</script>
         <b>${p.borrowerName}</b><br>
         Paid: ₱${p.amountPaid}<br>
         Balance: ₱${p.remainingBalance}<br>

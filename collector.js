@@ -34,7 +34,7 @@ function loadTasks() {
     list.innerHTML = "";
 
     if (snapshot.empty) {
-      list.innerHTML = "<p>No assigned tasks</p>";
+      list.innerHTML = "<p>📭 No assigned tasks</p>";
       return;
     }
 
@@ -48,8 +48,9 @@ function loadTasks() {
       div.innerHTML = `
         <h3>👤 ${d.borrowerName}</h3>
         <p>💰 ₱${d.amount}</p>
-        <p>📍 ${d.address || "No address"}</p>
-        <p>Status: <b>${d.status}</b></p>
+        <p>📍 Address: ${d.address || "No address"}</p>
+        <p>📦 Status: <b>${d.status}</b></p>
+        <p>⏰ Balance: ₱${d.balance}</p>
 
         <button class="done">✔ Collected</button>
         <button class="pending">⏳ Unpaid</button>
@@ -60,12 +61,14 @@ function loadTasks() {
           status: "collected",
           collectedAt: serverTimestamp()
         });
+        alert("Marked as collected! Cashier will confirm payment.");
       };
 
       div.querySelector(".pending").onclick = async () => {
         await updateDoc(doc(db, "loans", docSnap.id), {
           status: "unpaid"
         });
+        alert("Marked as unpaid.");
       };
 
       list.appendChild(div);
