@@ -59,20 +59,140 @@ body {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   font-size: 1.2rem;
   font-weight: 800;
 }
 
+.brand img,
 .brand span {
   display: inline-block;
-  width: 42px;
-  height: 42px;
+  width: 50px;
+  height: 50px;
   border-radius: 16px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   display: grid;
   place-items: center;
   color: #071018;
+}
+
+.brand img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+
+.nav-links {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.nav-link-item {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 12px 18px;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.nav-link-item:hover {
+  background: rgba(59,130,246,0.14);
+  transform: translateY(-1px);
+}
+
+.section-block {
+  padding: 40px 0;
+}
+
+.section-title {
+  margin: 0 0 18px;
+  font-size: clamp(2rem, 2.5vw, 2.6rem);
+}
+
+.card-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.section-card {
+  background: rgba(10,14,25,0.95);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  padding: 26px;
+  box-shadow: var(--shadow);
+}
+
+.section-card h3 {
+  margin-top: 0;
+}
+
+.section-card p {
+  margin: 14px 0 0;
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+.branch-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.branch-card {
+  border-radius: 22px;
+  padding: 22px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.contact-card {
+  padding: 28px;
+  border-radius: 24px;
+  background: rgba(10,14,25,0.95);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.contact-card h3 {
+  margin-top: 0;
+}
+
+.contact-item {
+  margin-bottom: 16px;
+}
+
+.contact-item strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.footer {
+  margin-top: 40px;
+  padding: 26px 0 10px;
+  text-align: center;
+  color: var(--muted);
+}
+
+@media (max-width: 980px) {
+  .card-row,
+  .contact-grid,
+  .branch-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .nav-button {
@@ -316,35 +436,148 @@ input, select {
 <body>
 <div class="page">
   <header class="header">
-    <div class="brand"><span>🟢</span>Kasipag</div>
+    <div class="brand"><img src="logo.png" alt="Kasipag logo"><span>KASIPAG</span></div>
+    <div class="nav-links">
+      <a class="nav-link-item" href="#whats-new">WHAT’S NEW</a>
+      <a class="nav-link-item" href="#ngo-activities">KASIPAG N.G.O. ACTIVITIES</a>
+      <a class="nav-link-item" href="#about">About Us</a>
+      <a class="nav-link-item" href="#services">Services</a>
+      <a class="nav-link-item" href="#branch-locator">BRANCH LOCATOR</a>
+      <a class="nav-link-item" href="#contact">Contact Us</a>
+    </div>
     <button class="nav-button" onclick="goLogin()">Go to Portal</button>
   </header>
 
-  <section class="hero">
+  <section id="whats-new" class="hero">
     <div class="hero-card">
-      <h1>Modern <em>Microfinancing</em> for Collectors, Cashiers, and Admins</h1>
-      <p>Kasipag helps manage loans, collections, and payments in a clear, secure, and professional dashboard experience — built for fast field operations and real-time role-based workflows.</p>
+      <h1>KASIPAG OR KAtulong Sa Inyong PAGunlad</h1>
+      <p>“To Help, To Create and To Provide”</p>
+      <p>A financial assistance for lower interest rates and longer period of payment.</p>
       <div class="hero-actions">
         <button class="primary-button" onclick="openModal()">Create Account</button>
-        <button class="secondary-button" onclick="goLogin()">Sign In</button>
+        <button class="secondary-button" onclick="goLogin()">Go to Portal</button>
       </div>
       <div class="feature-grid" style="margin-top: 34px;">
-        <div class="feature-card"><strong>Fast approval</strong>New accounts are routed through admin review for reliable security.</div>
-        <div class="feature-card"><strong>Role clarity</strong>Approved users enter the exact dashboard they need.</div>
-        <div class="feature-card"><strong>Mobile ready</strong>Designed for field teams who need work on any device.</div>
+        <div class="feature-card"><strong>WHAT’S NEW</strong>See the latest KASIPAG updates and community outreach activities.</div>
+        <div class="feature-card"><strong>NGO ACTIVITIES</strong>Programs that support environment care, food security, and financial literacy.</div>
+        <div class="feature-card"><strong>Branch Locator</strong>107 branches across North and Central Luzon to serve your community.</div>
       </div>
     </div>
 
-    <div class="info-panel">
-      <h2>Professional workflow</h2>
-      <p>Kasipag connects borrower assignment, collection tracking, and cashier confirmation in one polished system. Every role sees only what matters, and admin approval keeps access secure.</p>
-      <div class="feature-grid">
-        <div class="feature-card"><strong>Clean interface</strong>Readable cards, subtle animations, and modern gradients.</div>
-        <div class="feature-card"><strong>Role-based control</strong>Admin, cashier, and collector portals are separated clearly.</div>
-        <div class="feature-card"><strong>Responsive build</strong>Mobile-friendly layouts with fast load performance.</div>
+    <div class="info-panel" id="ngo-activities">
+      <h2>KASIPAG N.G.O. ACTIVITIES</h2>
+      <p>KASIPAG N.G.O. provides microfinancing and other services to common people and uplifts their self-esteem by entrusting soft loans with lower interest rates and longer payment period while at the same time involving them and encouraging them to participate in improving the environment.</p>
+      <p>We help clients realize their aspirations and make them aim for bigger goals while teaching them the value of integrity, cooperation, hard work, planning, saving for the future, and instilling love for Mother Earth — which will eventually help improve their lives.</p>
+    </div>
+  </section>
+
+  <section id="about" class="section-block">
+    <h2 class="section-title">About Us</h2>
+    <div class="card-row">
+      <div class="section-card">
+        <h3>MISSION</h3>
+        <p>To provide microfinancing and other services to common people and uplift their self-esteem by entrusting soft loans with lower interest rates and longer payment period and at the same time involve them and encourage them to participate in improving the environment. Help them realize their aspirations and make them aim for bigger goals while teaching them the value of integrity, cooperation, hard work, planning, saving for the future and instill love for Mother Earth which will eventually help improve their lives.</p>
+      </div>
+      <div class="section-card">
+        <h3>VISION</h3>
+        <p>KASIPAG will be a helping hand and byword in Microfinancing and other NGO Services not only in Luzon but also in other regions in the Philippines while continuing to provide financial assistance and promote food security and environment awareness. Through having worthwhile programs and activities promoting these endeavors and likewise advocate better living conditions for people with integrity, who are hardworking, knowledgeable of sound financial management and values love for Mother Earth.</p>
+      </div>
+    </div>
+    <div class="section-card" style="margin-top: 24px;">
+      <h3>KASIPAG OR KAtulong Sa Inyong PAGunlad</h3>
+      <p>“To Help, To Create and To Provide”</p>
+      <p>-A financial assistance for lower interest rates and longer period of payment-</p>
+      <p>KASIPAG is a corporation started in 2015 as a family business located at Barangay Papaya, San Antonio Nueva Ecija. Currently managed by Ms. Sharon S. Apostol – President together with her youngest brother Mr. Winkle Sulit – Vice President. Kasipag saw that lack of capital was keeping small businesses. Traditional loan was too large, expensive and inaccessible for the people. Kasipag come up with an idea, if the client groups to share a loan and guarantee repayment they could access the funds they need to invest in their small business. The idea provides to be versatile and revolutionary in the urban and rural areas. It was the dawn of KASIPAG Microfinancing, Inc.</p>
+      <p>KASIPAG has 107 branches already in North and Central Luzon like Albay, Abra, Aurora, Bataan, Batangas, Benguet, Bulacan, Cagayan, Cam Sur, Cavite, Ilocos Norte, Ilocos Sur, Isabela, La Union, Laguna, Nueva Ecija, Nueva Vizcaya, Pampanga, Pangasinan, Quezon, Quirino, Rizal, Tarlac, Sorsogon and Zambales. We will continue to PROVIDE assistance to those who are in need, will CREATE more programs for the progress of the many and also to HELP enhanced and improved their quality of life.</p>
+    </div>
+  </section>
+
+  <section id="services" class="section-block">
+    <h2 class="section-title">Services</h2>
+    <div class="card-row">
+      <div class="section-card">
+        <h3>Microfinancing</h3>
+        <p>Flexible loans for small businesses, group financing, and community projects with manageable repayment plans.</p>
+      </div>
+      <div class="section-card">
+        <h3>NGO Activities</h3>
+        <p>Programs that promote financial literacy, environmental care, and sustainable livelihoods for underserved communities.</p>
+      </div>
+    </div>
+    <div class="card-row" style="margin-top:18px;">
+      <div class="section-card">
+        <h3>Branch Support</h3>
+        <p>Network operations, local onboarding, and branch-level services across Luzon to keep communities connected and supported.</p>
+      </div>
+      <div class="section-card">
+        <h3>Portal Access</h3>
+        <p>Role-specific dashboard access for admins, collectors, and cashiers so every team member has a clear and secure workflow.</p>
       </div>
     </div>
   </section>
+
+  <section id="branch-locator" class="section-block">
+    <h2 class="section-title">Branch Locator</h2>
+    <p style="max-width: 780px; color: var(--muted);">KASIPAG already serves communities across North and Central Luzon, with branch operations in the following provinces.</p>
+    <div class="branch-grid">
+      <div class="branch-card">Albay</div>
+      <div class="branch-card">Abra</div>
+      <div class="branch-card">Aurora</div>
+      <div class="branch-card">Bataan</div>
+      <div class="branch-card">Batangas</div>
+      <div class="branch-card">Benguet</div>
+      <div class="branch-card">Bulacan</div>
+      <div class="branch-card">Cagayan</div>
+      <div class="branch-card">Cam Sur</div>
+      <div class="branch-card">Cavite</div>
+      <div class="branch-card">Ilocos Norte</div>
+      <div class="branch-card">Ilocos Sur</div>
+      <div class="branch-card">Isabela</div>
+      <div class="branch-card">La Union</div>
+      <div class="branch-card">Laguna</div>
+      <div class="branch-card">Nueva Ecija</div>
+      <div class="branch-card">Nueva Vizcaya</div>
+      <div class="branch-card">Pampanga</div>
+      <div class="branch-card">Pangasinan</div>
+      <div class="branch-card">Quezon</div>
+      <div class="branch-card">Quirino</div>
+      <div class="branch-card">Rizal</div>
+      <div class="branch-card">Tarlac</div>
+      <div class="branch-card">Sorsogon</div>
+      <div class="branch-card">Zambales</div>
+    </div>
+  </section>
+
+  <section id="contact" class="section-block">
+    <h2 class="section-title">Contact Us</h2>
+    <div class="contact-grid">
+      <div class="contact-card">
+        <div class="contact-item">
+          <strong>Head Office</strong>
+          Sulitino Bldg., Purok 3, Papaya, San Antonio, Nueva Ecija 3108
+        </div>
+        <div class="contact-item">
+          <strong>Email</strong>
+          kmiict@kasipag.org
+        </div>
+        <div class="contact-item">
+          <strong>Phone</strong>
+          +63 915 084 7468
+        </div>
+      </div>
+      <div class="contact-card">
+        <div class="contact-item">
+          <strong>BOARD OF DIRECTORS & OFFICERS</strong>
+          <p>MR. RAYMUNDO S. SULIT</p>
+          <p>CEO/CHAIRMAN OF THE BOARD</p>
+          <p>Ms. Sharon S. Apostol — President</p>
+          <p>Mr. Winkle Sulit — Vice President</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer">© 2026 mykasipag. Built using WordPress and the Mesmerize Theme</div>
 </div>
 
 <div class="modal" id="modal">

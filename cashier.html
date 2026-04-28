@@ -124,6 +124,72 @@ body::before {
   box-shadow: 0 24px 45px rgba(34,197,94,0.12);
 }
 
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 24px;
+}
+
+.sidebar {
+  background: rgba(15,23,42,0.96);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 24px;
+  padding: 24px;
+  position: sticky;
+  top: 24px;
+  min-height: 420px;
+}
+
+.sidebar h2 {
+  margin: 0 0 20px;
+  font-size: 1.1rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 1px solid rgba(148,163,184,0.12);
+  background: transparent;
+  color: inherit;
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: background .2s ease, border-color .2s ease;
+}
+
+.nav-link.active {
+  background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(34,197,94,0.14));
+  border-color: rgba(59,130,246,0.55);
+}
+
+.nav-link:hover {
+  border-color: rgba(59,130,246,0.35);
+}
+
+.sidebar-summary {
+  margin-top: 28px;
+  display: grid;
+  gap: 12px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(148,163,184,0.16);
+}
+
+.summary-item strong {
+  font-size: 0.98rem;
+}
+
 .header-content h1 {
   margin: 0;
   font-size: clamp(2rem, 2.5vw, 2.8rem);
@@ -335,6 +401,15 @@ button:hover {
     padding: 20px 12px 32px;
   }
 
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    top: auto;
+  }
+
   .container {
     grid-template-columns: 1fr;
   }
@@ -375,6 +450,20 @@ button:hover {
       <span id="actionMessage">Please wait while the system updates your dashboard.</span>
     </div>
   </div>
+  <div class="dashboard-grid">
+    <aside class="sidebar">
+      <h2>Cashier Menu</h2>
+      <button class="nav-link active">Collected Loans</button>
+      <button class="nav-link">Payment History</button>
+      <button class="nav-link" onclick="window.location.href='collector.html'">Collector Portal</button>
+      <button class="nav-link" onclick="window.location.href='role-selector.html'">Role Selector</button>
+      <div class="sidebar-summary">
+        <div class="summary-item"><strong>Collected</strong><span id="sideCollected">0</span></div>
+        <div class="summary-item"><strong>Pending</strong><span id="sidePending">0</span></div>
+        <div class="summary-item"><strong>Payments</strong><span id="sidePayments">0</span></div>
+      </div>
+    </aside>
+    <div class="main-panel">
   <section class="header">
     <div class="header-content">
       <h1>💰 Cashier Dashboard</h1>
@@ -461,7 +550,8 @@ function buildLoanCard(l, id) {
         <div>💰 Amount: <strong>₱${l.amount}</strong></div>
         <div>💵 Balance: <strong>₱${l.balance}</strong></div>
         <div>🚚 Collector: <strong>${l.assignedCollectorName || "N/A"}</strong></div>
-        <div>📍 Address: <strong>${l.address || "N/A"}</strong></div>
+        <div>Cashier: <strong>${l.assignedCashierName || "Unassigned"}</strong></div>
+        <div>Address: <strong>${l.address || "N/A"}</strong></div>
       </div>
       <div class="input-group">
         <input type="number" placeholder="Enter amount paid" id="pay-${id}" min="0" max="${l.balance}" />
@@ -480,6 +570,7 @@ function loadLoans() {
     snap.forEach((d) => {
       const l = d.data();
       if (l.status !== "collected") return;
+      if (l.assignedCashierId && l.assignedCashierId !== cashierId) return;
       count += 1;
       pendingCount += 1;
       loansList.insertAdjacentHTML("beforeend", buildLoanCard(l, d.id));
@@ -487,6 +578,8 @@ function loadLoans() {
 
     summaryCollected.innerText = count;
     summaryPending.innerText = pendingCount;
+    document.getElementById("sideCollected").innerText = count;
+    document.getElementById("sidePending").innerText = pendingCount;
 
     if (count === 0) {
       loansList.innerHTML = `<div class="empty-state">No collected loans available for confirmation.</div>`;
@@ -543,6 +636,7 @@ function loadPayments() {
 
     snap.forEach((d) => {
       const p = d.data();
+      if (p.cashierId !== cashierId) return;
       count += 1;
       const item = document.createElement("div");
       item.className = "item";
@@ -561,6 +655,7 @@ function loadPayments() {
     });
 
     summaryPayments.innerText = count;
+    document.getElementById("sidePayments").innerText = count;
 
     if (count === 0) {
       paymentsList.innerHTML = `<div class="empty-state">No payment history yet.</div>`;

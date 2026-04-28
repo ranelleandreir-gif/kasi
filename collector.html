@@ -99,6 +99,72 @@ body::before {
   to { transform: rotate(360deg); }
 }
 
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 24px;
+}
+
+.sidebar {
+  background: rgba(15,23,42,0.96);
+  border: 1px solid rgba(148,163,184,0.16);
+  border-radius: 24px;
+  padding: 24px;
+  position: sticky;
+  top: 24px;
+  min-height: 420px;
+}
+
+.sidebar h2 {
+  margin: 0 0 20px;
+  font-size: 1.1rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 1px solid rgba(148,163,184,0.12);
+  background: transparent;
+  color: white;
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: background .2s ease, border-color .2s ease;
+}
+
+.nav-link.active {
+  background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(34,197,94,0.14));
+  border-color: rgba(59,130,246,0.55);
+}
+
+.nav-link:hover {
+  border-color: rgba(59,130,246,0.35);
+}
+
+.sidebar-summary {
+  margin-top: 28px;
+  display: grid;
+  gap: 12px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(148,163,184,0.16);
+}
+
+.summary-item strong {
+  font-size: 0.98rem;
+}
+
 /* TOP BAR */
 .top{
   padding:24px 24px 20px;
@@ -259,6 +325,16 @@ button{
   transition: transform .18s ease, box-shadow .18s ease;
 }
 
+select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: white;
+  margin-top: 8px;
+}
+
 button:hover {
   transform: translateY(-1px);
 }
@@ -270,6 +346,15 @@ button:hover {
   .page {
     width: calc(100% - 24px);
     padding: 20px 12px 32px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    top: auto;
   }
 
   .stats {
@@ -360,7 +445,22 @@ button:hover {
     </div>
   </div>
 
-  <div class="top">
+  <div class="dashboard-grid">
+    <aside class="sidebar">
+      <h2>Collector Menu</h2>
+      <button class="nav-link active">Assigned Loans</button>
+      <button class="nav-link">Collect & Assign</button>
+      <button class="nav-link" onclick="window.location.href='cashier.html'">Cashier Portal</button>
+      <button class="nav-link" onclick="window.location.href='role-selector.html'">Role Selector</button>
+      <div class="sidebar-summary">
+        <div class="summary-item"><strong>Total</strong><span id="sideTotal">0</span></div>
+        <div class="summary-item"><strong>Collected</strong><span id="sideCollected">0</span></div>
+        <div class="summary-item"><strong>Unpaid</strong><span id="sideUnpaid">0</span></div>
+      </div>
+    </aside>
+
+    <div class="main-panel">
+      <div class="top">
     <div class="top-content">
       <h1>💀 Collector Dashboard</h1>
       <p>Track and collect payments from assigned borrowers. Mark loans as collected or unpaid.</p>
@@ -388,6 +488,8 @@ button:hover {
 
   <!-- LIST -->
   <div id="list"></div>
+    </div>
+  </div>
 </div>
 
 <script type="module">
@@ -399,8 +501,34 @@ import {
   onSnapshot,
   doc,
   updateDoc,
-  serverTimestamp
+  serverTimestamp,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+let cashiers = [];
+
+async function loadCashiers() {
+  const usersSnap = await getDocs(collection(db, "users"));
+  cashiers = [];
+  usersSnap.forEach(d => {
+    const u = d.data();
+    if (u.role === "cashier" && u.status === "approved") {
+      cashiers.push({
+        id: d.id,
+        name: u.assignedName || u.name || u.email
+      });
+    }
+  });
+}
+
+function cashierOptions(loan) {
+  let options = "<option value=''>Select a cashier</option>";
+  cashiers.forEach(c => {
+    const selected = loan.assignedCashierId === c.id ? "selected" : "";
+    options += `<option value="${c.id}" ${selected}>${c.name}</option>`;
+  });
+  return options;
+}
 
 /* 👤 COLLECTOR ID */
 const collectorId = localStorage.getItem("uid");
@@ -412,11 +540,12 @@ const q = query(
 );
 
 /* REAL TIME SYSTEM */
-onSnapshot(q,(snap)=>{
+onSnapshot(q, async (snap) => {
+  await loadCashiers();
 
-  let total=0;
-  let collected=0;
-  let unpaid=0;
+  let total = 0;
+  let collected = 0;
+  let unpaid = 0;
 
   const list = document.getElementById("list");
   list.innerHTML="";
@@ -437,7 +566,10 @@ onSnapshot(q,(snap)=>{
       <p>💰 ₱${data.amount}</p>
       <p>📍 ${data.address || "No address"}</p>
       <p>Status: ${data.status}</p>
-
+      <p>Cashier: <strong>${data.assignedCashierName || "Not assigned"}</strong></p>
+      <div class="row">
+        <select id="cashier-${d.id}">${cashierOptions(data)}</select>
+      </div>
       <div class="row">
         <button class="collected">✔ Collected</button>
         <button class="unpaid">❌ Unpaid</button>
@@ -445,10 +577,21 @@ onSnapshot(q,(snap)=>{
     `;
 
     /* ✔ COLLECTED */
-    card.querySelector(".collected").onclick = async ()=>{
-      await updateDoc(doc(db,"loans",d.id),{
-        status:"collected",
-        collectedAt:serverTimestamp()
+    card.querySelector(".collected").onclick = async () => {
+      const select = card.querySelector(`#cashier-${d.id}`);
+      const selectedId = select?.value;
+      const selectedCashier = cashiers.find(c => c.id === selectedId);
+
+      if (cashiers.length > 0 && !selectedId) {
+        alert("Please select a cashier before marking collected.");
+        return;
+      }
+
+      await updateDoc(doc(db, "loans", d.id), {
+        status: "collected",
+        collectedAt: serverTimestamp(),
+        assignedCashierId: selectedCashier?.id || null,
+        assignedCashierName: selectedCashier?.name || ""
       });
     };
 
@@ -466,6 +609,9 @@ onSnapshot(q,(snap)=>{
   document.getElementById("total").innerText=total;
   document.getElementById("collected").innerText=collected;
   document.getElementById("unpaid").innerText=unpaid;
+  document.getElementById("sideTotal").innerText=total;
+  document.getElementById("sideCollected").innerText=collected;
+  document.getElementById("sideUnpaid").innerText=unpaid;
 
 });
 </script>

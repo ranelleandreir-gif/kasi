@@ -187,5 +187,5 @@ function loadPayments() {
 // =====================
 window.logout = async () => {
   await signOut(auth);
-  window.location.href = "login.html";
+  window.location.href = "role-selector.html";
 };
