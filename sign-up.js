@@ -21,19 +21,22 @@ window.signup = async function () {
     // 🔥 CREATE AUTH USER
     const userCred = await createUserWithEmailAndPassword(auth, email, password);
 
-    // 🔥 COUNT EXISTING USERS PER ROLE
+    // 🔥 GET USERS
     const snap = await getDocs(collection(db, "users"));
 
     let cashierCount = 0;
     let collectorCount = 0;
 
-    snap.forEach(doc => {
-      const d = doc.data();
-      if (d.role === "cashier" && d.status === "approved") cashierCount++;
-      if (d.role === "collector" && d.status === "approved") collectorCount++;
+    snap.forEach((userDoc) => {
+      const data = userDoc.data();
+
+      if (data.status === "approved") {
+        if (data.role === "cashier") cashierCount++;
+        if (data.role === "collector") collectorCount++;
+      }
     });
 
-    // 🔥 AUTO ASSIGN NUMBER
+    // 🔥 AUTO ASSIGN NAME
     let assignedName = "";
 
     if (role === "cashier") {
@@ -51,7 +54,7 @@ window.signup = async function () {
       status: "pending"
     });
 
-    msg.textContent = "Request sent. Waiting for admin approval.";
+    msg.textContent = `Request sent as ${assignedName}. Wait admin approval.`;
     msg.style.color = "green";
 
   } catch (err) {
