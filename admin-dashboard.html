@@ -539,6 +539,17 @@ function loadUsers() {
     renderFolder("🚚 Collectors", folders.collector, usersDiv);
     renderFolder("👑 Admin", folders.admin, usersDiv);
 
+    const collectorSelect = document.getElementById("collectorSelect");
+    if (collectorSelect) {
+      collectorSelect.innerHTML = "<option value=''>Select a collector</option>";
+      folders.collector.forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id;
+        option.textContent = c.assignedName || c.name || c.email;
+        collectorSelect.appendChild(option);
+      });
+    }
+
     document.getElementById("totalUsers").textContent = snap.size;
     document.getElementById("pending").textContent = folders.pending.length;
     document.getElementById("approved").textContent = folders.cashier.length + folders.collector.length + folders.admin.length;
