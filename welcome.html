@@ -17,32 +17,28 @@ body{
   overflow:hidden;
 }
 
-/* container */
 .box{
   text-align:center;
   color:white;
-  animation: fadeIn 1s ease forwards;
-  transform:scale(0.5);
+  animation: fadeIn 0.8s ease forwards;
+  transform:scale(0.6);
   opacity:0;
 }
 
-/* big text */
 h1{
   font-size:40px;
   margin:0;
   background: linear-gradient(90deg,#3b82f6,#22c55e,#f59e0b);
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
-  animation: zoom 1.2s ease forwards;
+  animation: zoom 1s ease forwards;
 }
 
-/* sub text */
 p{
   opacity:0.7;
   margin-top:10px;
 }
 
-/* animations */
 @keyframes fadeIn{
   to{
     opacity:1;
@@ -55,7 +51,6 @@ p{
   to{transform:scale(1);}
 }
 
-/* loader dots */
 .dots::after{
   content:"";
   animation:dots 1.2s infinite;
@@ -79,10 +74,12 @@ p{
 </div>
 
 <script>
-  // auto redirect after 2.5 seconds
-  setTimeout(() => {
-    window.location.href = "admin-dashboard.html";
-  }, 2500);
+  // safer redirect
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      window.location.replace("admin-dashboard.html");
+    }, 2500);
+  });
 </script>
 
 </body>

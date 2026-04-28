@@ -19,24 +19,24 @@ loginBtn.addEventListener("click", async () => {
   loginBtn.disabled = true;
 
   try {
+
     const userCred = await signInWithEmailAndPassword(auth, email, password);
 
-    const userDoc = await getDoc(doc(db, "users", userCred.user.uid));
+    const userRef = doc(db, "users", userCred.user.uid);
+    const userSnap = await getDoc(userRef);
 
-    if (!userDoc.exists()) {
-      alert("No user data found");
-      return;
+    if (!userSnap.exists()) {
+      throw new Error("No user data found in Firestore");
     }
 
-    const data = userDoc.data();
+    const data = userSnap.data();
 
-    // 🔥 ROLE REDIRECT FIXED
     if (data.role === "admin") {
       window.location.href = "welcome.html";
-    } 
+    }
     else if (data.role === "cashier") {
       window.location.href = "cashier.html";
-    } 
+    }
     else {
       window.location.href = "collector.html";
     }
