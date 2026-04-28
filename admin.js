@@ -5,7 +5,6 @@ import {
   updateDoc,
   deleteDoc,
   onSnapshot,
-  query,
   getDocs,
   addDoc,
   serverTimestamp
@@ -15,49 +14,48 @@ import { onAuthStateChanged }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const usersDiv = document.getElementById("users");
-const tasksDiv = document.getElementById("tasks");
+const loansDiv = document.getElementById("tasks");
+
 
 // =====================
 // 🔐 ADMIN CHECK
 // =====================
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, (user) => {
   if (!user) {
     window.location.href = "login.html";
     return;
   }
 
   loadUsers();
-  loadTasks();
+  loadLoans();
   loadAnalytics();
 });
 
 
 // =====================
-// 👤 USERS REAL-TIME
+// 👤 USERS
 // =====================
 function loadUsers() {
 
-  onSnapshot(query(collection(db, "users")), (snapshot) => {
+  onSnapshot(collection(db, "users"), (snapshot) => {
 
-    usersDiv.innerHTML = "<h2>👤 USERS (LIVE)</h2>";
+    usersDiv.innerHTML = "<h2>👤 USERS</h2>";
 
     snapshot.forEach((docSnap) => {
 
-      const d = docSnap.data();
+      const u = docSnap.data();
 
       const div = document.createElement("div");
-      div.style.padding = "10px";
-      div.style.margin = "10px";
-      div.style.borderRadius = "8px";
-      div.style.background = "rgba(255,255,255,0.08)";
+      div.className = "user";
 
       div.innerHTML = `
-        <p>Email: ${d.email}</p>
-        <p>Role: ${d.role}</p>
-        <p>Status: ${d.status || "pending"}</p>
-        <p>Assigned: ${d.assignedName || "-"}</p>
+        <b>${u.name}</b><br>
+        ${u.email}<br>
+        ${u.role} | ${u.status}<br>
+        ${u.assignedName || "-"}
 
-        <button onclick="approveUser('${docSnap.id}','${d.role}')">Approve</button>
+        <br><br>
+        <button onclick="approveUser('${docSnap.id}','${u.role}')">Approve</button>
         <button onclick="setRole('${docSnap.id}','cashier')">Cashier</button>
         <button onclick="setRole('${docSnap.id}','collector')">Collector</button>
         <button onclick="removeUser('${docSnap.id}')">Delete</button>
@@ -70,39 +68,36 @@ function loadUsers() {
 
 
 // =====================
-// 📦 TASKS REAL-TIME
+// 📦 LOANS
 // =====================
-function loadTasks() {
+function loadLoans() {
 
-  onSnapshot(query(collection(db, "loans")), (snapshot) => {
+  onSnapshot(collection(db, "loans"), (snapshot) => {
 
-    tasksDiv.innerHTML = "<h2>📦 LOANS (LIVE)</h2>";
+    loansDiv.innerHTML = "<h2>📦 LOANS</h2>";
 
     snapshot.forEach((docSnap) => {
 
-      const d = docSnap.data();
+      const l = docSnap.data();
 
       const div = document.createElement("div");
-      div.style.padding = "10px";
-      div.style.margin = "10px";
-      div.style.borderRadius = "8px";
-      div.style.background = "rgba(255,255,255,0.08)";
 
       div.innerHTML = `
-        <p>${d.borrowerName}</p>
-        <p>Balance: ${d.balance}</p>
-        <p>Collector: ${d.assignedCollectorName}</p>
-        <button onclick="deleteTask('${docSnap.id}')">Delete</button>
+        <b>${l.borrowerName}</b><br>
+        ₱${l.balance} | ${l.status}<br>
+        Collector: ${l.assignedCollectorName}<br><br>
+
+        <button onclick="deleteLoan('${docSnap.id}')">Delete</button>
       `;
 
-      tasksDiv.appendChild(div);
+      loansDiv.appendChild(div);
     });
   });
 }
 
 
 // =====================
-// 📊 ANALYTICS REAL-TIME
+// 📊 ANALYTICS
 // =====================
 function loadAnalytics() {
 
@@ -114,16 +109,16 @@ function loadAnalytics() {
     let cashiers = 0;
     let collectors = 0;
 
-    snap.forEach(doc => {
-      const d = doc.data();
+    snap.forEach(d => {
 
+      const u = d.data();
       total++;
 
-      if (d.status === "pending") pending++;
-      if (d.status === "approved") approved++;
+      if (u.status === "pending") pending++;
+      if (u.status === "approved") approved++;
 
-      if (d.role === "cashier") cashiers++;
-      if (d.role === "collector") collectors++;
+      if (u.role === "cashier") cashiers++;
+      if (u.role === "collector") collectors++;
     });
 
     document.getElementById("totalUsers").innerText = total;
@@ -136,7 +131,7 @@ function loadAnalytics() {
 
 
 // =====================
-// 🔥 APPROVE USER (AUTO NAME)
+// 🔥 APPROVE USER
 // =====================
 window.approveUser = async (id, role) => {
 
@@ -144,24 +139,22 @@ window.approveUser = async (id, role) => {
 
   let count = 0;
 
-  snap.forEach((d) => {
+  snap.forEach(d => {
     const u = d.data();
-    if (u.role === role && u.status === "approved") {
-      count++;
-    }
+    if (u.role === role && u.status === "approved") count++;
   });
 
-  const assignedName =
+  const assigned =
     role === "cashier"
       ? `cashier${count + 1}`
       : `collector${count + 1}`;
 
   await updateDoc(doc(db, "users", id), {
     status: "approved",
-    assignedName
+    assignedName: assigned
   });
 
-  alert("User Approved: " + assignedName);
+  alert("Approved: " + assigned);
 };
 
 
@@ -184,35 +177,55 @@ window.removeUser = async (id) => {
 // =====================
 // ❌ DELETE LOAN
 // =====================
-window.deleteTask = async (id) => {
+window.deleteLoan = async (id) => {
   await deleteDoc(doc(db, "loans", id));
 };
 
 
 // =====================
-// 💰 CREATE LOAN (ADMIN)
+// 💰 CREATE LOAN (AUTO ASSIGN COLLECTOR)
 // =====================
 window.createLoan = async () => {
 
   const name = document.getElementById("borrowerName").value;
   const amount = Number(document.getElementById("amount").value);
-  const collectorId = document.getElementById("collectorSelect").value;
-  const collectorName = document.getElementById("collectorName").value;
 
-  if (!name || !amount || !collectorId) {
+  if (!name || !amount) {
     alert("Fill all fields");
     return;
   }
+
+  const snap = await getDocs(collection(db, "users"));
+
+  let collectors = [];
+
+  snap.forEach(d => {
+    const u = d.data();
+    if (u.role === "collector" && u.status === "approved") {
+      collectors.push({
+        id: d.id,
+        name: u.assignedName
+      });
+    }
+  });
+
+  if (collectors.length === 0) {
+    alert("No collectors available");
+    return;
+  }
+
+  // 🔥 RANDOM ASSIGN
+  const assigned = collectors[Math.floor(Math.random() * collectors.length)];
 
   await addDoc(collection(db, "loans"), {
     borrowerName: name,
     amount,
     balance: amount,
-    assignedCollectorId: collectorId,
-    assignedCollectorName: collectorName,
     status: "active",
+    assignedCollectorId: assigned.id,
+    assignedCollectorName: assigned.name,
     createdAt: serverTimestamp()
   });
 
-  alert("Loan Created!");
+  alert("Loan assigned to " + assigned.name);
 };

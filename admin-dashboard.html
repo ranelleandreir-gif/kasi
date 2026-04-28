@@ -1,167 +1,243 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Admin Pro System</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultra Pro Admin</title>
 
 <style>
-body{
+*{
   margin:0;
+  padding:0;
+  box-sizing:border-box;
   font-family:Arial;
-  background:#0f172a;
-  color:white;
 }
 
-.header{
-  padding:20px;
-  background:#111827;
+/* 🌈 BACKGROUND ANIMATION */
+body{
   display:flex;
-  justify-content:space-between;
+  background: linear-gradient(-45deg,#0f172a,#111827,#0b1220,#1e293b);
+  background-size:400% 400%;
+  animation: bg 10s ease infinite;
+  color:white;
+  overflow:hidden;
 }
 
+@keyframes bg{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+
+/* SIDEBAR */
+.sidebar{
+  width:250px;
+  height:100vh;
+  position:fixed;
+  padding:20px;
+  background:rgba(255,255,255,0.06);
+  backdrop-filter:blur(15px);
+  box-shadow:0 0 30px rgba(0,0,0,0.5);
+}
+
+.sidebar h2{
+  margin-bottom:20px;
+}
+
+.nav button{
+  width:100%;
+  padding:12px;
+  margin:6px 0;
+  border:none;
+  border-radius:10px;
+  background:transparent;
+  color:white;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+.nav button:hover{
+  background:linear-gradient(90deg,#2563eb,#3b82f6);
+  transform:translateX(5px);
+}
+
+/* MAIN */
+.main{
+  margin-left:250px;
+  padding:25px;
+  width:100%;
+  animation:fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn{
+  from{opacity:0; transform:translateY(20px)}
+  to{opacity:1; transform:translateY(0)}
+}
+
+/* CARDS */
 .cards{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  gap:12px;
-  padding:20px;
+  grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+  gap:15px;
 }
 
 .card{
-  background:rgba(255,255,255,0.08);
-  padding:15px;
-  border-radius:10px;
-}
-
-.user{
   background:rgba(255,255,255,0.06);
-  margin:10px 20px;
-  padding:15px;
-  border-radius:10px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+  padding:20px;
+  border-radius:15px;
+  text-align:center;
+  backdrop-filter:blur(10px);
+  position:relative;
+  overflow:hidden;
+  transition:0.3s;
 }
 
+.card:hover{
+  transform:scale(1.05);
+  box-shadow:0 0 25px rgba(59,130,246,0.5);
+}
+
+/* SHINE EFFECT */
+.card::before{
+  content:"";
+  position:absolute;
+  width:200%;
+  height:200%;
+  top:-50%;
+  left:-50%;
+  background:linear-gradient(45deg,transparent,rgba(255,255,255,0.08),transparent);
+  transform:rotate(45deg);
+  animation:shine 3s infinite;
+}
+
+@keyframes shine{
+  0%{transform:translateX(-100%) rotate(45deg);}
+  100%{transform:translateX(100%) rotate(45deg);}
+}
+
+/* TABLE BOX */
+.box{
+  background:rgba(255,255,255,0.05);
+  padding:15px;
+  margin-top:15px;
+  border-radius:12px;
+  transition:0.3s;
+}
+
+.box:hover{
+  transform:translateY(-3px);
+}
+
+/* BUTTONS */
 button{
   padding:6px 10px;
   border:none;
   border-radius:6px;
   cursor:pointer;
   margin:2px;
+  transition:0.2s;
+}
+
+button:hover{
+  transform:scale(1.05);
 }
 
 .approve{background:#10b981;color:white;}
-.reject{background:#ef4444;color:white;}
+.delete{background:#ef4444;color:white;}
+
+/* TOAST */
+.toast{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#1f2937;
+  padding:12px 15px;
+  border-radius:10px;
+  opacity:0;
+  transform:translateY(20px);
+  transition:0.4s;
+}
+
+.toast.show{
+  opacity:1;
+  transform:translateY(0);
+}
+
+/* MOBILE */
+@media(max-width:768px){
+  .sidebar{width:100px;}
+  .main{margin-left:100px;}
+}
 </style>
 </head>
 
 <body>
 
-<div class="header">
-  <h2>📊 Admin Dashboard</h2>
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <h2>💼 ADMIN</h2>
+
+  <div class="nav">
+    <button onclick="show('dashboard')">📊 Dashboard</button>
+    <button onclick="show('users')">👤 Users</button>
+    <button onclick="show('loans')">📦 Loans</button>
+  </div>
 </div>
 
-<div class="cards">
-  <div class="card">👤 Total: <span id="total">0</span></div>
-  <div class="card">⏳ Pending: <span id="pending">0</span></div>
-  <div class="card">✅ Approved: <span id="approved">0</span></div>
-  <div class="card">💰 Cashiers: <span id="cashier">0</span></div>
-  <div class="card">📦 Collectors: <span id="collector">0</span></div>
+<!-- MAIN -->
+<div class="main">
+
+  <!-- DASHBOARD -->
+  <div id="dashboard">
+
+    <h2>📊 Live Dashboard</h2>
+
+    <div class="cards">
+      <div class="card">Total<br><h1 id="total">0</h1></div>
+      <div class="card">Pending<br><h1 id="pending">0</h1></div>
+      <div class="card">Approved<br><h1 id="approved">0</h1></div>
+      <div class="card">Cashiers<br><h1 id="cashiers">0</h1></div>
+      <div class="card">Collectors<br><h1 id="collectors">0</h1></div>
+    </div>
+
+  </div>
+
+  <!-- USERS -->
+  <div id="users" style="display:none;">
+    <h2>👤 Users</h2>
+    <div id="usersList"></div>
+  </div>
+
+  <!-- LOANS -->
+  <div id="loans" style="display:none;">
+    <h2>📦 Loans</h2>
+    <div id="loansList"></div>
+  </div>
+
 </div>
 
-<div id="users"></div>
+<!-- TOAST -->
+<div class="toast" id="toast">Saved!</div>
 
-<script type="module">
-import { db } from "./firebase.js";
-import {
-  collection,
-  onSnapshot,
-  doc,
-  updateDoc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<script>
+function show(id){
+  document.getElementById("dashboard").style.display="none";
+  document.getElementById("users").style.display="none";
+  document.getElementById("loans").style.display="none";
 
-const usersDiv = document.getElementById("users");
+  document.getElementById(id).style.display="block";
+}
 
-/* REAL TIME COUNTERS */
-onSnapshot(collection(db,"users"), (snap)=>{
+/* 🔥 TOAST */
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.innerText = msg;
+  t.classList.add("show");
 
-  usersDiv.innerHTML="";
-
-  let total=0, pending=0, approved=0, cashier=0, collector=0;
-
-  snap.forEach(d=>{
-
-    const u=d.data();
-    total++;
-
-    if(u.status==="pending") pending++;
-    if(u.status==="approved") approved++;
-
-    if(u.role==="cashier" && u.status==="approved") cashier++;
-    if(u.role==="collector" && u.status==="approved") collector++;
-
-    const div=document.createElement("div");
-    div.className="user";
-
-    div.innerHTML=`
-      <div>
-        <b>${u.name}</b><br>
-        ${u.email}<br>
-        ${u.role} | ${u.status}<br>
-        ${u.assignedName || "-"}
-      </div>
-
-      <div>
-        <button class="approve" onclick="approveUser('${d.id}','${u.role}')">Approve</button>
-        <button class="reject" onclick="rejectUser('${d.id}')">Reject</button>
-      </div>
-    `;
-
-    usersDiv.appendChild(div);
-  });
-
-  document.getElementById("total").innerText=total;
-  document.getElementById("pending").innerText=pending;
-  document.getElementById("approved").innerText=approved;
-  document.getElementById("cashier").innerText=cashier;
-  document.getElementById("collector").innerText=collector;
-});
-
-
-/* FIXED AUTO ASSIGN (NO GETDOCS LOOP BUG) */
-window.approveUser = async (id, role)=>{
-
-  // count approved users per role (fast method: from DOM logic already computed)
-  const snap = await getDocs(collection(db,"users"));
-
-  let count = 0;
-
-  snap.forEach(d=>{
-    const u = d.data();
-    if(u.role === role && u.status === "approved"){
-      count++;
-    }
-  });
-
-  const assignedName =
-    role === "cashier"
-      ? `cashier${count+1}`
-      : `collector${count+1}`;
-
-  await updateDoc(doc(db,"users",id),{
-    status:"approved",
-    assignedName
-  });
-
-};
-
-
-/* REJECT USER */
-window.rejectUser = async (id)=>{
-  await updateDoc(doc(db,"users",id),{
-    status:"rejected"
-  });
-};
-
+  setTimeout(()=>{
+    t.classList.remove("show");
+  },2000);
+}
 </script>
 
 </body>

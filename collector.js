@@ -1,7 +1,6 @@
 import { db } from "./firebase.js";
 import {
   collection,
-  addDoc,
   onSnapshot,
   updateDoc,
   doc,
@@ -12,40 +11,18 @@ import {
 
 const list = document.getElementById("list");
 
-// 👤 current collector (from login)
+// 👤 CURRENT COLLECTOR
 const collectorId = localStorage.getItem("uid");
 
-
-// ==========================
-// ➕ ADD TASK (ADMIN ONLY USE)
-// ==========================
-window.addTask = async function () {
-
-  const name = document.getElementById("name").value;
-  const address = document.getElementById("address").value;
-  const note = document.getElementById("note").value;
-  const assignedCollectorId = document.getElementById("collectorId").value;
-
-  if (!name || !address || !assignedCollectorId) {
-    alert("Fill required fields");
-    return;
-  }
-
-  await addDoc(collection(db, "collections"), {
-    name,
-    address,
-    note,
-    assignedCollectorId,
-    status: "pending",
-    createdAt: serverTimestamp()
-  });
-
-  alert("Task assigned!");
-};
+// ❗ SAFETY CHECK
+if (!collectorId) {
+  alert("No collector login detected");
+  window.location.href = "login.html";
+}
 
 
 // ==========================
-// 📡 REAL-TIME LOAD (COLLECTOR ONLY)
+// 📡 REAL TIME TASKS (ONLY MINE)
 // ==========================
 function loadTasks() {
 
@@ -58,21 +35,26 @@ function loadTasks() {
 
     list.innerHTML = "";
 
+    if (snapshot.empty) {
+      list.innerHTML = "<p>No assigned tasks</p>";
+      return;
+    }
+
     snapshot.forEach((docSnap) => {
 
-      const data = docSnap.data();
+      const d = docSnap.data();
 
       const div = document.createElement("div");
       div.className = "card";
 
       div.innerHTML = `
-        <h3>${data.name}</h3>
-        <p>📍 ${data.address}</p>
-        <p>📝 ${data.note || "No notes"}</p>
-        <p>Status: ${data.status}</p>
+        <h3>${d.name}</h3>
+        <p>📍 ${d.address}</p>
+        <p>📝 ${d.note || "No notes"}</p>
+        <p>Status: <b>${d.status}</b></p>
 
-        <button class="done">Mark Collected</button>
-        <button class="pending">Mark Pending</button>
+        <button class="done">✔ Mark Collected</button>
+        <button class="pending">⏳ Mark Pending</button>
       `;
 
       // ✔ collected
