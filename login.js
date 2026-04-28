@@ -40,7 +40,7 @@ loginBtn.addEventListener("click", async () => {
     // redirect
     setTimeout(() => {
       if (data.role === "admin") {
-        window.location.href = "admin.html";
+        window.location.href = "admin-dashboard.html";
       } else if (data.role === "cashier") {
         window.location.href = "cashier.html";
       } else {

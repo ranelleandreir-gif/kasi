@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0b1220;
+  color:white;
+}
+
+/* HEADER */
+.header{
+  padding:15px 20px;
+  background:rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.header h2{
+  margin:0;
+}
+
+.logout{
+  padding:8px 12px;
+  background:#ef4444;
+  border:none;
+  color:white;
+  border-radius:8px;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+.logout:hover{
+  background:#dc2626;
+}
+
+/* GRID */
+.container{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:15px;
+  padding:20px;
+}
+
+.card{
+  background:rgba(255,255,255,0.06);
+  padding:20px;
+  border-radius:12px;
+  backdrop-filter: blur(10px);
+  transition:0.3s;
+}
+
+.card:hover{
+  transform:translateY(-5px);
+}
+
+/* USERS LIST */
+.users{
+  padding:20px;
+}
+
+.user-card{
+  background:rgba(255,255,255,0.06);
+  padding:10px;
+  margin:8px 0;
+  border-radius:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.approve{
+  background:#22c55e;
+  border:none;
+  padding:6px 10px;
+  color:white;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.reject{
+  background:#ef4444;
+  border:none;
+  padding:6px 10px;
+  color:white;
+  border-radius:6px;
+  cursor:pointer;
+}
+</style>
+
+</head>
+<body>
+
+<div class="header">
+  <h2>🔥 Admin Dashboard</h2>
+  <button class="logout" onclick="logout()">Logout</button>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h3>Total Users</h3>
+    <p id="totalUsers">0</p>
+  </div>
+
+  <div class="card">
+    <h3>Pending Approvals</h3>
+    <p id="pending">0</p>
+  </div>
+
+  <div class="card">
+    <h3>Active Cashiers</h3>
+    <p id="cashiers">0</p>
+  </div>
+</div>
+
+<div class="users">
+  <h3>👤 User Requests</h3>
+  <div id="userList"></div>
+</div>
+
+<script type="module" src="admin.js"></script>
+
+<script>
+function logout(){
+  localStorage.clear();
+  window.location.href = "login.html";
+}
+</script>
+
+</body>
+</html>
