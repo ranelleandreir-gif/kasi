@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Test Data Helper - KASI System</title>
+<style>
+body {
+  font-family: Arial;
+  background: #0b1220;
+  color: white;
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.card {
+  background: rgba(255,255,255,0.06);
+  padding: 20px;
+  border-radius: 10px;
+  margin: 10px 0;
+}
+button {
+  padding: 10px 20px;
+  margin: 5px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.success {
+  background: #10b981;
+  color: white;
+}
+.info {
+  background: #3b82f6;
+  color: white;
+}
+.danger {
+  background: #ef4444;
+  color: white;
+}
+pre {
+  background: rgba(0,0,0,0.3);
+  padding: 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+.result {
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(16, 185, 129, 0.1);
+  border-left: 4px solid #10b981;
+  border-radius: 6px;
+}
+</style>
+</head>
+<body>
+
+<h1>🧪 Test Data Helper</h1>
+<p>Quickly add test accounts to Firebase Firestore</p>
+
+<div class="card">
+  <h2>📝 Cashier Account</h2>
+  <p><strong>UID:</strong> VDs6X8yfncRdYrTxnupiev52aRc2</p>
+  
+  <pre>
+{
+  "name": "Maria Santos",
+  "email": "maria.cashier@kasi.com",
+  "role": "cashier",
+  "status": "approved",
+  "assignedName": "cashier2",
+  "createdAt": timestamp
+}</pre>
+
+  <button class="info" onclick="copyTestData()">📋 Copy Test Data</button>
+  <button class="success" onclick="showManualSteps()">📖 Show Manual Steps</button>
+  <div id="result"></div>
+</div>
+
+<div class="card">
+  <h2>🚀 Quick Start</h2>
+  <ol>
+    <li>Go to <strong>Firebase Console</strong></li>
+    <li>Go to <strong>Firestore Database</strong></li>
+    <li>Go to <strong>"users" collection</strong></li>
+    <li>Click <strong>"Add document"</strong></li>
+    <li>Set Document ID to: <code>VDs6X8yfncRdYrTxnupiev52aRc2</code></li>
+    <li>Add these fields:
+      <ul>
+        <li>name: "Maria Santos"</li>
+        <li>email: "maria.cashier@kasi.com"</li>
+        <li>role: "cashier"</li>
+        <li>status: "approved"</li>
+        <li>assignedName: "cashier2"</li>
+      </ul>
+    </li>
+    <li>Click <strong>"Save"</strong></li>
+  </ol>
+</div>
+
+<div class="card">
+  <h2>🔑 Login Credentials</h2>
+  <pre>
+Email: maria.cashier@kasi.com
+Password: (Use same as you set in Auth)
+  </pre>
+  <p>⚠️ Note: Email must match the one registered in Firebase Authentication</p>
+</div>
+
+<div class="card">
+  <h2>✅ Verify Installation</h2>
+  <button class="info" onclick="verifyAccount()">🔍 Check if Account Exists</button>
+  <div id="verify-result"></div>
+</div>
+
+<script type="module">
+import { db } from "./firebase.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+window.copyTestData = () => {
+  const data = `{
+  "name": "Maria Santos",
+  "email": "maria.cashier@kasi.com",
+  "role": "cashier",
+  "status": "approved",
+  "assignedName": "cashier2",
+  "createdAt": new Date()
+}`;
+  
+  navigator.clipboard.writeText(data);
+  const result = document.getElementById("result");
+  result.innerHTML = '<div class="result">✅ Test data copied to clipboard!</div>';
+};
+
+window.showManualSteps = () => {
+  const result = document.getElementById("result");
+  result.innerHTML = `
+    <div class="result">
+      <h3>📖 Manual Setup Steps:</h3>
+      <ol>
+        <li>Open Firebase Console: https://console.firebase.google.com</li>
+        <li>Select your project: "kasi-76cbd"</li>
+        <li>Go to Firestore Database</li>
+        <li>Click on "users" collection</li>
+        <li>Click "+ Add document"</li>
+        <li>Set Document ID: <code>VDs6X8yfncRdYrTxnupiev52aRc2</code></li>
+        <li>Add fields and click Save</li>
+        <li>Now cashier can login with the email!</li>
+      </ol>
+    </div>
+  `;
+};
+
+window.verifyAccount = async () => {
+  try {
+    const uid = "VDs6X8yfncRdYrTxnupiev52aRc2";
+    const snap = await getDoc(doc(db, "users", uid));
+    
+    const result = document.getElementById("verify-result");
+    
+    if (snap.exists()) {
+      const data = snap.data();
+      result.innerHTML = `
+        <div class="result">
+          <h3>✅ Account Found!</h3>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+        </div>
+      `;
+    } else {
+      result.innerHTML = `
+        <div class="result" style="background: rgba(239, 68, 68, 0.1); border-left-color: #ef4444;">
+          <h3>❌ Account Not Found</h3>
+          <p>Please create the account in Firebase Console first.</p>
+        </div>
+      `;
+    }
+  } catch (error) {
+    document.getElementById("verify-result").innerHTML = `
+      <div class="result" style="background: rgba(239, 68, 68, 0.1); border-left-color: #ef4444;">
+        <h3>⚠️ Error</h3>
+        <p>${error.message}</p>
+      </div>
+    `;
+  }
+};
+</script>
+
+</body>
+</html>
