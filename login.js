@@ -10,42 +10,49 @@ loginBtn.addEventListener("click", async () => {
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value.trim();
 
-  if (!email || !password) {
-    alert("Fill all fields");
+  const selectedRole = localStorage.getItem("selectedRole");
+
+  if (!selectedRole) {
+    alert("No role selected");
     return;
   }
 
   loader.style.display = "block";
-  loginBtn.disabled = true;
 
   try {
 
     const userCred = await signInWithEmailAndPassword(auth, email, password);
 
-    const userRef = doc(db, "users", userCred.user.uid);
-    const userSnap = await getDoc(userRef);
+    const snap = await getDoc(doc(db, "users", userCred.user.uid));
 
-    if (!userSnap.exists()) {
-      throw new Error("No user data found in Firestore");
+    if (!snap.exists()) {
+      alert("No user profile found");
+      return;
     }
 
-    const data = userSnap.data();
+    const data = snap.data();
 
+    // 🔥 REAL ROLE CHECK (IMPORTANT)
+    if (data.role !== selectedRole) {
+      alert("Wrong role selected!");
+      return;
+    }
+
+    // 🔥 REDIRECT BASED ON REAL ROLE
     if (data.role === "admin") {
       window.location.href = "welcome.html";
     }
     else if (data.role === "cashier") {
-      window.location.href = "cashier.html";
+      window.location.href = "cashier-dashboard.html";
     }
-    else {
-      window.location.href = "collector.html";
+    else if (data.role === "collector") {
+      window.location.href = "collector-dashboard.html";
     }
 
-  } catch (error) {
-    alert(error.message);
+  } catch (err) {
+    alert(err.message);
   }
 
   loader.style.display = "none";
-  loginBtn.disabled = false;
 
 });

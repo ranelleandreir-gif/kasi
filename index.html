@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasipag - Microfinancing Platform</title>
+
+<style>
+/* (UNCHANGED DESIGN MO — nilinis ko lang logic sa baba) */
+:root {
+  --bg: #0f172a;
+  --text: #f0f4f8;
+  --muted: #94a3b8;
+  --accent: #2563eb;
+  --accent-light: #3b82f6;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #0f172a, #1a2847);
+  color: var(--text);
+}
+
+/* HEADER */
+header {
+  display:flex;
+  justify-content:space-between;
+  padding:20px;
+  border-bottom:1px solid rgba(255,255,255,0.1);
+}
+
+.brand {
+  font-weight:bold;
+}
+
+/* BUTTONS */
+.button {
+  background: var(--accent);
+  color:white;
+  padding:10px 20px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.button-secondary {
+  background: transparent;
+  border:1px solid var(--accent-light);
+  color:white;
+  padding:10px 20px;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+/* HERO */
+.hero {
+  text-align:center;
+  padding:80px 20px;
+}
+
+.hero h1 {
+  font-size:40px;
+}
+
+/* FEATURES */
+.features {
+  padding:40px;
+}
+
+/* MODAL */
+.modal {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.7);
+  justify-content:center;
+  align-items:center;
+}
+
+.modal.open {
+  display:flex;
+}
+
+.modal-box {
+  background:#0f172a;
+  padding:20px;
+  border-radius:12px;
+  width:320px;
+}
+
+input, select {
+  width:100%;
+  margin:8px 0;
+  padding:10px;
+  border-radius:6px;
+  border:none;
+}
+
+.note-text {
+  font-size:12px;
+  color:var(--muted);
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="brand">💼 KASIPAG</div>
+  <button class="button-secondary" onclick="openModal()">Create Account</button>
+</header>
+
+<section class="hero">
+  <h1>Microfinancing Platform</h1>
+  <p>Secure loan management system</p>
+  <button class="button" onclick="goLogin()">Enter System</button>
+</section>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+
+    <h3>Create Account</h3>
+
+    <input id="name" placeholder="Full Name">
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+
+    <select id="role">
+      <option value="cashier">Cashier</option>
+      <option value="collector">Collector</option>
+      <option value="admin">Admin</option>
+    </select>
+
+    <button class="button" onclick="signup()">Submit</button>
+    <button class="button-secondary" onclick="closeModal()">Close</button>
+
+    <p class="note-text" id="msg"></p>
+
+  </div>
+</div>
+
+<script>
+function openModal(){
+  document.getElementById("modal").classList.add("open");
+}
+
+function closeModal(){
+  document.getElementById("modal").classList.remove("open");
+}
+
+function goLogin(){
+  window.location.href = "login.html";
+}
+</script>
+
+<!-- 🔥 FIREBASE CONNECTION -->
+<script type="module">
+import { auth, db } from "./firebase.js";
+import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const msg = document.getElementById("msg");
+
+window.signup = async function () {
+
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+  const role = document.getElementById("role").value;
+
+  if (!name || !email || !password) {
+    msg.textContent = "Fill all fields";
+    msg.style.color = "red";
+    return;
+  }
+
+  try {
+
+    const userCred = await createUserWithEmailAndPassword(auth, email, password);
+
+    await setDoc(doc(db, "users", userCred.user.uid), {
+      name,
+      email,
+      role,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+
+    msg.textContent = "Request sent! Wait admin approval.";
+    msg.style.color = "green";
+
+  } catch (err) {
+    msg.textContent = err.message;
+    msg.style.color = "red";
+  }
+};
+</script>
+
+</body>
+</html>

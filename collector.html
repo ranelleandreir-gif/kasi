@@ -1,8 +1,79 @@
-<h1>📦 COLLECTOR PORTAL</h1>
-<p>Collections & field work</p>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Collector Tracker</title>
 
-<ul>
-  <li>✔ Collect Payments</li>
-  <li>✔ Customer List</li>
-  <li>✔ Update Status</li>
-</ul>
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0b1220;
+  color:white;
+}
+
+.header{
+  padding:15px;
+  background:rgba(255,255,255,0.05);
+}
+
+.container{
+  padding:20px;
+}
+
+.card{
+  background:rgba(255,255,255,0.08);
+  padding:15px;
+  margin-bottom:10px;
+  border-radius:10px;
+}
+
+input, textarea{
+  width:100%;
+  padding:8px;
+  margin-top:5px;
+  border:none;
+  border-radius:6px;
+}
+
+button{
+  margin-top:10px;
+  padding:8px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.done{background:#22c55e;color:white;}
+.pending{background:#f59e0b;color:white;}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <h2>📦 Collector Field Tracker</h2>
+</div>
+
+<div class="container">
+
+  <!-- ADD TASK -->
+  <div class="card">
+    <h3>Add Collection Task</h3>
+
+    <input id="name" placeholder="Customer Name">
+    <input id="address" placeholder="Address / Location">
+    <textarea id="note" placeholder="Notes"></textarea>
+
+    <button onclick="addTask()">Add Task</button>
+  </div>
+
+  <!-- LIST -->
+  <div id="list"></div>
+
+</div>
+
+<script type="module" src="collector.js"></script>
+
+</body>
+</html>

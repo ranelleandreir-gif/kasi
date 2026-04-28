@@ -1,8 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Dashboard</title>
 
 <style>
@@ -13,126 +12,62 @@ body{
   color:white;
 }
 
-/* HEADER */
-.header{
-  padding:15px 20px;
-  background:rgba(255,255,255,0.05);
-  backdrop-filter: blur(10px);
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+h1{
+  text-align:center;
+  padding:20px;
 }
 
-.header h2{
-  margin:0;
-}
-
-.logout{
-  padding:8px 12px;
-  background:#ef4444;
-  border:none;
-  color:white;
-  border-radius:8px;
-  cursor:pointer;
-  transition:0.3s;
-}
-
-.logout:hover{
-  background:#dc2626;
-}
-
-/* GRID */
 .container{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-  gap:15px;
-  padding:20px;
-}
-
-.card{
-  background:rgba(255,255,255,0.06);
-  padding:20px;
-  border-radius:12px;
-  backdrop-filter: blur(10px);
-  transition:0.3s;
-}
-
-.card:hover{
-  transform:translateY(-5px);
-}
-
-/* USERS LIST */
-.users{
-  padding:20px;
-}
-
-.user-card{
-  background:rgba(255,255,255,0.06);
-  padding:10px;
-  margin:8px 0;
-  border-radius:10px;
   display:flex;
-  justify-content:space-between;
-  align-items:center;
+  gap:20px;
+  padding:20px;
 }
 
-.approve{
-  background:#22c55e;
-  border:none;
-  padding:6px 10px;
-  color:white;
-  border-radius:6px;
-  cursor:pointer;
+.box{
+  flex:1;
+  background:rgba(255,255,255,0.05);
+  padding:20px;
+  border-radius:10px;
 }
 
-.reject{
-  background:#ef4444;
-  border:none;
-  padding:6px 10px;
-  color:white;
-  border-radius:6px;
-  cursor:pointer;
+.stats{
+  display:grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap:10px;
+  margin:20px;
 }
+
+.stats div{
+  background:rgba(255,255,255,0.08);
+  padding:10px;
+  border-radius:8px;
+}
+
 </style>
-
 </head>
+
 <body>
 
-<div class="header">
-  <h2>🔥 Admin Dashboard</h2>
-  <button class="logout" onclick="logout()">Logout</button>
-</div>
+<h1>👑 ADMIN CONTROL PANEL</h1>
 
 <div class="container">
-  <div class="card">
-    <h3>Total Users</h3>
-    <p id="totalUsers">0</p>
-  </div>
-
-  <div class="card">
-    <h3>Pending Approvals</h3>
-    <p id="pending">0</p>
-  </div>
-
-  <div class="card">
-    <h3>Active Cashiers</h3>
-    <p id="cashiers">0</p>
-  </div>
+  <div class="box" id="users"></div>
+  <div class="box" id="tasks"></div>
 </div>
 
-<div class="users">
-  <h3>👤 User Requests</h3>
-  <div id="userList"></div>
+<script type="module" src="./admin.js"></script>
+
+<h2>📊 Admin Analytics</h2>
+
+<div class="stats">
+  <div>Total Users: <span id="totalUsers">0</span></div>
+  <div>Pending: <span id="pending">0</span></div>
+  <div>Approved: <span id="approved">0</span></div>
+  <div>Cashiers: <span id="cashiers">0</span></div>
+  <div>Collectors: <span id="collectors">0</span></div>
 </div>
 
-<script type="module" src="admin.js"></script>
-
-<script>
-function logout(){
-  localStorage.clear();
-  window.location.href = "login.html";
-}
-</script>
+<canvas id="chart" width="400" height="200"></canvas>
 
 </body>
 </html>

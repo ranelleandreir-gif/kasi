@@ -1,17 +1,19 @@
 import { auth, db } from "./firebase.js";
 import {
   collection,
-  getDocs,
   doc,
   updateDoc,
-  getDoc
+  deleteDoc,
+  query,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-const userList = document.getElementById("userList");
+const usersDiv = document.getElementById("users");
+const tasksDiv = document.getElementById("tasks");
 
-// 🔐 ADMIN GUARD (SECURITY FIX)
+
+// 🔐 ADMIN PROTECTION
 onAuthStateChanged(auth, async (user) => {
 
   if (!user) {
@@ -19,86 +21,119 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
-  const adminSnap = await getDoc(doc(db, "users", user.uid));
-
-  if (!adminSnap.exists() || adminSnap.data().role !== "admin") {
-    alert("Access denied");
-    window.location.href = "login.html";
-    return;
-  }
-
-  loadUsers(); // run only if admin
+  loadUsers();
+  loadTasks();
 });
 
-// 📊 LOAD USERS
-async function loadUsers() {
 
-  const snapshot = await getDocs(collection(db, "users"));
+// 👤 REAL-TIME USERS
+function loadUsers() {
 
-  let total = 0;
-  let pending = 0;
-  let cashiers = 0;
+  const q = query(collection(db, "users"));
 
-  userList.innerHTML = "";
+  onSnapshot(q, (snapshot) => {
 
-  snapshot.forEach((docSnap) => {
+    usersDiv.innerHTML = "<h2>👤 USERS (LIVE)</h2>";
 
-    const data = docSnap.data();
-    total++;
+    snapshot.forEach((docSnap) => {
 
-    if (data.status === "pending") pending++;
-    if (data.role === "cashier") cashiers++;
-
-    // show only pending users
-    if (data.status === "pending") {
+      const data = docSnap.data();
 
       const div = document.createElement("div");
-      div.className = "user-card";
+      div.style.padding = "10px";
+      div.style.margin = "10px";
+      div.style.borderRadius = "8px";
+      div.style.background = "rgba(255,255,255,0.08)";
 
       div.innerHTML = `
-        <span>${data.email || "No Email"} - ${data.role}</span>
-        <div>
-          <button class="approve">Approve</button>
-          <button class="reject">Reject</button>
-        </div>
+        <p>${data.email} - ${data.role}</p>
+        <button onclick="setRole('${docSnap.id}','cashier')">Cashier</button>
+        <button onclick="setRole('${docSnap.id}','collector')">Collector</button>
+        <button onclick="removeUser('${docSnap.id}')">Delete</button>
       `;
 
-      const approveBtn = div.querySelector(".approve");
-      const rejectBtn = div.querySelector(".reject");
+      usersDiv.appendChild(div);
+    });
+  });
+}
 
-      // ✅ APPROVE
-      approveBtn.onclick = async () => {
-        approveBtn.disabled = true;
 
-        await updateDoc(doc(db, "users", docSnap.id), {
-          status: "approved"
-        });
+// 📦 REAL-TIME TASKS
+function loadTasks() {
 
-        loadUsers();
-      };
+  const q = query(collection(db, "collections"));
 
-      // ❌ REJECT
-      rejectBtn.onclick = async () => {
-        rejectBtn.disabled = true;
+  onSnapshot(q, (snapshot) => {
 
-        await updateDoc(doc(db, "users", docSnap.id), {
-          status: "rejected"
-        });
+    tasksDiv.innerHTML = "<h2>📦 TASKS (LIVE)</h2>";
 
-        loadUsers();
-      };
+    snapshot.forEach((docSnap) => {
 
-      userList.appendChild(div);
-    }
+      const data = docSnap.data();
+
+      const div = document.createElement("div");
+      div.style.padding = "10px";
+      div.style.margin = "10px";
+      div.style.borderRadius = "8px";
+      div.style.background = "rgba(255,255,255,0.08)";
+
+      div.innerHTML = `
+        <p>${data.name} - ${data.status}</p>
+        <button onclick="deleteTask('${docSnap.id}')">Delete</button>
+      `;
+
+      tasksDiv.appendChild(div);
+    });
+  });
+}
+
+
+// 🔥 ACTIONS
+window.setRole = async (id, role) => {
+  await updateDoc(doc(db, "users", id), { role });
+};
+
+window.removeUser = async (id) => {
+  await deleteDoc(doc(db, "users", id));
+};
+
+window.deleteTask = async (id) => {
+  await deleteDoc(doc(db, "collections", id));
+};
+
+import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+let totalUsers = 0;
+let pending = 0;
+let approved = 0;
+let cashiers = 0;
+let collectors = 0;
+
+
+// 👤 REAL-TIME USERS ANALYTICS
+onSnapshot(collection(db, "users"), (snap) => {
+
+  totalUsers = 0;
+  pending = 0;
+  approved = 0;
+  cashiers = 0;
+  collectors = 0;
+
+  snap.forEach(doc => {
+    const d = doc.data();
+    totalUsers++;
+
+    if (d.status === "pending") pending++;
+    if (d.status === "approved") approved++;
+
+    if (d.role === "cashier") cashiers++;
+    if (d.role === "collector") collectors++;
   });
 
-  // 📊 COUNTERS
-  document.getElementById("totalUsers").innerText = total;
+  // UPDATE UI
+  document.getElementById("totalUsers").innerText = totalUsers;
   document.getElementById("pending").innerText = pending;
+  document.getElementById("approved").innerText = approved;
   document.getElementById("cashiers").innerText = cashiers;
-
-  // 🧠 EMPTY STATE FIX
-  if (!userList.hasChildNodes()) {
-    userList.innerHTML = "<p>No pending users</p>";
-  }
-}
+  document.getElementById("collectors").innerText = collectors;
+});
