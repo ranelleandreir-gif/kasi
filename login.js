@@ -55,11 +55,11 @@ btn.addEventListener("click", async () => {
         break;
 
       case "cashier":
-        window.location.href = "cashier-dashboard.html";
+        window.location.href = "cashier.html";
         break;
 
       case "collector":
-        window.location.href = "collector-dashboard.html";
+        window.location.href = "collector.html";
         break;
 
       default:

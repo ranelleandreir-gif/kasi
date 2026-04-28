@@ -1,10 +1,10 @@
 import { auth, db } from "./firebase.js";
 import {
   collection,
+  onSnapshot,
   doc,
   updateDoc,
   deleteDoc,
-  onSnapshot,
   getDocs,
   addDoc,
   serverTimestamp
@@ -12,9 +12,6 @@ import {
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// DOM
-const usersDiv = document.getElementById("users");
-const loansDiv = document.getElementById("loans");
 
 // =====================
 // 🔐 ADMIN CHECK
@@ -27,23 +24,19 @@ onAuthStateChanged(auth, (user) => {
 
   loadUsers();
   loadLoans();
-  loadCollectorsDropdown();
+  loadAnalytics();
 });
 
 
 // =====================
-// 👤 USERS REALTIME
+// 📊 ANALYTICS
 // =====================
-function loadUsers() {
-
+function loadAnalytics() {
   onSnapshot(collection(db, "users"), (snap) => {
-
-    usersDiv.innerHTML = "";
 
     let total = 0, pending = 0, approved = 0, cashiers = 0, collectors = 0;
 
     snap.forEach(d => {
-
       const u = d.data();
       total++;
 
@@ -51,98 +44,164 @@ function loadUsers() {
       if (u.status === "approved") approved++;
       if (u.role === "cashier") cashiers++;
       if (u.role === "collector") collectors++;
-
-      const div = document.createElement("div");
-      div.className = "item";
-
-      div.innerHTML = `
-        <b>${u.name}</b><br>
-        ${u.email}<br>
-        Role: ${u.role} | ${u.status}<br>
-        Assigned: ${u.assignedName || "-"}
-
-        <br><br>
-        <button class="approve" onclick="approveUser('${d.id}','${u.role}')">Approve</button>
-        <button class="reject" onclick="rejectUser('${d.id}')">Reject</button>
-        <button class="blue" onclick="setRole('${d.id}','cashier')">Cashier</button>
-        <button class="blue" onclick="setRole('${d.id}','collector')">Collector</button>
-        <button class="reject" onclick="removeUser('${d.id}')">Delete</button>
-      `;
-
-      usersDiv.appendChild(div);
     });
 
-    // dashboard counters
-    document.getElementById("totalUsers").innerText = total;
-    document.getElementById("pending").innerText = pending;
-    document.getElementById("approved").innerText = approved;
-    document.getElementById("cashiers").innerText = cashiers;
-    document.getElementById("collectors").innerText = collectors;
+    setText("totalUsers", total);
+    setText("pending", pending);
+    setText("approved", approved);
+    setText("cashiers", cashiers);
+    setText("collectors", collectors);
+  });
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.innerText = val;
+}
+
+
+// =====================
+// 👤 USERS (FOLDER SYSTEM)
+// =====================
+function loadUsers() {
+
+  onSnapshot(collection(db, "users"), (snap) => {
+
+    const usersBox = document.getElementById("users");
+    if (!usersBox) return;
+
+    usersBox.innerHTML = "";
+
+    // 🗂 GROUPED FOLDERS
+    const folders = {
+      admin: [],
+      cashier: [],
+      collector: [],
+      pending: []
+    };
+
+    snap.forEach(d => {
+      const u = d.data();
+
+      if (u.status === "pending") folders.pending.push({ id: d.id, ...u });
+      else folders[u.role]?.push({ id: d.id, ...u });
+    });
+
+    renderFolder("🟡 PENDING USERS", folders.pending, usersBox);
+    renderFolder("💰 CASHIERS", folders.cashier, usersBox);
+    renderFolder("🚚 COLLECTORS (RIDERS)", folders.collector, usersBox);
+    renderFolder("👑 ADMIN", folders.admin, usersBox);
   });
 }
 
 
 // =====================
-// 📦 LOANS REALTIME
+// 📁 USER FOLDER RENDER
+// =====================
+function renderFolder(title, list, parent) {
+
+  const box = document.createElement("div");
+  box.style.margin = "15px 0";
+  box.style.padding = "10px";
+  box.style.background = "rgba(255,255,255,0.05)";
+  box.style.borderRadius = "10px";
+
+  box.innerHTML = `<h3>${title} (${list.length})</h3>`;
+
+  list.forEach(u => {
+
+    const div = document.createElement("div");
+    div.style.padding = "10px";
+    div.style.margin = "8px 0";
+    div.style.background = "rgba(255,255,255,0.06)";
+    div.style.borderRadius = "8px";
+
+    div.innerHTML = `
+      <b>${u.name || "No Name"}</b><br>
+      ${u.email}<br>
+      Role: ${u.role} | Status: ${u.status}<br>
+      Assigned: ${u.assignedName || "-"}<br><br>
+
+      <button onclick="approveUser('${u.id}','${u.role}')">Approve</button>
+      <button onclick="setRole('${u.id}','cashier')">Cashier</button>
+      <button onclick="setRole('${u.id}','collector')">Collector</button>
+      <button onclick="deleteUser('${u.id}')">Delete</button>
+    `;
+
+    box.appendChild(div);
+  });
+
+  parent.appendChild(box);
+}
+
+
+// =====================
+// 📦 BORROWERS / LOANS FOLDER
 // =====================
 function loadLoans() {
 
   onSnapshot(collection(db, "loans"), (snap) => {
 
-    loansDiv.innerHTML = "";
+    const loansBox = document.getElementById("loans");
+    if (!loansBox) return;
+
+    loansBox.innerHTML = "";
+
+    const active = [];
+    const paid = [];
 
     snap.forEach(d => {
-
       const l = d.data();
-
-      const div = document.createElement("div");
-      div.className = "item";
-
-      div.innerHTML = `
-        <b>👤 ${l.borrowerName}</b><br>
-        💰 ₱${l.amount} | Balance ₱${l.balance}<br>
-        📦 ${l.status}<br>
-        👷 ${l.assignedCollectorName || "-"}
-
-        <br><br>
-        <button class="approve" onclick="markPaid('${d.id}')">Mark Paid</button>
-        <button class="reject" onclick="deleteLoan('${d.id}')">Delete</button>
-      `;
-
-      loansDiv.appendChild(div);
+      if (l.status === "paid") paid.push({ id: d.id, ...l });
+      else active.push({ id: d.id, ...l });
     });
+
+    renderLoanFolder("📦 ACTIVE LOANS (BORROWERS)", active, loansBox);
+    renderLoanFolder("✅ PAID LOANS", paid, loansBox);
   });
 }
 
 
 // =====================
-// 👷 COLLECTOR DROPDOWN
+// 📁 LOAN FOLDER RENDER
 // =====================
-function loadCollectorsDropdown() {
+function renderLoanFolder(title, list, parent) {
 
-  onSnapshot(collection(db, "users"), (snap) => {
+  const box = document.createElement("div");
+  box.style.margin = "15px 0";
+  box.style.padding = "10px";
+  box.style.background = "rgba(255,255,255,0.05)";
+  box.style.borderRadius = "10px";
 
-    const select = document.getElementById("collectorSelect");
-    if (!select) return;
+  box.innerHTML = `<h3>${title} (${list.length})</h3>`;
 
-    select.innerHTML = `<option value="">Select Collector</option>`;
+  list.forEach(l => {
 
-    snap.forEach(d => {
-      const u = d.data();
+    const div = document.createElement("div");
+    div.style.padding = "10px";
+    div.style.margin = "8px 0";
+    div.style.background = "rgba(255,255,255,0.06)";
+    div.style.borderRadius = "8px";
 
-      if (u.role === "collector" && u.status === "approved") {
-        const opt = document.createElement("option");
-        opt.value = d.id;
-        opt.textContent = u.assignedName || u.name;
-        select.appendChild(opt);
-      }
-    });
+    div.innerHTML = `
+      <b>👤 ${l.borrowerName}</b><br>
+      💰 ₱${l.amount} | Balance ₱${l.balance}<br>
+      🚚 Collector: ${l.assignedCollectorName || "-"}<br>
+      📦 Status: ${l.status}<br><br>
+
+      <button onclick="markPaid('${l.id}')">Mark Paid</button>
+      <button onclick="deleteLoan('${l.id}')">Delete</button>
+    `;
+
+    box.appendChild(div);
   });
+
+  parent.appendChild(box);
 }
 
 
 // =====================
-// 🔥 APPROVE USER (AUTO NAME)
+// 🔥 APPROVE USER
 // =====================
 window.approveUser = async (id, role) => {
 
@@ -155,22 +214,20 @@ window.approveUser = async (id, role) => {
     if (u.role === role && u.status === "approved") count++;
   });
 
-  const assignedName =
+  const name =
     role === "cashier"
       ? `cashier${count + 1}`
       : `collector${count + 1}`;
 
   await updateDoc(doc(db, "users", id), {
     status: "approved",
-    assignedName
+    assignedName: name
   });
-
-  alert("Approved: " + assignedName);
 };
 
 
 // =====================
-// 🔧 CHANGE ROLE
+// 🔧 ROLE CHANGE
 // =====================
 window.setRole = async (id, role) => {
   await updateDoc(doc(db, "users", id), { role });
@@ -180,7 +237,7 @@ window.setRole = async (id, role) => {
 // =====================
 // ❌ DELETE USER
 // =====================
-window.removeUser = async (id) => {
+window.deleteUser = async (id) => {
   await deleteDoc(doc(db, "users", id));
 };
 
@@ -194,45 +251,7 @@ window.deleteLoan = async (id) => {
 
 
 // =====================
-// 💰 CREATE LOAN (WORKING)
-// =====================
-window.createLoan = async () => {
-
-  const name = document.getElementById("borrowerName").value.trim();
-  const amount = Number(document.getElementById("amount").value);
-  const collectorId = document.getElementById("collectorSelect").value;
-
-  if (!name || !amount || !collectorId) {
-    alert("Fill all fields");
-    return;
-  }
-
-  const snap = await getDocs(collection(db, "users"));
-
-  let collectorName = "";
-
-  snap.forEach(d => {
-    if (d.id === collectorId) {
-      collectorName = d.data().assignedName || d.data().name;
-    }
-  });
-
-  await addDoc(collection(db, "loans"), {
-    borrowerName: name,
-    amount,
-    balance: amount,
-    status: "active",
-    assignedCollectorId: collectorId,
-    assignedCollectorName: collectorName,
-    createdAt: serverTimestamp()
-  });
-
-  alert("Loan Created!");
-};
-
-
-// =====================
-// 💰 MARK PAID
+// 💰 MARK PAID (CASHIER SYSTEM READY)
 // =====================
 window.markPaid = async (id) => {
   await updateDoc(doc(db, "loans", id), {
