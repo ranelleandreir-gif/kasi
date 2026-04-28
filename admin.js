@@ -229,3 +229,146 @@ window.createLoan = async () => {
 
   alert("Loan assigned to " + assigned.name);
 };
+
+import { db } from "./firebase.js";
+import {
+  collection,
+  onSnapshot,
+  doc,
+  updateDoc,
+  deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* =========================
+   📦 LIVE LOANS
+========================= */
+onSnapshot(collection(db, "loans"), (snap) => {
+
+  const list = document.getElementById("loansList");
+  list.innerHTML = "";
+
+  snap.forEach((d) => {
+
+    const l = d.data();
+
+    const div = document.createElement("div");
+    div.className = "box";
+
+    div.innerHTML = `
+      <b>👤 Borrower:</b> ${l.borrowerName}<br>
+      💰 Amount: ₱${l.amount || 0}<br>
+      📉 Balance: ₱${l.balance || 0}<br>
+      📦 Status: ${l.status || "active"}<br>
+      👷 Collector: ${l.assignedCollectorName || "none"}<br><br>
+
+      <button class="approve">Mark Paid</button>
+      <button class="delete">Delete</button>
+    `;
+
+    /* ✔ MARK PAID */
+    div.querySelector(".approve").onclick = async () => {
+      await updateDoc(doc(db, "loans", d.id), {
+        status: "paid",
+        balance: 0
+      });
+
+      toast("Loan marked as PAID");
+    };
+
+    /* ❌ DELETE */
+    div.querySelector(".delete").onclick = async () => {
+      await deleteDoc(doc(db, "loans", d.id));
+      toast("Loan deleted");
+    };
+
+    list.appendChild(div);
+  });
+
+});
+
+import { onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+onSnapshot(collection(db,"users"), (snap)=>{
+
+  let total=0, pending=0, approved=0, cashiers=0, collectors=0;
+
+  snap.forEach(d=>{
+    const u=d.data();
+
+    total++;
+    if(u.status==="pending") pending++;
+    if(u.status==="approved") approved++;
+    if(u.role==="cashier") cashiers++;
+    if(u.role==="collector") collectors++;
+  });
+
+  document.getElementById("total").innerText=total;
+  document.getElementById("pending").innerText=pending;
+  document.getElementById("approved").innerText=approved;
+  document.getElementById("cashiers").innerText=cashiers;
+  document.getElementById("collectors").innerText=collectors;
+
+});
+
+// =========================
+// 👷 LOAD COLLECTORS DROPDOWN
+// =========================
+onSnapshot(collection(db,"users"), (snap)=>{
+
+  const select = document.getElementById("collectorSelect");
+
+  if(!select) return;
+
+  select.innerHTML = `<option value="">Select Collector</option>`;
+
+  snap.forEach(d=>{
+    const u = d.data();
+
+    if(u.role === "collector" && u.status === "approved"){
+
+      const option = document.createElement("option");
+      option.value = d.id;
+      option.textContent = u.assignedName || u.name;
+
+      select.appendChild(option);
+    }
+  });
+});
+
+
+// =========================
+// 💰 CREATE LOAN FUNCTION
+// =========================
+window.createLoan = async () => {
+
+  const name = document.getElementById("borrowerName").value;
+  const amount = Number(document.getElementById("amount").value);
+  const collectorId = document.getElementById("collectorSelect").value;
+
+  if(!name || !amount || !collectorId){
+    alert("Fill all fields");
+    return;
+  }
+
+  // get collector name
+  const snap = await getDocs(collection(db,"users"));
+  let collectorName = "";
+
+  snap.forEach(d=>{
+    if(d.id === collectorId){
+      collectorName = d.data().assignedName || d.data().name;
+    }
+  });
+
+  await addDoc(collection(db,"loans"),{
+    borrowerName:name,
+    amount,
+    balance:amount,
+    status:"active",
+    assignedCollectorId:collectorId,
+    assignedCollectorName:collectorName,
+    createdAt:serverTimestamp()
+  });
+
+  alert("Loan Created Successfully!");
+};

@@ -3,242 +3,246 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ultra Pro Admin</title>
+<title>Admin Final Boss</title>
 
 <style>
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-  font-family:Arial;
-}
-
-/* 🌈 BACKGROUND ANIMATION */
 body{
-  display:flex;
-  background: linear-gradient(-45deg,#0f172a,#111827,#0b1220,#1e293b);
-  background-size:400% 400%;
-  animation: bg 10s ease infinite;
+  margin:0;
+  font-family:Arial;
+  background:#0b1220;
   color:white;
-  overflow:hidden;
 }
 
-@keyframes bg{
-  0%{background-position:0% 50%}
-  50%{background-position:100% 50%}
-  100%{background-position:0% 50%}
+/* HEADER */
+.header{
+  padding:15px;
+  text-align:center;
+  background:rgba(255,255,255,0.05);
 }
 
-/* SIDEBAR */
-.sidebar{
-  width:250px;
-  height:100vh;
-  position:fixed;
-  padding:20px;
-  background:rgba(255,255,255,0.06);
-  backdrop-filter:blur(15px);
-  box-shadow:0 0 30px rgba(0,0,0,0.5);
-}
-
-.sidebar h2{
-  margin-bottom:20px;
-}
-
-.nav button{
-  width:100%;
-  padding:12px;
-  margin:6px 0;
-  border:none;
-  border-radius:10px;
-  background:transparent;
-  color:white;
-  cursor:pointer;
-  transition:0.3s;
-}
-
-.nav button:hover{
-  background:linear-gradient(90deg,#2563eb,#3b82f6);
-  transform:translateX(5px);
-}
-
-/* MAIN */
-.main{
-  margin-left:250px;
-  padding:25px;
-  width:100%;
-  animation:fadeIn 0.5s ease;
-}
-
-@keyframes fadeIn{
-  from{opacity:0; transform:translateY(20px)}
-  to{opacity:1; transform:translateY(0)}
-}
-
-/* CARDS */
-.cards{
+/* GRID */
+.grid{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
-  gap:15px;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:10px;
+  padding:10px;
 }
 
+/* CARD */
 .card{
   background:rgba(255,255,255,0.06);
-  padding:20px;
-  border-radius:15px;
-  text-align:center;
-  backdrop-filter:blur(10px);
-  position:relative;
-  overflow:hidden;
-  transition:0.3s;
-}
-
-.card:hover{
-  transform:scale(1.05);
-  box-shadow:0 0 25px rgba(59,130,246,0.5);
-}
-
-/* SHINE EFFECT */
-.card::before{
-  content:"";
-  position:absolute;
-  width:200%;
-  height:200%;
-  top:-50%;
-  left:-50%;
-  background:linear-gradient(45deg,transparent,rgba(255,255,255,0.08),transparent);
-  transform:rotate(45deg);
-  animation:shine 3s infinite;
-}
-
-@keyframes shine{
-  0%{transform:translateX(-100%) rotate(45deg);}
-  100%{transform:translateX(100%) rotate(45deg);}
-}
-
-/* TABLE BOX */
-.box{
-  background:rgba(255,255,255,0.05);
   padding:15px;
-  margin-top:15px;
   border-radius:12px;
-  transition:0.3s;
 }
 
-.box:hover{
-  transform:translateY(-3px);
+/* LIST */
+.list{
+  padding:10px;
+}
+
+/* ITEM */
+.item{
+  background:rgba(255,255,255,0.06);
+  padding:12px;
+  margin:8px 0;
+  border-radius:10px;
 }
 
 /* BUTTONS */
 button{
   padding:6px 10px;
+  margin:3px;
   border:none;
   border-radius:6px;
   cursor:pointer;
-  margin:2px;
-  transition:0.2s;
-}
-
-button:hover{
-  transform:scale(1.05);
 }
 
 .approve{background:#10b981;color:white;}
-.delete{background:#ef4444;color:white;}
-
-/* TOAST */
-.toast{
-  position:fixed;
-  bottom:20px;
-  right:20px;
-  background:#1f2937;
-  padding:12px 15px;
-  border-radius:10px;
-  opacity:0;
-  transform:translateY(20px);
-  transition:0.4s;
-}
-
-.toast.show{
-  opacity:1;
-  transform:translateY(0);
-}
-
-/* MOBILE */
-@media(max-width:768px){
-  .sidebar{width:100px;}
-  .main{margin-left:100px;}
-}
+.reject{background:#ef4444;color:white;}
+.blue{background:#3b82f6;color:white;}
 </style>
 </head>
 
 <body>
 
-<!-- SIDEBAR -->
-<div class="sidebar">
-  <h2>💼 ADMIN</h2>
-
-  <div class="nav">
-    <button onclick="show('dashboard')">📊 Dashboard</button>
-    <button onclick="show('users')">👤 Users</button>
-    <button onclick="show('loans')">📦 Loans</button>
-  </div>
+<div class="header">
+  <h2>💀 ADMIN FINAL BOSS SYSTEM</h2>
 </div>
 
-<!-- MAIN -->
-<div class="main">
-
-  <!-- DASHBOARD -->
-  <div id="dashboard">
-
-    <h2>📊 Live Dashboard</h2>
-
-    <div class="cards">
-      <div class="card">Total<br><h1 id="total">0</h1></div>
-      <div class="card">Pending<br><h1 id="pending">0</h1></div>
-      <div class="card">Approved<br><h1 id="approved">0</h1></div>
-      <div class="card">Cashiers<br><h1 id="cashiers">0</h1></div>
-      <div class="card">Collectors<br><h1 id="collectors">0</h1></div>
-    </div>
-
-  </div>
-
-  <!-- USERS -->
-  <div id="users" style="display:none;">
-    <h2>👤 Users</h2>
-    <div id="usersList"></div>
-  </div>
-
-  <!-- LOANS -->
-  <div id="loans" style="display:none;">
-    <h2>📦 Loans</h2>
-    <div id="loansList"></div>
-  </div>
-
+<!-- DASHBOARD -->
+<div class="grid">
+  <div class="card">👤 Users <h2 id="totalUsers">0</h2></div>
+  <div class="card">⏳ Pending <h2 id="pending">0</h2></div>
+  <div class="card">✅ Approved <h2 id="approved">0</h2></div>
+  <div class="card">💰 Cashiers <h2 id="cashiers">0</h2></div>
+  <div class="card">📦 Collectors <h2 id="collectors">0</h2></div>
 </div>
 
-<!-- TOAST -->
-<div class="toast" id="toast">Saved!</div>
+<h3 style="padding:10px;">👤 USERS</h3>
+<div id="users"></div>
 
-<script>
-function show(id){
-  document.getElementById("dashboard").style.display="none";
-  document.getElementById("users").style.display="none";
-  document.getElementById("loans").style.display="none";
+<h3 style="padding:10px;">📦 LOANS</h3>
+<div id="loans"></div>
 
-  document.getElementById(id).style.display="block";
-}
+<script type="module">
+import { db } from "./firebase.js";
+import {
+  collection,
+  onSnapshot,
+  doc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  addDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* 🔥 TOAST */
-function toast(msg){
-  const t = document.getElementById("toast");
-  t.innerText = msg;
-  t.classList.add("show");
+/* =========================
+   👤 USERS REAL TIME
+========================= */
+onSnapshot(collection(db,"users"), (snap)=>{
 
-  setTimeout(()=>{
-    t.classList.remove("show");
-  },2000);
-}
+  let total=0, pending=0, approved=0, cashiers=0, collectors=0;
+
+  const usersDiv = document.getElementById("users");
+  usersDiv.innerHTML="";
+
+  snap.forEach(d=>{
+    const u=d.data();
+    total++;
+
+    if(u.status==="pending") pending++;
+    if(u.status==="approved") approved++;
+    if(u.role==="cashier") cashiers++;
+    if(u.role==="collector") collectors++;
+
+    const div=document.createElement("div");
+    div.className="item";
+
+    div.innerHTML=`
+      <b>${u.name}</b><br>
+      ${u.email}<br>
+      Role: ${u.role} | ${u.status}<br>
+      Assigned: ${u.assignedName || "-"}
+
+      <br><br>
+      <button class="approve" onclick="approveUser('${d.id}','${u.role}')">Approve</button>
+      <button class="reject" onclick="rejectUser('${d.id}')">Reject</button>
+      <button class="blue" onclick="setRole('${d.id}','collector')">Collector</button>
+      <button class="blue" onclick="setRole('${d.id}','cashier')">Cashier</button>
+    `;
+
+    usersDiv.appendChild(div);
+  });
+
+  document.getElementById("totalUsers").innerText=total;
+  document.getElementById("pending").innerText=pending;
+  document.getElementById("approved").innerText=approved;
+  document.getElementById("cashiers").innerText=cashiers;
+  document.getElementById("collectors").innerText=collectors;
+});
+
+
+/* =========================
+   📦 LOANS REAL TIME
+========================= */
+onSnapshot(collection(db,"loans"), (snap)=>{
+
+  const loansDiv=document.getElementById("loans");
+  loansDiv.innerHTML="";
+
+  snap.forEach(d=>{
+    const l=d.data();
+
+    const div=document.createElement("div");
+    div.className="item";
+
+    div.innerHTML=`
+      <b>👤 ${l.borrowerName}</b><br>
+      💰 ₱${l.amount} | Balance ₱${l.balance}<br>
+      📦 ${l.status}<br>
+      👷 ${l.assignedCollectorName || "-"}
+
+      <br><br>
+      <button class="approve" onclick="markPaid('${d.id}')">Mark Paid</button>
+      <button class="reject" onclick="deleteLoan('${d.id}')">Delete</button>
+    `;
+
+    loansDiv.appendChild(div);
+  });
+
+});
+
+
+/* =========================
+   🔥 ACTIONS
+========================= */
+
+window.approveUser = async (id, role)=>{
+
+  const snap = await getDocs(collection(db,"users"));
+
+  let count=0;
+
+  snap.forEach(d=>{
+    const u=d.data();
+    if(u.role===role && u.status==="approved") count++;
+  });
+
+  const name = role==="cashier"
+    ? `cashier${count+1}`
+    : `collector${count+1}`;
+
+  await updateDoc(doc(db,"users",id),{
+    status:"approved",
+    assignedName:name
+  });
+};
+
+window.rejectUser = async (id)=>{
+  await updateDoc(doc(db,"users",id),{
+    status:"rejected"
+  });
+};
+
+window.setRole = async (id,role)=>{
+  await updateDoc(doc(db,"users",id),{
+    role
+  });
+};
+
+window.deleteLoan = async (id)=>{
+  await deleteDoc(doc(db,"loans",id));
+};
+
+window.markPaid = async (id)=>{
+  await updateDoc(doc(db,"loans",id),{
+    status:"paid",
+    balance:0
+  });
+};
+
 </script>
+
+<h3 style="padding:10px;">➕ CREATE LOAN</h3>
+
+<div style="padding:10px;">
+
+  <input id="borrowerName" placeholder="Borrower Name" style="padding:8px;width:200px;">
+  <input id="amount" placeholder="Amount" style="padding:8px;width:200px;">
+
+  <br><br>
+
+  <select id="collectorSelect" style="padding:8px;width:210px;">
+    <option value="">Select Collector</option>
+  </select>
+
+  <br><br>
+
+  <button class="blue" onclick="createLoan()">Create Loan</button>
+
+</div>
+
 
 </body>
 </html>
