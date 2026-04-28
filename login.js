@@ -10,19 +10,20 @@ loginBtn.addEventListener("click", async () => {
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value.trim();
 
-  const selectedRole = localStorage.getItem("selectedRole");
-
-  if (!selectedRole) {
-    alert("No role selected");
+  if (!email || !password) {
+    alert("Fill all fields");
     return;
   }
 
   loader.style.display = "block";
+  loginBtn.disabled = true;
 
   try {
 
+    // 🔐 AUTH LOGIN
     const userCred = await signInWithEmailAndPassword(auth, email, password);
 
+    // 📦 GET FIRESTORE PROFILE
     const snap = await getDoc(doc(db, "users", userCred.user.uid));
 
     if (!snap.exists()) {
@@ -32,21 +33,30 @@ loginBtn.addEventListener("click", async () => {
 
     const data = snap.data();
 
-    // 🔥 REAL ROLE CHECK (IMPORTANT)
-    if (data.role !== selectedRole) {
-      alert("Wrong role selected!");
+    // ❌ CHECK APPROVAL FIRST
+    if (data.status !== "approved") {
+      alert("Account not approved by admin yet");
       return;
     }
 
-    // 🔥 REDIRECT BASED ON REAL ROLE
-    if (data.role === "admin") {
-      window.location.href = "welcome.html";
-    }
-    else if (data.role === "cashier") {
-      window.location.href = "cashier-dashboard.html";
-    }
-    else if (data.role === "collector") {
-      window.location.href = "collector-dashboard.html";
+    // 🚀 ROLE ROUTING (BASED SA DATABASE ONLY)
+
+    switch (data.role) {
+
+      case "admin":
+        window.location.href = "admin-dashboard.html";
+        break;
+
+      case "cashier":
+        window.location.href = `cashier-dashboard.html?user=${data.assignedName}`;
+        break;
+
+      case "collector":
+        window.location.href = `collector-dashboard.html?user=${data.assignedName}`;
+        break;
+
+      default:
+        alert("Unknown role");
     }
 
   } catch (err) {
@@ -54,5 +64,5 @@ loginBtn.addEventListener("click", async () => {
   }
 
   loader.style.display = "none";
-
+  loginBtn.disabled = false;
 });

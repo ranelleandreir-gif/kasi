@@ -4,16 +4,16 @@ import {
   doc,
   updateDoc,
   deleteDoc,
-  query,
-  onSnapshot
+  onSnapshot,
+  query
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const usersDiv = document.getElementById("users");
 const tasksDiv = document.getElementById("tasks");
 
-
-// 🔐 ADMIN PROTECTION
+// 🔐 ADMIN CHECK
 onAuthStateChanged(auth, async (user) => {
 
   if (!user) {
@@ -23,10 +23,11 @@ onAuthStateChanged(auth, async (user) => {
 
   loadUsers();
   loadTasks();
+  loadAnalytics();
 });
 
 
-// 👤 REAL-TIME USERS
+// 👤 USERS (REAL TIME)
 function loadUsers() {
 
   const q = query(collection(db, "users"));
@@ -46,9 +47,13 @@ function loadUsers() {
       div.style.background = "rgba(255,255,255,0.08)";
 
       div.innerHTML = `
-        <p>${data.email} - ${data.role}</p>
+        <p>${data.email}</p>
+        <p>Role: ${data.role}</p>
+        <p>Status: ${data.status || "none"}</p>
+
         <button onclick="setRole('${docSnap.id}','cashier')">Cashier</button>
         <button onclick="setRole('${docSnap.id}','collector')">Collector</button>
+        <button onclick="approveUser('${docSnap.id}')">Approve</button>
         <button onclick="removeUser('${docSnap.id}')">Delete</button>
       `;
 
@@ -58,7 +63,7 @@ function loadUsers() {
 }
 
 
-// 📦 REAL-TIME TASKS
+// 📦 TASKS (REAL TIME)
 function loadTasks() {
 
   const q = query(collection(db, "collections"));
@@ -78,7 +83,8 @@ function loadTasks() {
       div.style.background = "rgba(255,255,255,0.08)";
 
       div.innerHTML = `
-        <p>${data.name} - ${data.status}</p>
+        <p>${data.name || "No Name"}</p>
+        <p>Status: ${data.status || "pending"}</p>
         <button onclick="deleteTask('${docSnap.id}')">Delete</button>
       `;
 
@@ -88,9 +94,45 @@ function loadTasks() {
 }
 
 
+// 📊 ANALYTICS (REAL TIME FIXED)
+function loadAnalytics() {
+
+  onSnapshot(collection(db, "users"), (snap) => {
+
+    let total = 0;
+    let pending = 0;
+    let approved = 0;
+    let cashiers = 0;
+    let collectors = 0;
+
+    snap.forEach(doc => {
+
+      const d = doc.data();
+      total++;
+
+      if (d.status === "pending") pending++;
+      if (d.status === "approved") approved++;
+
+      if (d.role === "cashier") cashiers++;
+      if (d.role === "collector") collectors++;
+    });
+
+    document.getElementById("totalUsers").innerText = total;
+    document.getElementById("pending").innerText = pending;
+    document.getElementById("approved").innerText = approved;
+    document.getElementById("cashiers").innerText = cashiers;
+    document.getElementById("collectors").innerText = collectors;
+  });
+}
+
+
 // 🔥 ACTIONS
 window.setRole = async (id, role) => {
   await updateDoc(doc(db, "users", id), { role });
+};
+
+window.approveUser = async (id) => {
+  await updateDoc(doc(db, "users", id), { status: "approved" });
 };
 
 window.removeUser = async (id) => {
@@ -100,40 +142,3 @@ window.removeUser = async (id) => {
 window.deleteTask = async (id) => {
   await deleteDoc(doc(db, "collections", id));
 };
-
-import { collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-let totalUsers = 0;
-let pending = 0;
-let approved = 0;
-let cashiers = 0;
-let collectors = 0;
-
-
-// 👤 REAL-TIME USERS ANALYTICS
-onSnapshot(collection(db, "users"), (snap) => {
-
-  totalUsers = 0;
-  pending = 0;
-  approved = 0;
-  cashiers = 0;
-  collectors = 0;
-
-  snap.forEach(doc => {
-    const d = doc.data();
-    totalUsers++;
-
-    if (d.status === "pending") pending++;
-    if (d.status === "approved") approved++;
-
-    if (d.role === "cashier") cashiers++;
-    if (d.role === "collector") collectors++;
-  });
-
-  // UPDATE UI
-  document.getElementById("totalUsers").innerText = totalUsers;
-  document.getElementById("pending").innerText = pending;
-  document.getElementById("approved").innerText = approved;
-  document.getElementById("cashiers").innerText = cashiers;
-  document.getElementById("collectors").innerText = collectors;
-});
