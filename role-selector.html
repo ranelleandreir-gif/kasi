@@ -36,9 +36,16 @@ body {
 
 .header {
   display: grid;
-  gap: 12px;
+  gap: 16px;
   text-align: center;
   margin-bottom: 28px;
+}
+
+.logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 .header h1 {
@@ -147,14 +154,17 @@ body {
   .button {
     width: 100%;
     margin: 0;
-  }
+  } 
 }
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <h1>Kasipag Portal</h1>
+    <div class="logo-section">
+      <img src="logopo.png" alt="KASIPAG Logo" style="width: 200px; height: 200px; object-fit: contain; margin-bottom: 20px; box-shadow: 0 16px 64px rgba(0,0,0,0.7);">
+      <h1>Kasipag Portal</h1>
+    </div>
     <p>Choose the role you want to sign in with and continue to the right dashboard.</p>
   </div>
 

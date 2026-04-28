@@ -59,27 +59,33 @@ body {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
-  font-size: 1.2rem;
-  font-weight: 800;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
 }
 
-.brand img,
-.brand span {
-  display: inline-block;
-  width: 50px;
-  height: 50px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  display: grid;
-  place-items: center;
-  color: #071018;
+.brand:hover {
+  transform: translateY(-1px);
 }
 
 .brand img {
-  width: 50px;
-  height: 50px;
+  width: 180px;
+  height: 180px;
   object-fit: contain;
+  box-shadow: 0 16px 64px rgba(0,0,0,0.6);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.brand img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 20px 80px rgba(0,0,0,0.7);
+}
+
+@media (max-width: 768px) {
+  .brand img {
+    width: 144px;
+    height: 144px;
+  }
 }
 
 .nav-links {
@@ -409,6 +415,27 @@ input, select {
   }
   .brand {
     justify-content: center;
+    gap: 12px;
+  }
+  .brand img {
+    width: 64px;
+    height: 64px;
+  }
+  .brand span {
+    font-size: 1.3rem;
+  }
+  .nav-links {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .nav-link-item {
+    font-size: 0.9rem;
+  }
+  .nav-button {
+    width: 100%;
+    max-width: 280px;
+    margin: 0 auto;
   }
   .nav-button {
     width: 100%;
@@ -436,7 +463,7 @@ input, select {
 <body>
 <div class="page">
   <header class="header">
-    <div class="brand"><img src="logo.png" alt="Kasipag logo"><span>KASIPAG</span></div>
+    <div class="brand"><img src="logopo.png" alt="KASIPAG Microfinancing Logo" loading="lazy"></div>
     <div class="nav-links">
       <a class="nav-link-item" href="#whats-new">WHAT’S NEW</a>
       <a class="nav-link-item" href="#ngo-activities">KASIPAG N.G.O. ACTIVITIES</a>
@@ -587,7 +614,6 @@ input, select {
     <input id="email" type="email" placeholder="Email">
     <input id="password" type="password" placeholder="Password">
     <select id="role">
-      <option value="admin">Admin</option>
       <option value="cashier">Cashier</option>
       <option value="collector">Collector</option>
     </select>

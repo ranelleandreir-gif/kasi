@@ -12,8 +12,14 @@ window.signup = async function () {
   const role = document.getElementById("role").value;
   const msg = document.getElementById("msg");
 
-  if (!name || !email || !password) {
+  if (!name || !email || !password || !role) {
     msg.textContent = "Fill all fields";
+    msg.style.color = "red";
+    return;
+  }
+
+  if (role !== "cashier" && role !== "collector") {
+    msg.textContent = "Only cashier and collector accounts can be created here.";
     msg.style.color = "red";
     return;
   }

@@ -118,6 +118,12 @@ loadTasks();
 // 🚪 LOGOUT
 // =====================
 window.logout = async () => {
-  await signOut(auth);
-  window.location.href = "role-selector.html";
+  try {
+    await signOut(auth);
+    window.location.href = "role-selector.html";
+  } catch (error) {
+    console.error("Logout error:", error);
+    // Force redirect even if signOut fails
+    window.location.href = "role-selector.html";
+  }
 };
