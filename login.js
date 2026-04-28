@@ -20,7 +20,7 @@ btn.addEventListener("click", async () => {
   }
 
   btn.disabled = true;
-  loader.style.display = "block";
+  loader.classList.add("show");
   msg.textContent = "";
 
   try {
@@ -59,6 +59,9 @@ btn.addEventListener("click", async () => {
     }
 
     // 🔥 ROLE REDIRECT SYSTEM
+    msg.textContent = "Approved — redirecting to your dashboard...";
+    msg.style.color = "#22c55e";
+
     switch (data.role) {
 
       case "admin":
@@ -75,6 +78,7 @@ btn.addEventListener("click", async () => {
 
       default:
         msg.textContent = "Invalid role";
+        msg.style.color = "#f87171";
     }
 
   } catch (err) {
@@ -82,6 +86,6 @@ btn.addEventListener("click", async () => {
     msg.style.color = "red";
   } finally {
     btn.disabled = false;
-    loader.style.display = "none";
+    loader.classList.remove("show");
   }
 });

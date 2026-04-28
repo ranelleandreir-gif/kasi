@@ -48,6 +48,7 @@ body::before {
   border-radius: 28px;
   overflow: hidden;
   backdrop-filter: blur(20px);
+  animation: floatIn 0.72s ease-out both;
 }
 
 .auth-card::before {
@@ -132,12 +133,52 @@ button:hover {
   box-shadow: 0 22px 36px rgba(34,197,94,0.22);
 }
 
+button {
+  position: relative;
+  overflow: hidden;
+}
+
+button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(255,255,255,0.18), transparent 28%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+button:hover::after {
+  opacity: 1;
+}
+
 .status-row {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 12px;
   align-items: center;
   margin-top: 18px;
+}
+
+#msg {
+  transition: opacity 0.2s ease;
+}
+
+.loader {
+  display: none;
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.loader.show {
+  display: block;
+  opacity: 1;
+  transform: scale(1);
+}
+
+@keyframes floatIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .loader {
@@ -175,6 +216,31 @@ button:hover {
 .link:hover {
   text-decoration: underline;
 }
+
+@media (max-width: 520px) {
+  .page {
+    width: calc(100% - 24px);
+    padding: 20px 12px;
+  }
+
+  .auth-inner {
+    padding: 22px;
+  }
+
+  .auth-title {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .auth-title-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  button {
+    padding: 14px 18px;
+  }
+}
 </style>
 </head>
 <body>
@@ -209,4 +275,4 @@ button:hover {
 
 <script type="module" src="login.js"></script>
 </body>
-</html> 
+</html>  

@@ -63,14 +63,26 @@ body {
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 22px;
   text-align: center;
-  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  transition: transform 0.28s ease, border-color 0.28s ease, background 0.28s ease, box-shadow 0.28s ease;
   cursor: pointer;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: riseIn 0.62s ease forwards;
 }
 
 .card:hover {
   transform: translateY(-4px);
   border-color: rgba(59,130,246,0.4);
-  background: rgba(59,130,246,0.08);
+  background: rgba(59,130,246,0.12);
+  box-shadow: 0 22px 50px rgba(59,130,246,0.12);
+}
+
+.cards .card:nth-child(1) { animation-delay: 0.08s; }
+.cards .card:nth-child(2) { animation-delay: 0.16s; }
+.cards .card:nth-child(3) { animation-delay: 0.24s; }
+
+@keyframes riseIn {
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .card h2 {
@@ -90,6 +102,8 @@ body {
 .button-row {
   display: flex;
   justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-top: 28px;
 }
 
@@ -105,6 +119,36 @@ body {
 }
 
 .button:hover { transform: translateY(-2px); }
+
+.container {
+  animation: fadeUp 0.75s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 720px) {
+  .container {
+    width: calc(100% - 24px);
+    padding: 24px 20px;
+  }
+
+  .cards {
+    grid-template-columns: 1fr;
+  }
+
+  .button-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .button {
+    width: 100%;
+    margin: 0;
+  }
+}
 </style>
 </head>
 <body>

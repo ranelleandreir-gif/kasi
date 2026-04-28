@@ -206,20 +206,18 @@ function renderLoanFolder(title, list, parent) {
 window.approveUser = async (id, role) => {
 
   const snap = await getDocs(collection(db, "users"));
-
-  let count = 0;
+  const numbers = [];
 
   snap.forEach(d => {
     const u = d.data();
-    if (u.role === role && u.status === "approved") count++;
+    if (u.role === role && u.status === "approved" && typeof u.assignedName === "string") {
+      const match = u.assignedName.match(new RegExp(`^${role}(\\d+)$`));
+      if (match) numbers.push(Number(match[1]));
+    }
   });
 
-  const name =
-    role === "cashier"
-      ? `cashier${count + 1}`
-      : role === "collector"
-        ? `collector${count + 1}`
-        : `admin${count + 1}`;
+  const nextNumber = numbers.length ? Math.max(...numbers) + 1 : 1;
+  const name = `${role}${nextNumber}`;
 
   await updateDoc(doc(db, "users", id), {
     status: "approved",

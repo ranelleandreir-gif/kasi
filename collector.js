@@ -19,6 +19,28 @@ if (!collectorId) {
   window.location.href = "login.html";
 }
 
+// =====================
+// 🎯 ACTION OVERLAY
+// =====================
+function runAction(title, message, action) {
+  const overlay = document.getElementById("actionOverlay");
+  const titleEl = document.getElementById("actionTitle");
+  const messageEl = document.getElementById("actionMessage");
+
+  titleEl.textContent = title;
+  messageEl.textContent = message;
+  overlay.classList.add("active");
+
+  setTimeout(() => {
+    action().then(() => {
+      overlay.classList.remove("active");
+    }).catch((error) => {
+      console.error("Action failed:", error);
+      overlay.classList.remove("active");
+    });
+  }, 500);
+}
+
 // ==========================
 // 📡 REAL TIME LOANS (ASSIGNED ONLY)
 // ==========================
@@ -46,34 +68,46 @@ function loadTasks() {
       div.className = "card";
 
       div.innerHTML = `
-        <h3>👤 ${d.borrowerName}</h3>
-        <p>💰 ₱${d.amount}</p>
-        <p>📍 Address: ${d.address || "No address"}</p>
-        <p>📦 Status: <b>${d.status}</b></p>
-        <p>⏰ Balance: ₱${d.balance}</p>
-
-        <button class="done">✔ Collected</button>
-        <button class="pending">⏳ Unpaid</button>
+        <div class="item-title">
+          <h3>👤 ${d.borrowerName}</h3>
+          <span class="badge ${d.status === 'collected' ? 'collected' : 'unpaid'}">${d.status === 'collected' ? '📦 Collected' : '⏳ Unpaid'}</span>
+        </div>
+        <div class="row">
+          <span>💰 Amount: ₱${d.amount}</span>
+          <span>⏰ Balance: ₱${d.balance}</span>
+        </div>
+        <div class="row">
+          <span>📍 Address: ${d.address || "No address"}</span>
+        </div>
+        <div class="row">
+          <button class="collected" onclick="markCollected('${docSnap.id}')">✔ Collected</button>
+          <button class="unpaid" onclick="markUnpaid('${docSnap.id}')">⏳ Unpaid</button>
+        </div>
       `;
-
-      div.querySelector(".done").onclick = async () => {
-        await updateDoc(doc(db, "loans", docSnap.id), {
-          status: "collected",
-          collectedAt: serverTimestamp()
-        });
-        alert("Marked as collected! Cashier will confirm payment.");
-      };
-
-      div.querySelector(".pending").onclick = async () => {
-        await updateDoc(doc(db, "loans", docSnap.id), {
-          status: "unpaid"
-        });
-        alert("Marked as unpaid.");
-      };
 
       list.appendChild(div);
     });
   });
 }
+
+// =====================
+// 🎯 MARK FUNCTIONS
+// =====================
+window.markCollected = async (loanId) => {
+  runAction("Marking as Collected", "Updating loan status for cashier review...", async () => {
+    await updateDoc(doc(db, "loans", loanId), {
+      status: "collected",
+      collectedAt: serverTimestamp()
+    });
+  });
+};
+
+window.markUnpaid = async (loanId) => {
+  runAction("Marking as Unpaid", "Updating loan status...", async () => {
+    await updateDoc(doc(db, "loans", loanId), {
+      status: "unpaid"
+    });
+  });
+};
 
 loadTasks();

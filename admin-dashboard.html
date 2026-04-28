@@ -29,12 +29,95 @@ body {
               radial-gradient(circle at bottom left, rgba(34,197,94,0.16), transparent 22%),
               linear-gradient(180deg, #050b16 0%, #06101a 100%);
   color: var(--text);
+  overflow-x: hidden;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(59,130,246,0.08), transparent 18%),
+              radial-gradient(circle at 80% 80%, rgba(34,197,94,0.09), transparent 16%);
+  pointer-events: none;
 }
 
 .page {
   width: min(1200px, calc(100% - 32px));
   margin: 0 auto;
   padding: 28px 0 40px;
+  opacity: 0;
+  transform: translateY(16px);
+  animation: pagePop 0.7s ease forwards;
+}
+
+.action-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7,11,18,0.74);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.24s ease, visibility 0.24s ease;
+}
+
+.action-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.action-popup {
+  width: min(420px, calc(100% - 40px));
+  padding: 28px 26px;
+  border-radius: 28px;
+  background: rgba(15,23,42,0.96);
+  border: 1px solid rgba(148,163,184,0.16);
+  box-shadow: 0 34px 90px rgba(0,0,0,0.35);
+  text-align: center;
+  animation: popIn 0.28s ease both;
+}
+
+.action-popup .spinner {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  border: 5px solid rgba(255,255,255,0.14);
+  border-top-color: #22c55e;
+  animation: spin 0.85s linear infinite;
+}
+
+.action-popup strong {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.action-popup span {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.section {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.section.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pagePop {
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .page-header {
@@ -64,6 +147,12 @@ body {
   border: 1px solid var(--border);
   border-radius: 22px;
   padding: 22px;
+  transition: transform 0.26s ease, box-shadow 0.26s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 45px rgba(0,0,0,0.18);
 }
 
 .stat-card strong {
@@ -96,8 +185,9 @@ body {
 .tab:hover { transform: translateY(-2px); }
 
 .tab.active {
-  background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(34,197,94,0.14));
-  border-color: rgba(59,130,246,0.5);
+  background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(34,197,94,0.16));
+  border-color: rgba(59,130,246,0.55);
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,0.08);
 }
 
 .section {
@@ -108,12 +198,70 @@ body {
   display: block;
 }
 
+.item-card,
 .card {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 22px;
   margin-bottom: 18px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.item-card:hover,
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 45px rgba(0,0,0,0.16);
+  border-color: rgba(59,130,246,0.3);
+}
+
+.item-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.item-row strong {
+  font-size: 1rem;
+}
+
+.item-meta {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-chip.pending { background: rgba(245,158,11,0.16); color: #f59e0b; }
+.status-chip.approved { background: rgba(34,197,94,0.18); color: #22c55e; }
+.status-chip.rejected { background: rgba(239,68,68,0.16); color: #f87171; }
+.status-chip.assigned { background: rgba(59,130,246,0.16); color: #3b82f6; }
+.status-chip.paid { background: rgba(34,197,94,0.16); color: #22c55e; }
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 45px rgba(0,0,0,0.16);
 }
 
 .card h3 {
@@ -183,16 +331,52 @@ input, select {
 }
 
 @media (max-width: 900px) {
+  .page {
+    width: calc(100% - 24px);
+    padding: 20px 12px 32px;
+  }
+
+  .page-header {
+    gap: 14px;
+  }
+
   .stats-grid,
   .tabs,
   .grid-2 {
     grid-template-columns: 1fr;
+  }
+
+  .tabs {
+    margin-top: 22px;
+  }
+
+  .panel-title {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 620px) {
+  .tab {
+    padding: 14px;
+    font-size: 0.95rem;
+  }
+
+  .badge {
+    width: max-content;
   }
 }
 </style>
 </head>
 <body>
 <div class="page">
+  <div id="actionOverlay" class="action-overlay" aria-live="polite" aria-hidden="true">
+    <div class="action-popup">
+      <div class="spinner"></div>
+      <strong id="actionTitle">Processing...</strong>
+      <span id="actionMessage">Please wait while the system updates your dashboard.</span>
+    </div>
+  </div>
   <header class="page-header">
     <div>
       <h1 class="title">Kasipag Admin Dashboard</h1>
@@ -285,18 +469,18 @@ function renderFolder(title, list, parent) {
 
   list.forEach(u => {
     const item = document.createElement("div");
-    item.className = "card";
-    item.style.padding = "18px";
-    item.style.marginBottom = "16px";
+    item.className = "item-card";
     item.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+      <div class="item-row">
         <div>
           <strong>${u.name || "No Name"}</strong>
-          <div style="color: var(--muted); margin-top:6px;">${u.email}</div>
+          <div class="item-meta">${u.email}</div>
         </div>
-        <span style="color:${u.role === 'cashier' ? '#22c55e' : u.role === 'collector' ? '#3b82f6' : '#facc15'}; font-weight:700;">${u.role}</span>
+        <span class="status-chip ${u.status}">${u.status}</span>
       </div>
-      <p style="margin:12px 0 8px; color: var(--muted);">Status: ${u.status} | Assigned: ${u.assignedName || '-'}</p>
+      <div class="item-row">
+        <div class="item-meta">Role: <strong>${u.role}</strong> | Assigned: <strong>${u.assignedName || '-'}</strong></div>
+      </div>
       <div class="card-actions">
         <button class="button green" onclick="approve('${u.id}','${u.role}')">Approve</button>
         <button class="button red" onclick="reject('${u.id}')">Reject</button>
@@ -320,16 +504,14 @@ function renderLoanFolder(title, list, parent) {
 
   list.forEach(l => {
     const item = document.createElement("div");
-    item.className = "card";
-    item.style.padding = "18px";
-    item.style.marginBottom = "16px";
+    item.className = "item-card";
     item.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;">
+      <div class="item-row">
         <strong>👤 ${l.borrowerName}</strong>
-        <span style="color: ${l.status === 'paid' ? '#22c55e' : '#fbbf24'}; font-weight:700;">${l.status}</span>
+        <span class="status-chip ${l.status}">${l.status}</span>
       </div>
-      <p style="margin:0 0 8px; color: var(--muted);">Amount: ₱${l.amount} | Balance: ₱${l.balance}</p>
-      <p style="margin:0 0 14px; color: var(--muted);">Collector: ${l.assignedCollectorName || '-'} | Address: ${l.address || 'N/A'}</p>
+      <div class="item-meta">Amount: ₱${l.amount} | Balance: ₱${l.balance}</div>
+      <div class="item-meta">Collector: <strong>${l.assignedCollectorName || '-'}</strong> | Address: <strong>${l.address || 'N/A'}</strong></div>
       <div class="card-actions">
         <button class="button green" onclick="markPaid('${l.id}')">Mark Paid</button>
         <button class="button red" onclick="deleteLoan('${l.id}')">Delete</button>
@@ -385,37 +567,69 @@ function loadLoans() {
 loadUsers();
 loadLoans();
 
+const actionOverlay = document.getElementById("actionOverlay");
+const actionTitle = document.getElementById("actionTitle");
+const actionMessage = document.getElementById("actionMessage");
+
+function setActionState(title, message, visible = true) {
+  actionTitle.textContent = title;
+  actionMessage.textContent = message;
+  actionOverlay.classList.toggle("active", visible);
+  actionOverlay.setAttribute("aria-hidden", String(!visible));
+}
+
+async function runAction(title, message, task) {
+  setActionState(title, message, true);
+  try {
+    await task();
+  } catch (err) {
+    alert(err.message || "Unable to complete the operation.");
+  } finally {
+    setActionState("", "", false);
+  }
+}
+
 window.approve = async (id, role) => {
-  const snap = await getDocs(collection(db, "users"));
-  let count = 0;
-  snap.forEach(d => {
-    const u = d.data();
-    if (u.role === role && u.status === "approved") count++;
-  });
-  const name = role === "cashier"
-    ? `cashier${count + 1}`
-    : role === "collector"
-      ? `collector${count + 1}`
-      : `admin${count + 1}`;
+  await runAction("Approving user...", "Assigning a secure role tag and preparing login.", async () => {
+    const snap = await getDocs(collection(db, "users"));
+    const numbers = [];
 
-  await updateDoc(doc(db, "users", id), {
-    status: "approved",
-    assignedName: name
-  });
+    snap.forEach(d => {
+      const u = d.data();
+      if (u.role === role && u.status === "approved" && typeof u.assignedName === "string") {
+        const match = u.assignedName.match(new RegExp(`^${role}(\\d+)$`));
+        if (match) numbers.push(Number(match[1]));
+      }
+    });
 
-  alert(`Account approved! The user can now log in as ${name}.`);
+    const nextNumber = numbers.length ? Math.max(...numbers) + 1 : 1;
+    const name = `${role}${nextNumber}`;
+
+    await updateDoc(doc(db, "users", id), {
+      status: "approved",
+      assignedName: name
+    });
+
+    alert(`Account approved! The user can now log in as ${name}.`);
+  });
 };
 
 window.reject = async (id) => {
-  await updateDoc(doc(db, "users", id), { status: "rejected" });
+  await runAction("Rejecting user...", "Updating account status and removing access.", async () => {
+    await updateDoc(doc(db, "users", id), { status: "rejected" });
+  });
 };
 
 window.deleteLoan = async (id) => {
-  await deleteDoc(doc(db, "loans", id));
+  await runAction("Deleting loan...", "Removing this loan from the system.", async () => {
+    await deleteDoc(doc(db, "loans", id));
+  });
 };
 
 window.markPaid = async (id) => {
-  await updateDoc(doc(db, "loans", id), { status: "paid", balance: 0 });
+  await runAction("Marking loan paid...", "Recording payment and updating balances.", async () => {
+    await updateDoc(doc(db, "loans", id), { status: "paid", balance: 0 });
+  });
 };
 
 window.createLoan = async () => {
@@ -429,36 +643,31 @@ window.createLoan = async () => {
     return;
   }
 
-  const usersSnap = await getDocs(collection(db, "users"));
-  let collectorName = "";
-  usersSnap.forEach(d => {
-    if (d.id === collectorId) collectorName = d.data().assignedName || d.data().name;
-  });
+  await runAction("Creating loan...", "Assigning the loan and saving borrower details.", async () => {
+    const usersSnap = await getDocs(collection(db, "users"));
+    let collectorName = "";
+    usersSnap.forEach(d => {
+      if (d.id === collectorId) collectorName = d.data().assignedName || d.data().name;
+    });
 
-  await addDoc(collection(db, "loans"), {
-    borrowerName,
-    amount,
-    balance: amount,
-    address,
-    status: "assigned",
-    assignedCollectorId: collectorId,
-    assignedCollectorName: collectorName,
-    createdAt: serverTimestamp()
-  });
+    await addDoc(collection(db, "loans"), {
+      borrowerName,
+      amount,
+      balance: amount,
+      address,
+      status: "assigned",
+      assignedCollectorId: collectorId,
+      assignedCollectorName: collectorName,
+      createdAt: serverTimestamp()
+    });
 
-  document.getElementById("borrowerName").value = "";
-  document.getElementById("amount").value = "";
-  document.getElementById("address").value = "";
-  document.getElementById("collectorSelect").selectedIndex = 0;
-  alert("Loan created and assigned successfully.");
+    document.getElementById("borrowerName").value = "";
+    document.getElementById("amount").value = "";
+    document.getElementById("address").value = "";
+    document.getElementById("collectorSelect").selectedIndex = 0;
+    alert("Loan created and assigned successfully.");
+  });
 };
 </script>
-</body>
-</html>
-
-
-
-</script>
-
 </body>
 </html>

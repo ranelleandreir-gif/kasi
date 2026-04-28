@@ -16,7 +16,6 @@ const list = document.getElementById("paymentsList");
 let cashierId = null;
 let cashierName = null;
 
-
 // =====================
 // 🔐 CASHIER LOGIN CHECK
 // =====================
@@ -36,6 +35,27 @@ onAuthStateChanged(auth, async (user) => {
   loadPayments();
 });
 
+// =====================
+// 🎯 ACTION OVERLAY
+// =====================
+function runAction(title, message, action) {
+  const overlay = document.getElementById("actionOverlay");
+  const titleEl = document.getElementById("actionTitle");
+  const messageEl = document.getElementById("actionMessage");
+
+  titleEl.textContent = title;
+  messageEl.textContent = message;
+  overlay.classList.add("active");
+
+  setTimeout(() => {
+    action().then(() => {
+      overlay.classList.remove("active");
+    }).catch((error) => {
+      console.error("Action failed:", error);
+      overlay.classList.remove("active");
+    });
+  }, 500);
+}
 
 // =====================
 // 📦 LOAD ACTIVE LOANS
@@ -57,20 +77,27 @@ function loadLoans() {
       if (l.status !== "collected") return;
 
       const div = document.createElement("div");
-      div.className = "card";
+      div.className = "item";
 
       div.innerHTML = `
-        <h3>👤 ${l.borrowerName}</h3>
-        💰 Amount: ₱${l.amount}<br>
-        💵 Balance: ₱${l.balance}<br>
-        🚚 Collector: ${l.assignedCollectorName}<br>
-        📍 Address: ${l.address || "N/A"}<br><br>
-
-        <input type="number" placeholder="Amount Paid" id="pay-${d.id}" min="0" max="${l.balance}" />
-
-        <button onclick="payLoan('${d.id}','${l.borrowerName}',${l.balance})">
-          ✔ Confirm Payment
-        </button>
+        <div class="item-title">
+          <h3>👤 ${l.borrowerName}</h3>
+          <span class="badge">📦 Collected</span>
+        </div>
+        <div class="row">
+          <span>💰 Amount: ₱${l.amount}</span>
+          <span>💵 Balance: ₱${l.balance}</span>
+        </div>
+        <div class="row">
+          <span>🚚 Collector: ${l.assignedCollectorName}</span>
+          <span>📍 Address: ${l.address || "N/A"}</span>
+        </div>
+        <div class="input-group">
+          <input type="number" placeholder="Amount Paid" id="pay-${d.id}" min="0" max="${l.balance}" />
+          <button onclick="payLoan('${d.id}','${l.borrowerName}',${l.balance})">
+            ✔ Confirm Payment
+          </button>
+        </div>
       `;
 
       loansDiv.appendChild(div);
@@ -99,7 +126,7 @@ window.payLoan = async (loanId, borrowerName, currentBalance) => {
 
   const newBalance = currentBalance - amountPaid;
 
-  try {
+  runAction("Confirming Payment", "Processing the payment and updating records...", async () => {
     // 1. UPDATE LOAN
     await updateDoc(doc(db, "loans", loanId), {
       balance: newBalance,
@@ -119,11 +146,8 @@ window.payLoan = async (loanId, borrowerName, currentBalance) => {
       createdAt: serverTimestamp()
     });
 
-    alert(`✅ Payment confirmed! Remaining: ₱${newBalance}`);
     input.value = "";
-  } catch (error) {
-    alert("Error: " + error.message);
-  }
+  });
 };
 
 
