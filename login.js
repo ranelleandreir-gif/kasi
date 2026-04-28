@@ -34,7 +34,13 @@ btn.addEventListener("click", async () => {
 
     const data = userSnap.data();
 
-    // 🔥 CHECK STATUS FIRST
+    // 🔥 SAVE IMPORTANT DATA (FIX FOR ALL DASHBOARDS)
+    localStorage.setItem("uid", uid);
+    localStorage.setItem("role", data.role || "");
+    localStorage.setItem("assignedName", data.assignedName || "");
+    localStorage.setItem("email", data.email || "");
+
+    // 🔥 STATUS CHECK
     if (data.status === "pending") {
       msg.textContent = "Account still pending admin approval";
       msg.style.color = "orange";

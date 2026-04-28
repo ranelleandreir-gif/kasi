@@ -14,20 +14,18 @@ const list = document.getElementById("list");
 // 👤 CURRENT COLLECTOR
 const collectorId = localStorage.getItem("uid");
 
-// ❗ SAFETY CHECK
 if (!collectorId) {
   alert("No collector login detected");
   window.location.href = "login.html";
 }
 
-
 // ==========================
-// 📡 REAL TIME TASKS (ONLY MINE)
+// 📡 REAL TIME LOANS (ASSIGNED ONLY)
 // ==========================
 function loadTasks() {
 
   const q = query(
-    collection(db, "collections"),
+    collection(db, "loans"),
     where("assignedCollectorId", "==", collectorId)
   );
 
@@ -48,27 +46,25 @@ function loadTasks() {
       div.className = "card";
 
       div.innerHTML = `
-        <h3>${d.name}</h3>
-        <p>📍 ${d.address}</p>
-        <p>📝 ${d.note || "No notes"}</p>
+        <h3>👤 ${d.borrowerName}</h3>
+        <p>💰 ₱${d.amount}</p>
+        <p>📍 ${d.address || "No address"}</p>
         <p>Status: <b>${d.status}</b></p>
 
-        <button class="done">✔ Mark Collected</button>
-        <button class="pending">⏳ Mark Pending</button>
+        <button class="done">✔ Collected</button>
+        <button class="pending">⏳ Unpaid</button>
       `;
 
-      // ✔ collected
       div.querySelector(".done").onclick = async () => {
-        await updateDoc(doc(db, "collections", docSnap.id), {
+        await updateDoc(doc(db, "loans", docSnap.id), {
           status: "collected",
           collectedAt: serverTimestamp()
         });
       };
 
-      // ⏳ pending
       div.querySelector(".pending").onclick = async () => {
-        await updateDoc(doc(db, "collections", docSnap.id), {
-          status: "pending"
+        await updateDoc(doc(db, "loans", docSnap.id), {
+          status: "unpaid"
         });
       };
 
