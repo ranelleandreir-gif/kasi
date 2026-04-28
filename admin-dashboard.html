@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Final Boss</title>
+<title>Admin System Pro</title>
 
 <style>
 body{
@@ -13,76 +13,86 @@ body{
   color:white;
 }
 
-/* HEADER */
-.header{
-  padding:15px;
-  text-align:center;
+/* TOP MENU (FOLDERS STYLE) */
+.tabs{
+  display:flex;
+  gap:10px;
+  padding:10px;
   background:rgba(255,255,255,0.05);
 }
 
-/* GRID */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-  gap:10px;
+.tab{
+  padding:10px 15px;
+  background:rgba(255,255,255,0.08);
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.tab.active{
+  background:#3b82f6;
+}
+
+/* SECTIONS */
+.section{
+  display:none;
   padding:10px;
 }
 
-/* CARD */
+.section.active{
+  display:block;
+}
+
+/* CARDS */
 .card{
   background:rgba(255,255,255,0.06);
-  padding:15px;
-  border-radius:12px;
-}
-
-/* LIST */
-.list{
-  padding:10px;
-}
-
-/* ITEM */
-.item{
-  background:rgba(255,255,255,0.06);
   padding:12px;
-  margin:8px 0;
+  margin:10px 0;
   border-radius:10px;
 }
 
 /* BUTTONS */
 button{
   padding:6px 10px;
-  margin:3px;
   border:none;
   border-radius:6px;
   cursor:pointer;
+  margin:3px;
 }
 
-.approve{background:#10b981;color:white;}
-.reject{background:#ef4444;color:white;}
 .blue{background:#3b82f6;color:white;}
+.green{background:#10b981;color:white;}
+.red{background:#ef4444;color:white;}
 </style>
 </head>
 
 <body>
 
-<div class="header">
-  <h2>💀 ADMIN FINAL BOSS SYSTEM</h2>
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="openTab('users')">👤 Users</div>
+  <div class="tab" onclick="openTab('loans')">📦 Borrowers</div>
+  <div class="tab" onclick="openTab('create')">➕ Create Loan</div>
 </div>
 
-<!-- DASHBOARD -->
-<div class="grid">
-  <div class="card">👤 Users <h2 id="totalUsers">0</h2></div>
-  <div class="card">⏳ Pending <h2 id="pending">0</h2></div>
-  <div class="card">✅ Approved <h2 id="approved">0</h2></div>
-  <div class="card">💰 Cashiers <h2 id="cashiers">0</h2></div>
-  <div class="card">📦 Collectors <h2 id="collectors">0</h2></div>
+<!-- USERS -->
+<div id="users" class="section active"></div>
+
+<!-- LOANS -->
+<div id="loans" class="section"></div>
+
+<!-- CREATE LOAN -->
+<div id="create" class="section">
+
+  <h3>➕ Create Borrower</h3>
+
+  <input id="borrowerName" placeholder="Borrower Name"><br><br>
+  <input id="amount" placeholder="Amount"><br><br>
+
+  <select id="collectorSelect"></select><br><br>
+
+  <button class="blue" onclick="createLoan()">Create Loan</button>
+
 </div>
-
-<h3 style="padding:10px;">👤 USERS</h3>
-<div id="users"></div>
-
-<h3 style="padding:10px;">📦 LOANS</h3>
-<div id="loans"></div>
 
 <script type="module">
 import { db } from "./firebase.js";
@@ -92,32 +102,40 @@ import {
   doc,
   updateDoc,
   deleteDoc,
-  getDocs,
   addDoc,
+  getDocs,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* =========================
-   👤 USERS REAL TIME
+   TAB SWITCH
+========================= */
+window.openTab = (tab)=>{
+
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+
+  document.getElementById(tab).classList.add("active");
+  event.target.classList.add("active");
+};
+
+
+/* =========================
+   👤 USERS (FOLDER 1)
 ========================= */
 onSnapshot(collection(db,"users"), (snap)=>{
 
-  let total=0, pending=0, approved=0, cashiers=0, collectors=0;
-
   const usersDiv = document.getElementById("users");
-  usersDiv.innerHTML="";
+  usersDiv.innerHTML = "<h3>👤 Users Folder</h3>";
+
+  const select = document.getElementById("collectorSelect");
+  select.innerHTML = "<option>Select Collector</option>";
 
   snap.forEach(d=>{
-    const u=d.data();
-    total++;
+    const u = d.data();
 
-    if(u.status==="pending") pending++;
-    if(u.status==="approved") approved++;
-    if(u.role==="cashier") cashiers++;
-    if(u.role==="collector") collectors++;
-
-    const div=document.createElement("div");
-    div.className="item";
+    const div = document.createElement("div");
+    div.className="card";
 
     div.innerHTML=`
       <b>${u.name}</b><br>
@@ -126,51 +144,51 @@ onSnapshot(collection(db,"users"), (snap)=>{
       Assigned: ${u.assignedName || "-"}
 
       <br><br>
-      <button class="approve" onclick="approveUser('${d.id}','${u.role}')">Approve</button>
-      <button class="reject" onclick="rejectUser('${d.id}')">Reject</button>
-      <button class="blue" onclick="setRole('${d.id}','collector')">Collector</button>
-      <button class="blue" onclick="setRole('${d.id}','cashier')">Cashier</button>
+      <button class="green" onclick="approve('${d.id}','${u.role}')">Approve</button>
+      <button class="red" onclick="reject('${d.id}')">Reject</button>
     `;
 
     usersDiv.appendChild(div);
-  });
 
-  document.getElementById("totalUsers").innerText=total;
-  document.getElementById("pending").innerText=pending;
-  document.getElementById("approved").innerText=approved;
-  document.getElementById("cashiers").innerText=cashiers;
-  document.getElementById("collectors").innerText=collectors;
+    // collectors dropdown
+    if(u.role==="collector" && u.status==="approved"){
+      const opt=document.createElement("option");
+      opt.value=d.id;
+      opt.textContent=u.assignedName || u.name;
+      select.appendChild(opt);
+    }
+  });
 });
 
 
 /* =========================
-   📦 LOANS REAL TIME
+   📦 LOANS (FOLDER 2)
 ========================= */
 onSnapshot(collection(db,"loans"), (snap)=>{
 
-  const loansDiv=document.getElementById("loans");
-  loansDiv.innerHTML="";
+  const loansDiv = document.getElementById("loans");
+  loansDiv.innerHTML = "<h3>📦 Borrower Folder</h3>";
 
   snap.forEach(d=>{
-    const l=d.data();
+    const l = d.data();
 
     const div=document.createElement("div");
-    div.className="item";
+    div.className="card";
 
     div.innerHTML=`
       <b>👤 ${l.borrowerName}</b><br>
-      💰 ₱${l.amount} | Balance ₱${l.balance}<br>
+      💰 ₱${l.amount}<br>
+      📉 Balance ₱${l.balance}<br>
       📦 ${l.status}<br>
-      👷 ${l.assignedCollectorName || "-"}
+      👷 ${l.assignedCollectorName}
 
       <br><br>
-      <button class="approve" onclick="markPaid('${d.id}')">Mark Paid</button>
-      <button class="reject" onclick="deleteLoan('${d.id}')">Delete</button>
+      <button class="green" onclick="markPaid('${d.id}')">Paid</button>
+      <button class="red" onclick="deleteLoan('${d.id}')">Delete</button>
     `;
 
     loansDiv.appendChild(div);
   });
-
 });
 
 
@@ -178,10 +196,9 @@ onSnapshot(collection(db,"loans"), (snap)=>{
    🔥 ACTIONS
 ========================= */
 
-window.approveUser = async (id, role)=>{
+window.approve = async (id,role)=>{
 
   const snap = await getDocs(collection(db,"users"));
-
   let count=0;
 
   snap.forEach(d=>{
@@ -199,15 +216,9 @@ window.approveUser = async (id, role)=>{
   });
 };
 
-window.rejectUser = async (id)=>{
+window.reject = async (id)=>{
   await updateDoc(doc(db,"users",id),{
     status:"rejected"
-  });
-};
-
-window.setRole = async (id,role)=>{
-  await updateDoc(doc(db,"users",id),{
-    role
   });
 };
 
@@ -222,27 +233,45 @@ window.markPaid = async (id)=>{
   });
 };
 
+
+/* =========================
+   💰 CREATE LOAN
+========================= */
+window.createLoan = async ()=>{
+
+  const name=document.getElementById("borrowerName").value;
+  const amount=Number(document.getElementById("amount").value);
+  const collectorId=document.getElementById("collectorSelect").value;
+
+  if(!name || !amount || !collectorId){
+    alert("Fill all fields");
+    return;
+  }
+
+  const snap = await getDocs(collection(db,"users"));
+
+  let collectorName="";
+
+  snap.forEach(d=>{
+    if(d.id===collectorId){
+      collectorName=d.data().assignedName || d.data().name;
+    }
+  });
+
+  await addDoc(collection(db,"loans"),{
+    borrowerName:name,
+    amount,
+    balance:amount,
+    status:"active",
+    assignedCollectorId:collectorId,
+    assignedCollectorName:collectorName,
+    createdAt:serverTimestamp()
+  });
+
+  alert("Loan Created!");
+};
+
 </script>
-
-<h3 style="padding:10px;">➕ CREATE LOAN</h3>
-
-<div style="padding:10px;">
-
-  <input id="borrowerName" placeholder="Borrower Name" style="padding:8px;width:200px;">
-  <input id="amount" placeholder="Amount" style="padding:8px;width:200px;">
-
-  <br><br>
-
-  <select id="collectorSelect" style="padding:8px;width:210px;">
-    <option value="">Select Collector</option>
-  </select>
-
-  <br><br>
-
-  <button class="blue" onclick="createLoan()">Create Loan</button>
-
-</div>
-
 
 </body>
 </html>
