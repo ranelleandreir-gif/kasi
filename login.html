@@ -3,60 +3,132 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login</title>
+<title>Animated Login</title>
 
 <style>
 body{
   margin:0;
-  font-family: Arial;
-  background: linear-gradient(135deg,#0f172a,#1e293b);
+  height:100vh;
   display:flex;
   justify-content:center;
   align-items:center;
-  height:100vh;
+  font-family:Arial;
+  background: linear-gradient(-45deg,#0f172a,#1e293b,#0b1220,#111827);
+  background-size:400% 400%;
+  animation:bg 8s ease infinite;
 }
 
+/* background animation */
+@keyframes bg{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+
+/* card */
 .card{
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(15px);
+  width:320px;
   padding:30px;
-  border-radius:15px;
-  width:300px;
+  border-radius:18px;
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(18px);
+  box-shadow:0 20px 40px rgba(0,0,0,0.5);
   color:white;
-  box-shadow:0 10px 30px rgba(0,0,0,0.4);
   text-align:center;
+
+  /* entry animation */
+  transform: translateY(40px);
+  opacity:0;
+  animation: fadeUp 0.8s ease forwards;
 }
 
+@keyframes fadeUp{
+  to{
+    transform: translateY(0);
+    opacity:1;
+  }
+}
+
+h2{
+  margin-bottom:20px;
+  letter-spacing:1px;
+}
+
+/* inputs */
 input{
   width:100%;
   padding:12px;
-  margin:10px 0;
+  margin:8px 0;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
   outline:none;
+  transition:0.3s;
 }
 
+input:focus{
+  transform: scale(1.03);
+}
+
+/* button */
 button{
   width:100%;
   padding:12px;
+  margin-top:10px;
   border:none;
-  border-radius:8px;
+  border-radius:10px;
   background:#3b82f6;
   color:white;
   font-weight:bold;
   cursor:pointer;
   transition:0.3s;
+  position:relative;
+  overflow:hidden;
 }
 
 button:hover{
   background:#2563eb;
+  transform: scale(1.05);
 }
 
+/* loading spinner */
 .loader{
   display:none;
   margin-top:10px;
-  font-size:12px;
-  opacity:0.7;
+}
+
+.spinner{
+  width:18px;
+  height:18px;
+  border:3px solid rgba(255,255,255,0.3);
+  border-top:3px solid white;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin:auto;
+}
+
+@keyframes spin{
+  to{transform:rotate(360deg);}
+}
+
+/* ripple effect */
+button:active::after{
+  content:"";
+  position:absolute;
+  width:100px;
+  height:100px;
+  background:rgba(255,255,255,0.3);
+  border-radius:50%;
+  transform:scale(0);
+  animation:ripple 0.6s linear;
+  left:50%;
+  top:50%;
+}
+
+@keyframes ripple{
+  to{
+    transform:scale(3);
+    opacity:0;
+  }
 }
 </style>
 
@@ -71,7 +143,9 @@ button:hover{
 
   <button id="loginBtn">Login</button>
 
-  <div class="loader" id="loader">Logging in...</div>
+  <div class="loader" id="loader">
+    <div class="spinner"></div>
+  </div>
 </div>
 
 <script type="module" src="login.js"></script>
