@@ -43,3 +43,21 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 });
+
+function isValidEmail(email) {
+  return email.includes("@") && email.includes(".");
+}
+
+const email = document.getElementById("email").value.trim();
+const password = document.getElementById("password").value.trim();
+
+// 🔐 validation
+if (!email || !password) {
+  alert("Please fill all fields");
+  return;
+}
+
+if (!isValidEmail(email)) {
+  alert("Invalid email format");
+  return;
+}
