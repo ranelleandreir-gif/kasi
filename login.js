@@ -6,6 +6,7 @@ from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const btn = document.getElementById("loginBtn");
 const msg = document.getElementById("msg");
+const loader = document.getElementById("loader");
 
 btn.addEventListener("click", async () => {
 
@@ -14,9 +15,13 @@ btn.addEventListener("click", async () => {
 
   if (!email || !password) {
     msg.textContent = "Fill all fields";
-    msg.style.color = "red";
+    msg.style.color = "#f87171";
     return;
   }
+
+  btn.disabled = true;
+  loader.style.display = "block";
+  msg.textContent = "";
 
   try {
 
@@ -75,5 +80,8 @@ btn.addEventListener("click", async () => {
   } catch (err) {
     msg.textContent = err.message;
     msg.style.color = "red";
+  } finally {
+    btn.disabled = false;
+    loader.style.display = "none";
   }
 });

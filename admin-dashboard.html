@@ -1,98 +1,234 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin System Pro</title>
+<title>Kasipag Admin Dashboard</title>
 
 <style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:#0b1220;
-  color:white;
+:root {
+  color-scheme: dark;
+  font-family: Inter, Arial, sans-serif;
+  --bg: #050b16;
+  --panel: rgba(15,23,42,0.92);
+  --panel-soft: rgba(15,23,42,0.76);
+  --border: rgba(148,163,184,0.14);
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --green: #22c55e;
+  --blue: #3b82f6;
+  --red: #ef4444;
 }
 
-/* TOP MENU (FOLDERS STYLE) */
-.tabs{
-  display:flex;
-  gap:10px;
-  padding:10px;
-  background:rgba(255,255,255,0.05);
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top right, rgba(59,130,246,0.14), transparent 18%),
+              radial-gradient(circle at bottom left, rgba(34,197,94,0.16), transparent 22%),
+              linear-gradient(180deg, #050b16 0%, #06101a 100%);
+  color: var(--text);
 }
 
-.tab{
-  padding:10px 15px;
-  background:rgba(255,255,255,0.08);
-  border-radius:8px;
-  cursor:pointer;
+.page {
+  width: min(1200px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 40px;
 }
 
-.tab.active{
-  background:#3b82f6;
+.page-header {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
-/* SECTIONS */
-.section{
-  display:none;
-  padding:10px;
+.page-header .title {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 2.6rem);
 }
 
-.section.active{
-  display:block;
+.page-header .subtitle {
+  margin: 0;
+  color: var(--muted);
 }
 
-/* CARDS */
-.card{
-  background:rgba(255,255,255,0.06);
-  padding:12px;
-  margin:10px 0;
-  border-radius:10px;
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
 }
 
-/* BUTTONS */
-button{
-  padding:6px 10px;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-  margin:3px;
+.stat-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 22px;
 }
 
-.blue{background:#3b82f6;color:white;}
-.green{background:#10b981;color:white;}
-.red{background:#ef4444;color:white;}
+.stat-card strong {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.stat-card span {
+  color: var(--muted);
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 28px 0 20px;
+}
+
+.tab {
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  text-align: center;
+  cursor: pointer;
+  transition: transform .2s ease, border-color .2s ease, background .2s ease;
+}
+
+.tab:hover { transform: translateY(-2px); }
+
+.tab.active {
+  background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(34,197,94,0.14));
+  border-color: rgba(59,130,246,0.5);
+}
+
+.section {
+  display: none;
+}
+
+.section.active {
+  display: block;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 22px;
+  margin-bottom: 18px;
+}
+
+.card h3 {
+  margin-top: 0;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+input, select {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  padding: 14px 16px;
+}
+
+.button {
+  border: none;
+  border-radius: 14px;
+  padding: 14px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.button:hover { transform: translateY(-1px); }
+
+.button.green { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; }
+.button.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
+.button.red { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.empty-state {
+  padding: 28px;
+  margin-top: 14px;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.03);
+  border: 1px dashed rgba(148,163,184,0.24);
+  color: var(--muted);
+  text-align: center;
+}
+
+.panel-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+}
+
+.badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(59,130,246,0.18);
+  color: #e0f2fe;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .stats-grid,
+  .tabs,
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
 </head>
-
 <body>
+<div class="page">
+  <header class="page-header">
+    <div>
+      <h1 class="title">Kasipag Admin Dashboard</h1>
+      <p class="subtitle">Manage users, approve accounts, and create loans from a fast, polished control panel.</p>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><strong id="totalUsers">0</strong><span>Total users</span></div>
+      <div class="stat-card"><strong id="pending">0</strong><span>Pending approvals</span></div>
+      <div class="stat-card"><strong id="approved">0</strong><span>Approved users</span></div>
+      <div class="stat-card"><strong id="collectors">0</strong><span>Collectors</span></div>
+    </div>
+  </header>
 
-<!-- TABS -->
-<div class="tabs">
-  <div class="tab active" onclick="openTab('users')">👤 Users</div>
-  <div class="tab" onclick="openTab('loans')">📦 Borrowers</div>
-  <div class="tab" onclick="openTab('create')">➕ Create Loan</div>
-</div>
+  <div class="tabs">
+    <div class="tab active" onclick="openTab(this,'users')">👤 Users</div>
+    <div class="tab" onclick="openTab(this,'loans')">📦 Loans</div>
+    <div class="tab" onclick="openTab(this,'create')">➕ Create Loan</div>
+  </div>
 
-<!-- USERS -->
-<div id="users" class="section active"></div>
-
-<!-- LOANS -->
-<div id="loans" class="section"></div>
-
-<!-- CREATE LOAN -->
-<div id="create" class="section">
-
-  <h3>➕ Create Borrower</h3>
-
-  <input id="borrowerName" placeholder="Borrower Name"><br><br>
-  <input id="amount" type="number" placeholder="Amount"><br><br>
-  <input id="address" placeholder="Address/Location"><br><br>
-
-  <select id="collectorSelect"></select><br><br>
-
-  <button class="blue" onclick="createLoan()">Create Loan</button>
-
+  <section id="users" class="section active"></section>
+  <section id="loans" class="section"></section>
+  <section id="create" class="section">
+    <div class="card">
+      <div class="panel-title">
+        <h3>Create New Loan</h3>
+        <span class="badge">Fast assign</span>
+      </div>
+      <div class="grid-2">
+        <input id="borrowerName" placeholder="Borrower Name">
+        <input id="amount" type="number" placeholder="Amount">
+        <input id="address" placeholder="Address / Location">
+        <select id="collectorSelect"></select>
+      </div>
+      <button class="button blue" style="margin-top:18px;" onclick="createLoan()">Create & Assign</button>
+    </div>
+  </section>
 </div>
 
 <script type="module">
@@ -107,20 +243,17 @@ import {
   getDocs,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-/* AUTH PROTECTION */
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = "login.html";
     return;
   }
 
-  // Verify user is admin
-  const userSnap = await getDocs(collection(db, "users"));
+  const users = await getDocs(collection(db, "users"));
   let isAdmin = false;
-  userSnap.forEach(d => {
+  users.forEach(d => {
     if (d.id === user.uid && d.data().role === "admin") {
       isAdmin = true;
     }
@@ -132,132 +265,190 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-/* =========================
-   TAB SWITCH
-========================= */
-window.openTab = (tab)=>{
-
-  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-
-  document.getElementById(tab).classList.add("active");
-  event.target.classList.add("active");
+window.openTab = (tabElement, tabId) => {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.getElementById(tabId).classList.add("active");
+  tabElement.classList.add("active");
 };
 
+function renderFolder(title, list, parent) {
+  const box = document.createElement("div");
+  box.className = "card";
+  box.innerHTML = `<h3>${title} (${list.length})</h3>`;
 
-/* =========================
-   👤 USERS (FOLDER 1)
-========================= */
-onSnapshot(collection(db,"users"), (snap)=>{
+  if (!list.length) {
+    box.innerHTML += `<div class="empty-state">No ${title.toLowerCase()} found.</div>`;
+    parent.appendChild(box);
+    return;
+  }
 
-  const usersDiv = document.getElementById("users");
-  usersDiv.innerHTML = "<h3>👤 Users Folder</h3>";
+  list.forEach(u => {
+    const item = document.createElement("div");
+    item.className = "card";
+    item.style.padding = "18px";
+    item.style.marginBottom = "16px";
+    item.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+        <div>
+          <strong>${u.name || "No Name"}</strong>
+          <div style="color: var(--muted); margin-top:6px;">${u.email}</div>
+        </div>
+        <span style="color:${u.role === 'cashier' ? '#22c55e' : u.role === 'collector' ? '#3b82f6' : '#facc15'}; font-weight:700;">${u.role}</span>
+      </div>
+      <p style="margin:12px 0 8px; color: var(--muted);">Status: ${u.status} | Assigned: ${u.assignedName || '-'}</p>
+      <div class="card-actions">
+        <button class="button green" onclick="approve('${u.id}','${u.role}')">Approve</button>
+        <button class="button red" onclick="reject('${u.id}')">Reject</button>
+      </div>
+    `;
+    box.appendChild(item);
+  });
+  parent.appendChild(box);
+}
 
-  const select = document.getElementById("collectorSelect");
-  select.innerHTML = "<option>Select Collector</option>";
+function renderLoanFolder(title, list, parent) {
+  const box = document.createElement("div");
+  box.className = "card";
+  box.innerHTML = `<h3>${title} (${list.length})</h3>`;
 
-  snap.forEach(d=>{
+  if (!list.length) {
+    box.innerHTML += `<div class="empty-state">No loans available.</div>`;
+    parent.appendChild(box);
+    return;
+  }
+
+  list.forEach(l => {
+    const item = document.createElement("div");
+    item.className = "card";
+    item.style.padding = "18px";
+    item.style.marginBottom = "16px";
+    item.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;">
+        <strong>👤 ${l.borrowerName}</strong>
+        <span style="color: ${l.status === 'paid' ? '#22c55e' : '#fbbf24'}; font-weight:700;">${l.status}</span>
+      </div>
+      <p style="margin:0 0 8px; color: var(--muted);">Amount: ₱${l.amount} | Balance: ₱${l.balance}</p>
+      <p style="margin:0 0 14px; color: var(--muted);">Collector: ${l.assignedCollectorName || '-'} | Address: ${l.address || 'N/A'}</p>
+      <div class="card-actions">
+        <button class="button green" onclick="markPaid('${l.id}')">Mark Paid</button>
+        <button class="button red" onclick="deleteLoan('${l.id}')">Delete</button>
+      </div>
+    `;
+    box.appendChild(item);
+  });
+  parent.appendChild(box);
+}
+
+function loadUsers() {
+  onSnapshot(collection(db, "users"), (snap) => {
+    const usersDiv = document.getElementById("users");
+    usersDiv.innerHTML = "";
+    const folders = { admin: [], cashier: [], collector: [], pending: [] };
+
+    snap.forEach(d => {
+      const u = d.data();
+      if (u.status === "pending") folders.pending.push({ id: d.id, ...u });
+      else folders[u.role]?.push({ id: d.id, ...u });
+    });
+
+    renderFolder("🟡 Pending Users", folders.pending, usersDiv);
+    renderFolder("💰 Cashiers", folders.cashier, usersDiv);
+    renderFolder("🚚 Collectors", folders.collector, usersDiv);
+    renderFolder("👑 Admin", folders.admin, usersDiv);
+
+    document.getElementById("totalUsers").textContent = snap.size;
+    document.getElementById("pending").textContent = folders.pending.length;
+    document.getElementById("approved").textContent = folders.cashier.length + folders.collector.length + folders.admin.length;
+    document.getElementById("collectors").textContent = folders.collector.length;
+  });
+}
+
+function loadLoans() {
+  onSnapshot(collection(db, "loans"), (snap) => {
+    const loansDiv = document.getElementById("loans");
+    loansDiv.innerHTML = "";
+    const active = [];
+    const paid = [];
+
+    snap.forEach(d => {
+      const l = d.data();
+      if (l.status === "paid") paid.push({ id: d.id, ...l });
+      else active.push({ id: d.id, ...l });
+    });
+
+    renderLoanFolder("📦 Active Loans", active, loansDiv);
+    renderLoanFolder("✅ Paid Loans", paid, loansDiv);
+  });
+}
+
+loadUsers();
+loadLoans();
+
+window.approve = async (id, role) => {
+  const snap = await getDocs(collection(db, "users"));
+  let count = 0;
+  snap.forEach(d => {
     const u = d.data();
-
-    const div = document.createElement("div");
-    div.className="card";
-
-    div.innerHTML=`
-      <b>${u.name}</b><br>
-      ${u.email}<br>
-      Role: ${u.role} | ${u.status}<br>
-      Assigned: ${u.assignedName || "-"}
-
-      <br><br>
-      <button class="green" onclick="approve('${d.id}','${u.role}')">Approve</button>
-      <button class="red" onclick="reject('${d.id}')">Reject</button>
-    `;
-
-    usersDiv.appendChild(div);
-
-    // collectors dropdown
-    if(u.role==="collector" && u.status==="approved"){
-      const opt=document.createElement("option");
-      opt.value=d.id;
-      opt.textContent=u.assignedName || u.name;
-      select.appendChild(opt);
-    }
+    if (u.role === role && u.status === "approved") count++;
   });
-});
-
-
-/* =========================
-   📦 LOANS (FOLDER 2)
-========================= */
-onSnapshot(collection(db,"loans"), (snap)=>{
-
-  const loansDiv = document.getElementById("loans");
-  loansDiv.innerHTML = "<h3>📦 Borrower Folder</h3>";
-
-  snap.forEach(d=>{
-    const l = d.data();
-
-    const div=document.createElement("div");
-    div.className="card";
-
-    div.innerHTML=`
-      <b>👤 ${l.borrowerName}</b><br>
-      💰 ₱${l.amount}<br>
-      📉 Balance ₱${l.balance}<br>
-      📦 ${l.status}<br>
-      👷 ${l.assignedCollectorName}
-
-      <br><br>
-      <button class="green" onclick="markPaid('${d.id}')">Paid</button>
-      <button class="red" onclick="deleteLoan('${d.id}')">Delete</button>
-    `;
-
-    loansDiv.appendChild(div);
-  });
-});
-
-
-/* =========================
-   🔥 ACTIONS
-========================= */
-
-window.approve = async (id,role)=>{
-
-  const snap = await getDocs(collection(db,"users"));
-  let count=0;
-
-  snap.forEach(d=>{
-    const u=d.data();
-    if(u.role===role && u.status==="approved") count++;
-  });
-
-  const name = role==="cashier"
-    ? `cashier${count+1}`
-    : `collector${count+1}`;
-
-  await updateDoc(doc(db,"users",id),{
-    status:"approved",
-    assignedName:name
-  });
+  const name = role === "cashier"
+    ? `cashier${count + 1}`
+    : role === "collector"
+      ? `collector${count + 1}`
+      : `admin${count + 1}`;
+  await updateDoc(doc(db, "users", id), { status: "approved", assignedName: name });
 };
 
-window.reject = async (id)=>{
-  await updateDoc(doc(db,"users",id),{
-    status:"rejected"
+window.reject = async (id) => {
+  await updateDoc(doc(db, "users", id), { status: "rejected" });
+};
+
+window.deleteLoan = async (id) => {
+  await deleteDoc(doc(db, "loans", id));
+};
+
+window.markPaid = async (id) => {
+  await updateDoc(doc(db, "loans", id), { status: "paid", balance: 0 });
+};
+
+window.createLoan = async () => {
+  const borrowerName = document.getElementById("borrowerName").value.trim();
+  const amount = Number(document.getElementById("amount").value.trim());
+  const address = document.getElementById("address").value.trim();
+  const collectorId = document.getElementById("collectorSelect").value;
+
+  if (!borrowerName || !amount || !address || !collectorId) {
+    alert("Fill all fields before creating the loan.");
+    return;
+  }
+
+  const usersSnap = await getDocs(collection(db, "users"));
+  let collectorName = "";
+  usersSnap.forEach(d => {
+    if (d.id === collectorId) collectorName = d.data().assignedName || d.data().name;
   });
-};
 
-window.deleteLoan = async (id)=>{
-  await deleteDoc(doc(db,"loans",id));
-};
-
-window.markPaid = async (id)=>{
-  await updateDoc(doc(db,"loans",id),{
-    status:"paid",
-    balance:0
+  await addDoc(collection(db, "loans"), {
+    borrowerName,
+    amount,
+    balance: amount,
+    address,
+    status: "assigned",
+    assignedCollectorId: collectorId,
+    assignedCollectorName: collectorName,
+    createdAt: serverTimestamp()
   });
-};
 
+  document.getElementById("borrowerName").value = "";
+  document.getElementById("amount").value = "";
+  document.getElementById("address").value = "";
+  document.getElementById("collectorSelect").selectedIndex = 0;
+  alert("Loan created and assigned successfully.");
+};
+</script>
+</body>
+</html>
 
 /* =========================
    💰 CREATE LOAN

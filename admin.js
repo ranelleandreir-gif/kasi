@@ -217,7 +217,9 @@ window.approveUser = async (id, role) => {
   const name =
     role === "cashier"
       ? `cashier${count + 1}`
-      : `collector${count + 1}`;
+      : role === "collector"
+        ? `collector${count + 1}`
+        : `admin${count + 1}`;
 
   await updateDoc(doc(db, "users", id), {
     status: "approved",

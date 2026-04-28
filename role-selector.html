@@ -1,50 +1,138 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Portal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal Selector</title>
 
 <style>
-body{
-  margin:0;
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  background:#0b1220;
-  color:white;
-  font-family:Arial;
+:root {
+  font-family: Inter, Arial, sans-serif;
+  color: #e5e7eb;
+  background: #080f1a;
 }
 
-.box{
-  text-align:center;
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at top left, rgba(34,197,94,0.16), transparent 30%),
+              radial-gradient(circle at bottom right, rgba(59,130,246,0.14), transparent 25%),
+              linear-gradient(180deg, #07101b 0%, #090d14 100%);
 }
 
-button{
-  display:block;
-  width:200px;
-  margin:10px auto;
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
-  font-weight:bold;
+.container {
+  width: min(540px, calc(100% - 32px));
+  padding: 32px;
+  background: rgba(15,23,42,0.92);
+  border: 1px solid rgba(148,163,184,0.12);
+  border-radius: 28px;
+  box-shadow: 0 30px 70px rgba(0,0,0,0.28);
+  backdrop-filter: blur(18px);
 }
 
-.admin{background:#ef4444;color:white;}
-.cashier{background:#3b82f6;color:white;}
-.collector{background:#22c55e;color:white;}
+.header {
+  display: grid;
+  gap: 12px;
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 2.5vw, 2.4rem);
+}
+
+.header p {
+  margin: 0;
+  color: #94a3b8;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.card {
+  padding: 22px 16px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 22px;
+  text-align: center;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  cursor: pointer;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(59,130,246,0.4);
+  background: rgba(59,130,246,0.08);
+}
+
+.card h2 {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+}
+
+.card p {
+  margin: 0;
+  color: #cbd5e1;
+}
+
+.card.admin { border-color: #f87171; }
+.card.cashier { border-color: #3b82f6; }
+.card.collector { border-color: #22c55e; }
+
+.button-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+}
+
+.button {
+  border: none;
+  border-radius: 16px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #22c55e, #3b82f6);
+  color: #071018;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.button:hover { transform: translateY(-2px); }
 </style>
-
 </head>
 <body>
+<div class="container">
+  <div class="header">
+    <h1>Kasipag Portal</h1>
+    <p>Choose the role you want to sign in with and continue to the right dashboard.</p>
+  </div>
 
-<div class="box">
-  <h2>Choose Portal</h2>
+  <div class="cards">
+    <div class="card admin" onclick="selectRole('admin')">
+      <h2>Admin</h2>
+      <p>Manage accounts, approve users, and create loans.</p>
+    </div>
+    <div class="card cashier" onclick="selectRole('cashier')">
+      <h2>Cashier</h2>
+      <p>Confirm payments and view transaction history.</p>
+    </div>
+    <div class="card collector" onclick="selectRole('collector')">
+      <h2>Collector</h2>
+      <p>See assigned loans and mark collections.</p>
+    </div>
+  </div>
 
-  <button class="admin" onclick="selectRole('admin')">Admin</button>
-  <button class="cashier" onclick="selectRole('cashier')">Cashier</button>
-  <button class="collector" onclick="selectRole('collector')">Collector</button>
+  <div class="button-row">
+    <button class="button" onclick="goLogin()">Continue to Login</button>
+    <button class="button" style="background: linear-gradient(135deg, #f97316, #ea580c); margin-left: 12px;" onclick="goRegister()">Create Account</button>
+  </div>
 </div>
 
 <script>
@@ -52,7 +140,14 @@ function selectRole(role){
   localStorage.setItem("selectedRole", role);
   window.location.href = "login.html";
 }
-</script>
 
+function goLogin() {
+  window.location.href = "login.html";
+}
+
+function goRegister() {
+  window.location.href = "index.html";
+}
+</script>
 </body>
 </html>

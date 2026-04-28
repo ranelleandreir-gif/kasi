@@ -28,7 +28,7 @@ window.signup = async function () {
       email,
       role,                 // cashier / collector
       status: "pending",    // admin approval system
-      assignedName: "",     // lalagyan ng cashier1 / collector1 after approve
+      assignedName: "",     // lalagyan ng cashier2 / collector2 after approve
       createdAt: serverTimestamp()
     });
 

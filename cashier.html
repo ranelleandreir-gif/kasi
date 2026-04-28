@@ -6,91 +6,252 @@
 <title>Cashier Pro System</title>
 
 <style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:linear-gradient(135deg,#0f172a,#111827);
-  color:white;
+:root {
+  color-scheme: dark;
+  font-family: Inter, Arial, sans-serif;
+  font-size: 16px;
+  --bg: #080c18;
+  --panel: rgba(255,255,255,0.08);
+  --panel-strong: rgba(255,255,255,0.12);
+  --border: rgba(255,255,255,0.12);
+  --accent: #22c55e;
+  --accent-soft: rgba(34,197,94,0.15);
+  --blue: #3b82f6;
+  --blue-soft: rgba(59,130,246,0.15);
 }
 
-/* HEADER */
-.header{
-  padding:20px;
-  text-align:center;
+* {
+  box-sizing: border-box;
 }
 
-/* LAYOUT */
-.container{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:20px;
-  padding:20px;
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 25%),
+              radial-gradient(circle at bottom right, rgba(34,197,94,0.16), transparent 22%),
+              linear-gradient(180deg, #07101f 0%, #090d16 100%);
+  color: #e5e7eb;
 }
 
-/* CARD */
-.card{
-  background:rgba(255,255,255,0.06);
-  backdrop-filter:blur(10px);
-  padding:20px;
-  border-radius:15px;
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: url('data:image/svg+xml,%3Csvg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M80 0C123.137 0 160 36.8629 160 80C160 123.137 123.137 160 80 160C36.8629 160 0 123.137 0 80C0 36.8629 36.8629 0 80 0Z" fill="rgba(255,255,255,0.02)"/%3E%3C/svg%3E') center/450px no-repeat;
+  pointer-events: none;
 }
 
-/* INPUT */
-input{
-  width:100%;
-  padding:10px;
-  margin:8px 0;
-  border:none;
-  border-radius:8px;
+.page {
+  width: min(1200px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 40px;
 }
 
-/* BUTTON */
-button{
-  width:100%;
-  padding:10px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  background:#2563eb;
-  color:white;
-  font-weight:bold;
+.header {
+  display: grid;
+  gap: 12px;
+  padding: 24px 24px 20px;
+  border-radius: 24px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(20px);
 }
 
-button:hover{
-  background:#3b82f6;
+.header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 2.5vw, 2.8rem);
+  letter-spacing: -0.04em;
 }
 
-/* LIST */
-.item{
-  background:rgba(255,255,255,0.05);
-  padding:10px;
-  margin:8px 0;
-  border-radius:8px;
+.header p {
+  margin: 0;
+  color: #9ca3af;
+  max-width: 720px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0 0;
+}
+
+.stat {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px 20px;
+}
+
+.stat strong {
+  display: block;
+  font-size: 1.9rem;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.stat span {
+  color: #9ca3af;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 2fr 1.1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+@media (max-width: 900px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+  .stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+
+.card h2 {
+  margin-top: 0;
+  margin-bottom: 18px;
+  font-size: 1.3rem;
+}
+
+.item {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.item:last-child {
+  margin-bottom: 0;
+}
+
+.item-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.item-title h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(34,197,94,0.18);
+  color: #a7f3d0;
+  font-size: 0.88rem;
+}
+
+.input-group {
+  display: grid;
+  gap: 10px;
+}
+
+input,
+button {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  color: #fff;
+}
+
+input {
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.08);
+  outline: 1px solid rgba(255,255,255,0.08);
+}
+
+input:focus {
+  outline: 1px solid rgba(59,130,246,0.9);
+  background: rgba(255,255,255,0.1);
+}
+
+button {
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #22c55e, #10b981);
+  color: #0f172a;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 35px rgba(34,197,94,0.2);
+}
+
+.note {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(59,130,246,0.14);
+  color: #dbeafe;
+  border: 1px solid rgba(59,130,246,0.2);
+}
+
+.empty-state {
+  color: #9ca3af;
+  padding: 18px 14px;
+  border: 1px dashed rgba(156,163,175,0.4);
+  border-radius: 16px;
+  text-align: center;
 }
 </style>
 </head>
 
 <body>
+<div class="page">
+  <section class="header">
+    <div>
+      <h1>💰 Cashier Dashboard</h1>
+      <p>Review rider-collected loans, confirm payments, and keep transaction history up to date.</p>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <strong id="summaryCollected">0</strong>
+        <span>Collected loans</span>
+      </div>
+      <div class="stat">
+        <strong id="summaryPending">0</strong>
+        <span>Pending confirmations</span>
+      </div>
+      <div class="stat">
+        <strong id="summaryPayments">0</strong>
+        <span>Payments recorded</span>
+      </div>
+    </div>
+  </section>
 
-<div class="header">
-  <h1>💰 CASHIER SYSTEM PRO</h1>
-  <p>Confirm Payments from Collectors</p>
-</div>
+  <div class="container">
+    <section class="card">
+      <h2>📦 Collected Loans</h2>
+      <div id="loansList"></div>
+    </section>
 
-<div class="container">
-
-  <!-- COLLECTED LOANS -->
-  <div class="card">
-    <h2>📦 Collected by Riders</h2>
-    <div id="loansList"></div>
+    <section class="card">
+      <h2>📜 Payment History</h2>
+      <div id="paymentsList"></div>
+    </section>
   </div>
-
-  <!-- PAYMENT HISTORY -->
-  <div class="card">
-    <h2>📜 Payment History</h2>
-    <div id="paymentsList"></div>
-  </div>
-
 </div>
 
 <script type="module">
@@ -104,24 +265,25 @@ import {
   onSnapshot,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-import { onAuthStateChanged } 
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-/* CASHIER INFO */
 let cashierName = "";
 let cashierId = "";
 
-/* AUTH CHECK */
-onAuthStateChanged(auth, async (user)=>{
-  if(!user){
-    window.location.href="login.html";
+const loansList = document.getElementById("loansList");
+const paymentsList = document.getElementById("paymentsList");
+const summaryCollected = document.getElementById("summaryCollected");
+const summaryPending = document.getElementById("summaryPending");
+const summaryPayments = document.getElementById("summaryPayments");
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "login.html";
     return;
   }
 
   cashierId = user.uid;
-
-  const snap = await getDoc(doc(db,"users",user.uid));
+  const snap = await getDoc(doc(db, "users", user.uid));
   if (snap.exists()) {
     cashierName = snap.data().assignedName || snap.data().name || "Cashier";
   }
@@ -130,65 +292,60 @@ onAuthStateChanged(auth, async (user)=>{
   loadPayments();
 });
 
-/* =========================
-   📦 LOAD COLLECTED LOANS
-========================= */
-function loadLoans(){
+function buildLoanCard(l, id) {
+  return `
+    <div class="item">
+      <div class="item-title">
+        <h3>${l.borrowerName}</h3>
+        <span class="badge">${l.status.toUpperCase()}</span>
+      </div>
+      <div style="display:grid; gap:8px; color:#d1d5db;">
+        <div>💰 Amount: <strong>₱${l.amount}</strong></div>
+        <div>💵 Balance: <strong>₱${l.balance}</strong></div>
+        <div>🚚 Collector: <strong>${l.assignedCollectorName || "N/A"}</strong></div>
+        <div>📍 Address: <strong>${l.address || "N/A"}</strong></div>
+      </div>
+      <div class="input-group">
+        <input type="number" placeholder="Enter amount paid" id="pay-${id}" min="0" max="${l.balance}" />
+        <button onclick="payLoan('${id}','${l.borrowerName}',${l.balance})">✔ Confirm Payment</button>
+      </div>
+    </div>
+  `;
+}
 
-  onSnapshot(collection(db,"loans"), (snap)=>{
+function loadLoans() {
+  onSnapshot(collection(db, "loans"), (snap) => {
+    loansList.innerHTML = "";
+    let count = 0;
+    let pendingCount = 0;
 
-    const loansDiv = document.getElementById("loansList");
-    if(!loansDiv) return;
-
-    loansDiv.innerHTML = "";
-
-    snap.forEach(d=>{
-
+    snap.forEach((d) => {
       const l = d.data();
-
-      // Show only COLLECTED loans
-      if(l.status !== "collected") return;
-
-      const div = document.createElement("div");
-      div.className = "item";
-
-      div.innerHTML = `
-        <b>👤 ${l.borrowerName}</b><br>
-        💰 Amount: ₱${l.amount}<br>
-        💵 Balance: ₱${l.balance}<br>
-        🚚 Collector: ${l.assignedCollectorName || "N/A"}<br>
-        📍 Address: ${l.address || "N/A"}<br><br>
-        
-        <input type="number" placeholder="Enter amount paid" id="pay-${d.id}" min="0" max="${l.balance}" style="width:100%; padding:8px; margin:8px 0; border-radius:6px; border:none;"><br>
-        
-        <button onclick="payLoan('${d.id}','${l.borrowerName}',${l.balance})" style="width:100%; padding:10px; margin:8px 0; background:#10b981; border:none; border-radius:6px; color:white; cursor:pointer; font-weight:bold;">
-          ✔ Confirm Payment
-        </button>
-      `;
-
-      loansDiv.appendChild(div);
+      if (l.status !== "collected") return;
+      count += 1;
+      pendingCount += 1;
+      loansList.insertAdjacentHTML("beforeend", buildLoanCard(l, d.id));
     });
 
-    if(loansDiv.innerHTML === "") {
-      loansDiv.innerHTML = "<p>📭 No collected loans to confirm</p>";
+    summaryCollected.innerText = count;
+    summaryPending.innerText = pendingCount;
+
+    if (count === 0) {
+      loansList.innerHTML = `<div class="empty-state">No collected loans available for confirmation.</div>`;
     }
   });
 }
 
-/* =========================
-   💰 PAY LOAN FUNCTION
-========================= */
 window.payLoan = async (loanId, borrowerName, currentBalance) => {
-
   const input = document.getElementById("pay-" + loanId);
   const amountPaid = Number(input.value);
 
-  if(!amountPaid || amountPaid <= 0) {
+  if (!amountPaid || amountPaid <= 0) {
     alert("Enter valid amount");
     return;
   }
 
-  if(amountPaid > currentBalance) {
+  if (amountPaid > currentBalance) {
     alert(`Cannot pay more than balance (₱${currentBalance})`);
     return;
   }
@@ -197,8 +354,6 @@ window.payLoan = async (loanId, borrowerName, currentBalance) => {
 
   try {
     const loanRef = doc(db, "loans", loanId);
-
-    /* UPDATE LOAN BALANCE */
     await updateDoc(loanRef, {
       balance: newBalance,
       status: newBalance === 0 ? "paid" : "collected",
@@ -206,7 +361,6 @@ window.payLoan = async (loanId, borrowerName, currentBalance) => {
       confirmedById: cashierId
     });
 
-    /* SAVE PAYMENT HISTORY */
     await addDoc(collection(db, "payments"), {
       loanId,
       borrowerName,
@@ -217,59 +371,44 @@ window.payLoan = async (loanId, borrowerName, currentBalance) => {
       createdAt: serverTimestamp()
     });
 
-    alert(`✅ Payment confirmed! Remaining: ₱${newBalance}`);
     input.value = "";
-  } catch(error) {
+    alert(`✅ Payment confirmed! Remaining: ₱${newBalance}`);
+  } catch (error) {
     alert("Error: " + error.message);
   }
 };
 
-/* =========================
-   📊 LOAD PAYMENT HISTORY
-========================= */
-function loadPayments(){
+function loadPayments() {
+  onSnapshot(collection(db, "payments"), (snap) => {
+    paymentsList.innerHTML = "";
+    let count = 0;
 
-  onSnapshot(collection(db, "payments"), (snap)=>{
-
-    const div = document.getElementById("paymentsList");
-    if(!div) return;
-
-    div.innerHTML = "";
-
-    snap.forEach(d=>{
-
+    snap.forEach((d) => {
       const p = d.data();
-
+      count += 1;
       const item = document.createElement("div");
       item.className = "item";
-
       item.innerHTML = `
-        👤 ${p.borrowerName}<br>
-        💰 Paid: ₱${p.amountPaid}<br>
-        📉 Balance: ₱${p.remainingBalance}<br>
-        👨‍💼 Cashier: ${p.cashierName}<br>
-        ⏰ ${new Date(p.createdAt.toDate()).toLocaleString()}
+        <div class="item-title">
+          <h3>${p.borrowerName}</h3>
+          <span class="badge">₱${p.amountPaid}</span>
+        </div>
+        <div style="display:grid; gap:8px; color:#d1d5db;">
+          <div>Balance: <strong>₱${p.remainingBalance}</strong></div>
+          <div>Cashier: <strong>${p.cashierName}</strong></div>
+          <div>Time: <strong>${new Date(p.createdAt.toDate()).toLocaleString()}</strong></div>
+        </div>
       `;
-
-      div.appendChild(item);
-    });
-  });
-}
-
-</script>
-        <b>${p.borrowerName}</b><br>
-        Paid: ₱${p.amountPaid}<br>
-        Balance: ₱${p.remainingBalance}<br>
-        Cashier: ${p.cashierName}<br>
-      `;
-
-      div.appendChild(item);
+      paymentsList.appendChild(item);
     });
 
+    summaryPayments.innerText = count;
+
+    if (count === 0) {
+      paymentsList.innerHTML = `<div class="empty-state">No payment history yet.</div>`;
+    }
   });
 }
-
 </script>
-
 </body>
 </html>

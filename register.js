@@ -12,7 +12,8 @@ async function register() {
   await setDoc(doc(db, "users", userCred.user.uid), {
     email: email,
     role: role,
-    status: "pending"
+    status: "pending",
+    assignedName: ""
   });
 
   alert("Registered! Wait for admin approval.");
