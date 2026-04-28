@@ -1,8 +1,216 @@
-<h1>💰 CASHIER PORTAL</h1>
-<p>Payments & transactions</p>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cashier Pro System</title>
 
-<ul>
-  <li>✔ Accept Payments</li>
-  <li>✔ Record Transactions</li>
-  <li>✔ View Daily Sales</li>
-</ul>
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:linear-gradient(135deg,#0f172a,#111827);
+  color:white;
+}
+
+/* HEADER */
+.header{
+  padding:20px;
+  text-align:center;
+}
+
+/* LAYOUT */
+.container{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+  padding:20px;
+}
+
+/* CARD */
+.card{
+  background:rgba(255,255,255,0.06);
+  backdrop-filter:blur(10px);
+  padding:20px;
+  border-radius:15px;
+}
+
+/* INPUT */
+input{
+  width:100%;
+  padding:10px;
+  margin:8px 0;
+  border:none;
+  border-radius:8px;
+}
+
+/* BUTTON */
+button{
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  background:#2563eb;
+  color:white;
+  font-weight:bold;
+}
+
+button:hover{
+  background:#3b82f6;
+}
+
+/* LIST */
+.item{
+  background:rgba(255,255,255,0.05);
+  padding:10px;
+  margin:8px 0;
+  border-radius:8px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <h1>💰 CASHIER SYSTEM PRO</h1>
+  <p>Payments & Loan Management</p>
+</div>
+
+<div class="container">
+
+  <!-- PAYMENT FORM -->
+  <div class="card">
+    <h2>💳 Accept Payment</h2>
+
+    <input id="loanId" placeholder="Loan ID">
+    <input id="borrower" placeholder="Borrower Name">
+    <input id="amountPaid" type="number" placeholder="Amount Paid">
+
+    <button onclick="payLoan()">Submit Payment</button>
+  </div>
+
+  <!-- TRANSACTIONS -->
+  <div class="card">
+    <h2>📊 Transactions</h2>
+    <div id="transactions"></div>
+  </div>
+
+</div>
+
+<script type="module">
+import { db, auth } from "./firebase.js";
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  doc,
+  getDoc,
+  onSnapshot,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+import { onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+/* CASHIER INFO */
+let cashierName = "";
+let cashierId = "";
+
+/* AUTH CHECK */
+onAuthStateChanged(auth, async (user)=>{
+  if(!user){
+    window.location.href="login.html";
+    return;
+  }
+
+  cashierId = user.uid;
+
+  const snap = await getDoc(doc(db,"users",user.uid));
+  cashierName = snap.data().assignedName;
+
+  loadTransactions();
+});
+
+/* =========================
+   💰 PAY LOAN FUNCTION
+========================= */
+window.payLoan = async function(){
+
+  const loanId = document.getElementById("loanId").value;
+  const borrower = document.getElementById("borrower").value;
+  const amountPaid = Number(document.getElementById("amountPaid").value);
+
+  if(!loanId || !amountPaid){
+    alert("Fill all fields");
+    return;
+  }
+
+  const loanRef = doc(db,"loans",loanId);
+  const loanSnap = await getDoc(loanRef);
+
+  if(!loanSnap.exists()){
+    alert("Loan not found");
+    return;
+  }
+
+  const loan = loanSnap.data();
+
+  let newBalance = loan.balance - amountPaid;
+
+  if(newBalance < 0) newBalance = 0;
+
+  /* UPDATE LOAN BALANCE */
+  await updateDoc(loanRef,{
+    balance: newBalance,
+    status: newBalance === 0 ? "paid" : "active"
+  });
+
+  /* SAVE PAYMENT HISTORY */
+  await addDoc(collection(db,"payments"),{
+    loanId,
+    borrowerName: borrower,
+    amountPaid,
+    remainingBalance: newBalance,
+    cashierId,
+    cashierName,
+    createdAt: serverTimestamp()
+  });
+
+  alert("Payment recorded!");
+};
+
+/* =========================
+   📊 LOAD TRANSACTIONS
+========================= */
+function loadTransactions(){
+
+  onSnapshot(collection(db,"payments"),(snap)=>{
+
+    const div = document.getElementById("transactions");
+    div.innerHTML="";
+
+    snap.forEach(d=>{
+
+      const p = d.data();
+
+      const item = document.createElement("div");
+      item.className="item";
+
+      item.innerHTML=`
+        <b>${p.borrowerName}</b><br>
+        Paid: ₱${p.amountPaid}<br>
+        Balance: ₱${p.remainingBalance}<br>
+        Cashier: ${p.cashierName}<br>
+      `;
+
+      div.appendChild(item);
+    });
+
+  });
+}
+
+</script>
+
+</body>
+</html>

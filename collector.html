@@ -1,101 +1,181 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Collector Dashboard</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Collector Final Boss</title>
 
 <style>
 body{
   margin:0;
   font-family:Arial;
-  background:#0f172a;
+  background:#0b1220;
   color:white;
 }
 
-.header{
-  padding:20px;
-  background:#111827;
-}
-
-.card{
-  margin:10px;
+/* TOP BAR */
+.top{
   padding:15px;
-  background:rgba(255,255,255,0.08);
-  border-radius:10px;
+  background:rgba(255,255,255,0.05);
+  text-align:center;
 }
 
+/* STATS */
+.stats{
+  display:flex;
+  justify-content:space-around;
+  padding:10px;
+}
+
+.box{
+  background:rgba(255,255,255,0.06);
+  padding:10px;
+  border-radius:10px;
+  text-align:center;
+  width:30%;
+}
+
+/* LIST */
+#list{
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+/* CARD */
+.card{
+  background:rgba(255,255,255,0.06);
+  padding:15px;
+  border-radius:12px;
+  backdrop-filter:blur(10px);
+}
+
+/* BUTTONS */
 button{
-  margin:5px;
-  padding:6px 10px;
+  width:48%;
+  padding:10px;
   border:none;
-  border-radius:6px;
+  border-radius:8px;
   cursor:pointer;
+  font-weight:bold;
 }
 
 .collected{background:#10b981;color:white;}
 .unpaid{background:#ef4444;color:white;}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  margin-top:10px;
+}
 </style>
 </head>
 
 <body>
 
-<div class="header">
-  <h2>📦 My Collections</h2>
+<div class="top">
+  <h2>💀 FINAL BOSS COLLECTOR</h2>
 </div>
 
+<!-- STATS -->
+<div class="stats">
+  <div class="box">
+    <h3 id="total">0</h3>
+    <p>Total</p>
+  </div>
+
+  <div class="box">
+    <h3 id="collected">0</h3>
+    <p>Collected</p>
+  </div>
+
+  <div class="box">
+    <h3 id="unpaid">0</h3>
+    <p>Unpaid</p>
+  </div>
+</div>
+
+<!-- LIST -->
 <div id="list"></div>
 
 <script type="module">
 import { db } from "./firebase.js";
 import {
   collection,
+  query,
+  where,
   onSnapshot,
   doc,
-  updateDoc
+  updateDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const currentCollector = localStorage.getItem("assignedName");
-const list = document.getElementById("list");
+/* 👤 COLLECTOR ID */
+const collectorId = localStorage.getItem("uid");
 
-onSnapshot(collection(db, "loans"), (snap) => {
+/* QUERY ONLY ASSIGNED */
+const q = query(
+  collection(db,"loans"),
+  where("assignedCollectorId","==",collectorId)
+);
 
-  list.innerHTML = "";
+/* REAL TIME SYSTEM */
+onSnapshot(q,(snap)=>{
 
-  snap.forEach(docSnap => {
+  let total=0;
+  let collected=0;
+  let unpaid=0;
 
-    const d = docSnap.data();
+  const list = document.getElementById("list");
+  list.innerHTML="";
 
-    if (d.collector === currentCollector) {
+  snap.forEach(d=>{
 
-      const div = document.createElement("div");
-      div.className = "card";
+    const data = d.data();
+    total++;
 
-      div.innerHTML = `
-        <h3>${d.borrowerName}</h3>
-        <p>💰 ${d.amount}</p>
-        <p>📍 ${d.address || ""}</p>
-        <p>Status: ${d.status}</p>
+    if(data.status==="collected") collected++;
+    if(data.status==="unpaid") unpaid++;
 
-        <button class="collected">Collected</button>
-        <button class="unpaid">Unpaid</button>
-      `;
+    const card = document.createElement("div");
+    card.className="card";
 
-      // ✔ MARK COLLECTED
-      div.querySelector(".collected").onclick = async () => {
-        await updateDoc(doc(db, "loans", docSnap.id), {
-          status: "collected"
-        });
-      };
+    card.innerHTML=`
+      <h3>${data.borrowerName}</h3>
+      <p>💰 ₱${data.amount}</p>
+      <p>📍 ${data.address || "No address"}</p>
+      <p>Status: ${data.status}</p>
 
-      // ❌ MARK UNPAID
-      div.querySelector(".unpaid").onclick = async () => {
-        await updateDoc(doc(db, "loans", docSnap.id), {
-          status: "unpaid"
-        });
-      };
+      <div class="row">
+        <button class="collected">✔ Collected</button>
+        <button class="unpaid">❌ Unpaid</button>
+      </div>
+    `;
 
-      list.appendChild(div);
-    }
+    /* ✔ COLLECTED */
+    card.querySelector(".collected").onclick = async ()=>{
+      await updateDoc(doc(db,"loans",d.id),{
+        status:"collected",
+        collectedAt:serverTimestamp()
+      });
+    };
+
+    /* ❌ UNPAID */
+    card.querySelector(".unpaid").onclick = async ()=>{
+      await updateDoc(doc(db,"loans",d.id),{
+        status:"unpaid"
+      });
+    };
+
+    list.appendChild(card);
   });
+
+  /* UPDATE STATS */
+  document.getElementById("total").innerText=total;
+  document.getElementById("collected").innerText=collected;
+  document.getElementById("unpaid").innerText=unpaid;
+
 });
 </script>
 
