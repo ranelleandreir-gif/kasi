@@ -1,75 +1,151 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Dashboard</title>
 
 <style>
 body{
   margin:0;
   font-family:Arial;
-  background:#0b1220;
-  color:white;
+  background:#0f172a;
+  color:#fff;
+}
+
+header{
+  padding:20px;
+  background:rgba(255,255,255,0.05);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 
 h1{
-  text-align:center;
-  padding:20px;
+  margin:0;
+  font-size:20px;
 }
 
 .container{
-  display:flex;
-  gap:20px;
   padding:20px;
-}
-
-.box{
-  flex:1;
-  background:rgba(255,255,255,0.05);
-  padding:20px;
-  border-radius:10px;
-}
-
-.stats{
   display:grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap:10px;
-  margin:20px;
+  gap:15px;
 }
 
-.stats div{
-  background:rgba(255,255,255,0.08);
-  padding:10px;
-  border-radius:8px;
+.card{
+  background:rgba(255,255,255,0.06);
+  padding:15px;
+  border-radius:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 
+button{
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.approve{
+  background:#22c55e;
+  color:white;
+}
+
+.reject{
+  background:#ef4444;
+  color:white;
+}
 </style>
 </head>
 
 <body>
 
-<h1>👑 ADMIN CONTROL PANEL</h1>
+<header>
+  <h1>🔥 Admin Dashboard</h1>
+</header>
 
-<div class="container">
-  <div class="box" id="users"></div>
-  <div class="box" id="tasks"></div>
-</div>
+<div class="container" id="users"></div>
 
-<script type="module" src="./admin.js"></script>
+<script type="module">
+import { db } from "./firebase.js";
+import {
+  collection,
+  onSnapshot,
+  updateDoc,
+  doc,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-<h2>📊 Admin Analytics</h2>
+const usersDiv = document.getElementById("users");
 
-<div class="stats">
-  <div>Total Users: <span id="totalUsers">0</span></div>
-  <div>Pending: <span id="pending">0</span></div>
-  <div>Approved: <span id="approved">0</span></div>
-  <div>Cashiers: <span id="cashiers">0</span></div>
-  <div>Collectors: <span id="collectors">0</span></div>
-</div>
+// 🔥 REALTIME USERS
+onSnapshot(collection(db, "users"), (snap) => {
 
-<canvas id="chart" width="400" height="200"></canvas>
+  usersDiv.innerHTML = "";
 
+  snap.forEach((d) => {
 
+    const u = d.data();
+
+    if (u.status === "pending") {
+
+      const card = document.createElement("div");
+      card.className = "card";
+
+      card.innerHTML = `
+        <div>
+          <b>${u.name}</b><br>
+          <small>${u.email}</small><br>
+          <small>Role: ${u.role}</small>
+        </div>
+        <div>
+          <button class="approve" onclick="approveUser('${d.id}', '${u.role}')">Approve</button>
+          <button class="reject" onclick="rejectUser('${d.id}')">Reject</button>
+        </div>
+      `;
+
+      usersDiv.appendChild(card);
+    }
+  });
+});
+
+// 🔥 APPROVE USER
+window.approveUser = async (id, role) => {
+
+  const snap = await getDocs(collection(db, "users"));
+
+  let count = 0;
+
+  snap.forEach((d) => {
+    const u = d.data();
+    if (u.role === role && u.status === "approved") {
+      count++;
+    }
+  });
+
+  const assignedName = role === "cashier"
+    ? `cashier${count + 1}`
+    : `collector${count + 1}`;
+
+  await updateDoc(doc(db, "users", id), {
+    status: "approved",
+    assignedName
+  });
+
+  alert("Approved!");
+};
+
+// 🔥 REJECT USER
+window.rejectUser = async (id) => {
+  await updateDoc(doc(db, "users", id), {
+    status: "rejected"
+  });
+
+  alert("Rejected!");
+};
+</script>
 
 </body>
 </html>

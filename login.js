@@ -44,7 +44,7 @@ loginBtn.addEventListener("click", async () => {
     switch (data.role) {
 
       case "admin":
-        window.location.href = "admin-dashboard.html";
+        window.location.href = "welcome.html";
         break;
 
       case "cashier":

@@ -1,6 +1,8 @@
 import { auth, db } from "./firebase.js";
-import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { doc, setDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { createUserWithEmailAndPassword } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { doc, setDoc } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 window.signup = async function () {
 
@@ -18,43 +20,17 @@ window.signup = async function () {
 
   try {
 
-    // 🔥 CREATE AUTH USER
     const userCred = await createUserWithEmailAndPassword(auth, email, password);
 
-    // 🔥 GET USERS
-    const snap = await getDocs(collection(db, "users"));
-
-    let cashierCount = 0;
-    let collectorCount = 0;
-
-    snap.forEach((userDoc) => {
-      const data = userDoc.data();
-
-      if (data.status === "approved") {
-        if (data.role === "cashier") cashierCount++;
-        if (data.role === "collector") collectorCount++;
-      }
-    });
-
-    // 🔥 AUTO ASSIGN NAME
-    let assignedName = "";
-
-    if (role === "cashier") {
-      assignedName = `cashier${cashierCount + 1}`;
-    } else {
-      assignedName = `collector${collectorCount + 1}`;
-    }
-
-    // 🔥 SAVE USER
+    // 🔥 SAVE AS PENDING ONLY
     await setDoc(doc(db, "users", userCred.user.uid), {
       name,
       email,
       role,
-      assignedName,
       status: "pending"
     });
 
-    msg.textContent = `Request sent as ${assignedName}. Wait admin approval.`;
+    msg.textContent = "Request sent! Wait admin approval.";
     msg.style.color = "green";
 
   } catch (err) {

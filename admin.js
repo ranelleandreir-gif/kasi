@@ -142,3 +142,58 @@ window.removeUser = async (id) => {
 window.deleteTask = async (id) => {
   await deleteDoc(doc(db, "collections", id));
 };
+
+import { doc, updateDoc, getDocs, collection } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+window.approveUser = async function (id, role) {
+
+  const snap = await getDocs(collection(db, "users"));
+
+  let count = 0;
+
+  snap.forEach((d) => {
+    const u = d.data();
+    if (u.role === role && u.status === "approved") {
+      count++;
+    }
+  });
+
+  let assignedName =
+    role === "cashier"
+      ? `cashier${count + 1}`
+      : `collector${count + 1}`;
+
+  await updateDoc(doc(db, "users", id), {
+    status: "approved",
+    assignedName
+  });
+
+  alert("Approved!");
+};
+
+window.approveUser = async function (id, role) {
+
+  const snap = await getDocs(collection(db, "users"));
+
+  let count = 0;
+
+  snap.forEach(d => {
+    const u = d.data();
+    if (u.role === role && u.status === "approved") {
+      count++;
+    }
+  });
+
+  let assignedName =
+    role === "cashier"
+      ? `cashier${count + 1}`
+      : `collector${count + 1}`;
+
+  await updateDoc(doc(db, "users", id), {
+    status: "approved",
+    assignedName
+  });
+
+  alert("Approved!");
+};
