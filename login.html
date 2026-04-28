@@ -1,6 +1,80 @@
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login</title>
 
-<button id="loginBtn">Login</button>
+<style>
+body{
+  margin:0;
+  font-family: Arial;
+  background: linear-gradient(135deg,#0f172a,#1e293b);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+.card{
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(15px);
+  padding:30px;
+  border-radius:15px;
+  width:300px;
+  color:white;
+  box-shadow:0 10px 30px rgba(0,0,0,0.4);
+  text-align:center;
+}
+
+input{
+  width:100%;
+  padding:12px;
+  margin:10px 0;
+  border:none;
+  border-radius:8px;
+  outline:none;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:8px;
+  background:#3b82f6;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+button:hover{
+  background:#2563eb;
+}
+
+.loader{
+  display:none;
+  margin-top:10px;
+  font-size:12px;
+  opacity:0.7;
+}
+</style>
+
+</head>
+<body>
+
+<div class="card">
+  <h2>Login</h2>
+
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+
+  <button id="loginBtn">Login</button>
+
+  <div class="loader" id="loader">Logging in...</div>
+</div>
 
 <script type="module" src="login.js"></script>
+
+</body>
+</html>

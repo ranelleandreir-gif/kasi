@@ -1,4 +1,4 @@
-import { auth, db } from "../firebase.js";
+import { auth, db } from "./firebase.js";
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -11,13 +11,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
 
-    // 🔐 validation
+    // validation
     if (!email || !password) {
       alert("Please fill all fields");
       return;
     }
 
-    if (!isValidEmail(email)) {
+    if (!email.includes("@")) {
       alert("Invalid email format");
       return;
     }
@@ -54,8 +54,3 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 });
-
-// helper function
-function isValidEmail(email) {
-  return email.includes("@") && email.includes(".");
-}
