@@ -226,7 +226,7 @@ window.approveUser = async (id, role) => {
     assignedName: name
   });
 
-  alert("User approved!");
+  alert(`User approved! They can now log in as ${name}.`);
 };
 
 

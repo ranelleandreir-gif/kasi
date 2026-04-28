@@ -397,7 +397,13 @@ window.approve = async (id, role) => {
     : role === "collector"
       ? `collector${count + 1}`
       : `admin${count + 1}`;
-  await updateDoc(doc(db, "users", id), { status: "approved", assignedName: name });
+
+  await updateDoc(doc(db, "users", id), {
+    status: "approved",
+    assignedName: name
+  });
+
+  alert(`Account approved! The user can now log in as ${name}.`);
 };
 
 window.reject = async (id) => {
@@ -450,49 +456,7 @@ window.createLoan = async () => {
 </body>
 </html>
 
-/* =========================
-   💰 CREATE LOAN
-========================= */
-window.createLoan = async ()=>{
 
-  const name=document.getElementById("borrowerName").value.trim();
-  const amount=Number(document.getElementById("amount").value);
-  const address=document.getElementById("address").value.trim();
-  const collectorId=document.getElementById("collectorSelect").value;
-
-  if(!name || !amount || !address || !collectorId){
-    alert("Fill all fields");
-    return;
-  }
-
-  const snap = await getDocs(collection(db,"users"));
-
-  let collectorName="";
-
-  snap.forEach(d=>{
-    if(d.id===collectorId){
-      collectorName=d.data().assignedName || d.data().name;
-    }
-  });
-
-  await addDoc(collection(db,"loans"),{
-    borrowerName:name,
-    amount,
-    balance:amount,
-    address,
-    status:"assigned",
-    assignedCollectorId:collectorId,
-    assignedCollectorName:collectorName,
-    createdAt:serverTimestamp()
-  });
-
-  alert("✅ Loan Created and Assigned!");
-  
-  // Clear fields
-  document.getElementById("borrowerName").value = "";
-  document.getElementById("amount").value = "";
-  document.getElementById("address").value = "";
-};
 
 </script>
 
