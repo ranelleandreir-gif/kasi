@@ -1,7 +1,7 @@
 import { auth, db } from "./firebase.js";
 import { createUserWithEmailAndPassword } 
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { doc, setDoc } 
+import { doc, setDoc, serverTimestamp } 
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 window.signup = async function () {
@@ -22,15 +22,17 @@ window.signup = async function () {
 
     const userCred = await createUserWithEmailAndPassword(auth, email, password);
 
-    // 🔥 SAVE AS PENDING ONLY
+    // 🔥 SAVE TO FIRESTORE (PENDING SYSTEM)
     await setDoc(doc(db, "users", userCred.user.uid), {
       name,
       email,
-      role,
-      status: "pending"
+      role,                 // cashier / collector
+      status: "pending",    // admin approval system
+      assignedName: "",     // lalagyan ng cashier1 / collector1 after approve
+      createdAt: serverTimestamp()
     });
 
-    msg.textContent = "Request sent! Wait admin approval.";
+    msg.textContent = "Request sent! Waiting for admin approval...";
     msg.style.color = "green";
 
   } catch (err) {

@@ -1,39 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Dashboard</title>
+<title>Admin Pro System</title>
 
 <style>
 body{
   margin:0;
   font-family:Arial;
   background:#0f172a;
-  color:#fff;
+  color:white;
 }
 
-header{
+.header{
   padding:20px;
-  background:rgba(255,255,255,0.05);
+  background:#111827;
   display:flex;
   justify-content:space-between;
-  align-items:center;
 }
 
-h1{
-  margin:0;
-  font-size:20px;
-}
-
-.container{
-  padding:20px;
+.cards{
   display:grid;
-  gap:15px;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:12px;
+  padding:20px;
 }
 
 .card{
+  background:rgba(255,255,255,0.08);
+  padding:15px;
+  border-radius:10px;
+}
+
+.user{
   background:rgba(255,255,255,0.06);
+  margin:10px 20px;
   padding:15px;
   border-radius:10px;
   display:flex;
@@ -42,109 +42,118 @@ h1{
 }
 
 button{
-  padding:8px 12px;
+  padding:6px 10px;
   border:none;
   border-radius:6px;
   cursor:pointer;
 }
 
-.approve{
-  background:#22c55e;
-  color:white;
-}
-
-.reject{
-  background:#ef4444;
-  color:white;
-}
+.approve{background:#10b981;color:white;}
+.reject{background:#ef4444;color:white;}
 </style>
 </head>
 
 <body>
 
-<header>
-  <h1>🔥 Admin Dashboard</h1>
-</header>
+<div class="header">
+  <h2>📊 Admin Dashboard</h2>
+</div>
 
-<div class="container" id="users"></div>
+<div class="cards">
+  <div class="card">👤 Total: <span id="total">0</span></div>
+  <div class="card">⏳ Pending: <span id="pending">0</span></div>
+  <div class="card">✅ Approved: <span id="approved">0</span></div>
+  <div class="card">💰 Cashiers: <span id="cashier">0</span></div>
+  <div class="card">📦 Collectors: <span id="collector">0</span></div>
+</div>
+
+<div id="users"></div>
 
 <script type="module">
 import { db } from "./firebase.js";
 import {
   collection,
   onSnapshot,
-  updateDoc,
   doc,
+  updateDoc,
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const usersDiv = document.getElementById("users");
 
-// 🔥 REALTIME USERS
-onSnapshot(collection(db, "users"), (snap) => {
+let total=0, pending=0, approved=0, cashier=0, collector=0;
 
-  usersDiv.innerHTML = "";
+/* REAL TIME USERS */
+onSnapshot(collection(db,"users"), (snap)=>{
 
-  snap.forEach((d) => {
+  usersDiv.innerHTML="";
 
-    const u = d.data();
+  total=0; pending=0; approved=0; cashier=0; collector=0;
 
-    if (u.status === "pending") {
+  snap.forEach(d=>{
 
-      const card = document.createElement("div");
-      card.className = "card";
+    const u=d.data();
+    total++;
 
-      card.innerHTML = `
-        <div>
-          <b>${u.name}</b><br>
-          <small>${u.email}</small><br>
-          <small>Role: ${u.role}</small>
-        </div>
-        <div>
-          <button class="approve" onclick="approveUser('${d.id}', '${u.role}')">Approve</button>
-          <button class="reject" onclick="rejectUser('${d.id}')">Reject</button>
-        </div>
-      `;
+    if(u.status==="pending") pending++;
+    if(u.status==="approved") approved++;
 
-      usersDiv.appendChild(card);
-    }
+    if(u.role==="cashier" && u.status==="approved") cashier++;
+    if(u.role==="collector" && u.status==="approved") collector++;
+
+    const div=document.createElement("div");
+    div.className="user";
+
+    div.innerHTML=`
+      <div>
+        <b>${u.name}</b><br>
+        ${u.email}<br>
+        ${u.role} | ${u.status}<br>
+        ${u.assignedName || "-"}
+      </div>
+
+      <div>
+        <button class="approve" onclick="approveUser('${d.id}','${u.role}')">Approve</button>
+        <button class="reject" onclick="rejectUser('${d.id}')">Reject</button>
+      </div>
+    `;
+
+    usersDiv.appendChild(div);
   });
+
+  document.getElementById("total").innerText=total;
+  document.getElementById("pending").innerText=pending;
+  document.getElementById("approved").innerText=approved;
+  document.getElementById("cashier").innerText=cashier;
+  document.getElementById("collector").innerText=collector;
 });
 
-// 🔥 APPROVE USER
-window.approveUser = async (id, role) => {
+/* AUTO ASSIGN */
+window.approveUser = async (id, role)=>{
 
-  const snap = await getDocs(collection(db, "users"));
+  const snap = await getDocs(collection(db,"users"));
 
-  let count = 0;
+  let count=0;
 
-  snap.forEach((d) => {
-    const u = d.data();
-    if (u.role === role && u.status === "approved") {
-      count++;
-    }
+  snap.forEach(d=>{
+    const u=d.data();
+    if(u.role===role && u.status==="approved") count++;
   });
 
-  const assignedName = role === "cashier"
-    ? `cashier${count + 1}`
-    : `collector${count + 1}`;
+  const assigned = role + (count+1);
 
-  await updateDoc(doc(db, "users", id), {
-    status: "approved",
-    assignedName
+  await updateDoc(doc(db,"users",id),{
+    status:"approved",
+    assignedName:assigned
   });
-
-  alert("Approved!");
 };
 
-// 🔥 REJECT USER
-window.rejectUser = async (id) => {
-  await updateDoc(doc(db, "users", id), {
-    status: "rejected"
+window.rejectUser = async (id)=>{
+  await updateDoc(doc(db,"users",id),{
+    status:"rejected"
   });
-
-  alert("Rejected!");
 };
+
 </script>
 
 </body>
