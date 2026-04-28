@@ -30,10 +30,9 @@ loginBtn.addEventListener("click", async () => {
 
     const data = userDoc.data();
 
-    // 🔥 ROLE REDIRECT FIX
-     if (data.role === "admin") {
-  window.location.href = "welcome.html";
-}
+    // 🔥 ROLE REDIRECT FIXED
+    if (data.role === "admin") {
+      window.location.href = "welcome.html";
     } 
     else if (data.role === "cashier") {
       window.location.href = "cashier.html";
