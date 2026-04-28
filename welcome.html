@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome</title>
+
+<style>
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#0b1220;
+  font-family:Arial;
+  overflow:hidden;
+}
+
+/* container */
+.box{
+  text-align:center;
+  color:white;
+  animation: fadeIn 1s ease forwards;
+  transform:scale(0.5);
+  opacity:0;
+}
+
+/* big text */
+h1{
+  font-size:40px;
+  margin:0;
+  background: linear-gradient(90deg,#3b82f6,#22c55e,#f59e0b);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation: zoom 1.2s ease forwards;
+}
+
+/* sub text */
+p{
+  opacity:0.7;
+  margin-top:10px;
+}
+
+/* animations */
+@keyframes fadeIn{
+  to{
+    opacity:1;
+    transform:scale(1);
+  }
+}
+
+@keyframes zoom{
+  from{transform:scale(0.3);}
+  to{transform:scale(1);}
+}
+
+/* loader dots */
+.dots::after{
+  content:"";
+  animation:dots 1.2s infinite;
+}
+
+@keyframes dots{
+  0%{content:"";}
+  25%{content:".";}
+  50%{content:"..";}
+  75%{content:"...";}
+  100%{content:"";}
+}
+</style>
+
+</head>
+<body>
+
+<div class="box">
+  <h1>WELCOME ADMIN</h1>
+  <p>Loading dashboard<span class="dots"></span></p>
+</div>
+
+<script>
+  // auto redirect after 2.5 seconds
+  setTimeout(() => {
+    window.location.href = "admin-dashboard.html";
+  }, 2500);
+</script>
+
+</body>
+</html>
