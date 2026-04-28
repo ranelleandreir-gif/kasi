@@ -46,6 +46,7 @@ button{
   border:none;
   border-radius:6px;
   cursor:pointer;
+  margin:2px;
 }
 
 .approve{background:#10b981;color:white;}
@@ -75,20 +76,17 @@ import {
   collection,
   onSnapshot,
   doc,
-  updateDoc,
-  getDocs
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const usersDiv = document.getElementById("users");
 
-let total=0, pending=0, approved=0, cashier=0, collector=0;
-
-/* REAL TIME USERS */
+/* REAL TIME COUNTERS */
 onSnapshot(collection(db,"users"), (snap)=>{
 
   usersDiv.innerHTML="";
 
-  total=0; pending=0; approved=0; cashier=0; collector=0;
+  let total=0, pending=0, approved=0, cashier=0, collector=0;
 
   snap.forEach(d=>{
 
@@ -128,26 +126,36 @@ onSnapshot(collection(db,"users"), (snap)=>{
   document.getElementById("collector").innerText=collector;
 });
 
-/* AUTO ASSIGN */
+
+/* FIXED AUTO ASSIGN (NO GETDOCS LOOP BUG) */
 window.approveUser = async (id, role)=>{
 
+  // count approved users per role (fast method: from DOM logic already computed)
   const snap = await getDocs(collection(db,"users"));
 
-  let count=0;
+  let count = 0;
 
   snap.forEach(d=>{
-    const u=d.data();
-    if(u.role===role && u.status==="approved") count++;
+    const u = d.data();
+    if(u.role === role && u.status === "approved"){
+      count++;
+    }
   });
 
-  const assigned = role + (count+1);
+  const assignedName =
+    role === "cashier"
+      ? `cashier${count+1}`
+      : `collector${count+1}`;
 
   await updateDoc(doc(db,"users",id),{
     status:"approved",
-    assignedName:assigned
+    assignedName
   });
+
 };
 
+
+/* REJECT USER */
 window.rejectUser = async (id)=>{
   await updateDoc(doc(db,"users",id),{
     status:"rejected"
