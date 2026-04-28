@@ -5,17 +5,22 @@ import {
   updateDoc,
   deleteDoc,
   onSnapshot,
-  query
+  query,
+  getDocs,
+  addDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const usersDiv = document.getElementById("users");
 const tasksDiv = document.getElementById("tasks");
 
+// =====================
 // 🔐 ADMIN CHECK
+// =====================
 onAuthStateChanged(auth, async (user) => {
-
   if (!user) {
     window.location.href = "login.html";
     return;
@@ -27,18 +32,18 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 
-// 👤 USERS (REAL TIME)
+// =====================
+// 👤 USERS REAL-TIME
+// =====================
 function loadUsers() {
 
-  const q = query(collection(db, "users"));
-
-  onSnapshot(q, (snapshot) => {
+  onSnapshot(query(collection(db, "users")), (snapshot) => {
 
     usersDiv.innerHTML = "<h2>👤 USERS (LIVE)</h2>";
 
     snapshot.forEach((docSnap) => {
 
-      const data = docSnap.data();
+      const d = docSnap.data();
 
       const div = document.createElement("div");
       div.style.padding = "10px";
@@ -47,13 +52,14 @@ function loadUsers() {
       div.style.background = "rgba(255,255,255,0.08)";
 
       div.innerHTML = `
-        <p>${data.email}</p>
-        <p>Role: ${data.role}</p>
-        <p>Status: ${data.status || "none"}</p>
+        <p>Email: ${d.email}</p>
+        <p>Role: ${d.role}</p>
+        <p>Status: ${d.status || "pending"}</p>
+        <p>Assigned: ${d.assignedName || "-"}</p>
 
+        <button onclick="approveUser('${docSnap.id}','${d.role}')">Approve</button>
         <button onclick="setRole('${docSnap.id}','cashier')">Cashier</button>
         <button onclick="setRole('${docSnap.id}','collector')">Collector</button>
-        <button onclick="approveUser('${docSnap.id}')">Approve</button>
         <button onclick="removeUser('${docSnap.id}')">Delete</button>
       `;
 
@@ -63,18 +69,18 @@ function loadUsers() {
 }
 
 
-// 📦 TASKS (REAL TIME)
+// =====================
+// 📦 TASKS REAL-TIME
+// =====================
 function loadTasks() {
 
-  const q = query(collection(db, "collections"));
+  onSnapshot(query(collection(db, "loans")), (snapshot) => {
 
-  onSnapshot(q, (snapshot) => {
-
-    tasksDiv.innerHTML = "<h2>📦 TASKS (LIVE)</h2>";
+    tasksDiv.innerHTML = "<h2>📦 LOANS (LIVE)</h2>";
 
     snapshot.forEach((docSnap) => {
 
-      const data = docSnap.data();
+      const d = docSnap.data();
 
       const div = document.createElement("div");
       div.style.padding = "10px";
@@ -83,8 +89,9 @@ function loadTasks() {
       div.style.background = "rgba(255,255,255,0.08)";
 
       div.innerHTML = `
-        <p>${data.name || "No Name"}</p>
-        <p>Status: ${data.status || "pending"}</p>
+        <p>${d.borrowerName}</p>
+        <p>Balance: ${d.balance}</p>
+        <p>Collector: ${d.assignedCollectorName}</p>
         <button onclick="deleteTask('${docSnap.id}')">Delete</button>
       `;
 
@@ -94,7 +101,9 @@ function loadTasks() {
 }
 
 
-// 📊 ANALYTICS (REAL TIME FIXED)
+// =====================
+// 📊 ANALYTICS REAL-TIME
+// =====================
 function loadAnalytics() {
 
   onSnapshot(collection(db, "users"), (snap) => {
@@ -106,8 +115,8 @@ function loadAnalytics() {
     let collectors = 0;
 
     snap.forEach(doc => {
-
       const d = doc.data();
+
       total++;
 
       if (d.status === "pending") pending++;
@@ -126,27 +135,10 @@ function loadAnalytics() {
 }
 
 
-// 🔥 ACTIONS
-window.setRole = async (id, role) => {
-  await updateDoc(doc(db, "users", id), { role });
-};
-
-window.approveUser = async (id) => {
-  await updateDoc(doc(db, "users", id), { status: "approved" });
-};
-
-window.removeUser = async (id) => {
-  await deleteDoc(doc(db, "users", id));
-};
-
-window.deleteTask = async (id) => {
-  await deleteDoc(doc(db, "collections", id));
-};
-
-import { doc, updateDoc, getDocs, collection } 
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-window.approveUser = async function (id, role) {
+// =====================
+// 🔥 APPROVE USER (AUTO NAME)
+// =====================
+window.approveUser = async (id, role) => {
 
   const snap = await getDocs(collection(db, "users"));
 
@@ -159,7 +151,7 @@ window.approveUser = async function (id, role) {
     }
   });
 
-  let assignedName =
+  const assignedName =
     role === "cashier"
       ? `cashier${count + 1}`
       : `collector${count + 1}`;
@@ -169,31 +161,58 @@ window.approveUser = async function (id, role) {
     assignedName
   });
 
-  alert("Approved!");
+  alert("User Approved: " + assignedName);
 };
 
-window.approveUser = async function (id, role) {
 
-  const snap = await getDocs(collection(db, "users"));
+// =====================
+// 🔧 CHANGE ROLE
+// =====================
+window.setRole = async (id, role) => {
+  await updateDoc(doc(db, "users", id), { role });
+};
 
-  let count = 0;
 
-  snap.forEach(d => {
-    const u = d.data();
-    if (u.role === role && u.status === "approved") {
-      count++;
-    }
+// =====================
+// ❌ DELETE USER
+// =====================
+window.removeUser = async (id) => {
+  await deleteDoc(doc(db, "users", id));
+};
+
+
+// =====================
+// ❌ DELETE LOAN
+// =====================
+window.deleteTask = async (id) => {
+  await deleteDoc(doc(db, "loans", id));
+};
+
+
+// =====================
+// 💰 CREATE LOAN (ADMIN)
+// =====================
+window.createLoan = async () => {
+
+  const name = document.getElementById("borrowerName").value;
+  const amount = Number(document.getElementById("amount").value);
+  const collectorId = document.getElementById("collectorSelect").value;
+  const collectorName = document.getElementById("collectorName").value;
+
+  if (!name || !amount || !collectorId) {
+    alert("Fill all fields");
+    return;
+  }
+
+  await addDoc(collection(db, "loans"), {
+    borrowerName: name,
+    amount,
+    balance: amount,
+    assignedCollectorId: collectorId,
+    assignedCollectorName: collectorName,
+    status: "active",
+    createdAt: serverTimestamp()
   });
 
-  let assignedName =
-    role === "cashier"
-      ? `cashier${count + 1}`
-      : `collector${count + 1}`;
-
-  await updateDoc(doc(db, "users", id), {
-    status: "approved",
-    assignedName
-  });
-
-  alert("Approved!");
+  alert("Loan Created!");
 };

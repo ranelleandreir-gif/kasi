@@ -1,46 +1,53 @@
 import { auth, db } from "./firebase.js";
-import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { signInWithEmailAndPassword } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { doc, getDoc } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const loginBtn = document.getElementById("loginBtn");
-const loader = document.getElementById("loader");
+const btn = document.getElementById("loginBtn");
+const msg = document.getElementById("msg");
 
-loginBtn.addEventListener("click", async () => {
+btn.addEventListener("click", async () => {
 
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value.trim();
 
   if (!email || !password) {
-    alert("Fill all fields");
+    msg.textContent = "Fill all fields";
+    msg.style.color = "red";
     return;
   }
 
-  loader.style.display = "block";
-  loginBtn.disabled = true;
-
   try {
 
-    // 🔐 AUTH LOGIN
     const userCred = await signInWithEmailAndPassword(auth, email, password);
 
-    // 📦 GET FIRESTORE PROFILE
-    const snap = await getDoc(doc(db, "users", userCred.user.uid));
+    const uid = userCred.user.uid;
 
-    if (!snap.exists()) {
-      alert("No user profile found");
+    const userSnap = await getDoc(doc(db, "users", uid));
+
+    if (!userSnap.exists()) {
+      msg.textContent = "User profile not found";
+      msg.style.color = "red";
       return;
     }
 
-    const data = snap.data();
+    const data = userSnap.data();
 
-    // ❌ CHECK APPROVAL FIRST
-    if (data.status !== "approved") {
-      alert("Account not approved by admin yet");
+    // 🔥 CHECK STATUS FIRST
+    if (data.status === "pending") {
+      msg.textContent = "Account still pending admin approval";
+      msg.style.color = "orange";
       return;
     }
 
-    // 🚀 ROLE ROUTING (BASED SA DATABASE ONLY)
+    if (data.status === "rejected") {
+      msg.textContent = "Account rejected by admin";
+      msg.style.color = "red";
+      return;
+    }
 
+    // 🔥 ROLE REDIRECT SYSTEM
     switch (data.role) {
 
       case "admin":
@@ -48,21 +55,19 @@ loginBtn.addEventListener("click", async () => {
         break;
 
       case "cashier":
-        window.location.href = `cashier-dashboard.html?user=${data.assignedName}`;
+        window.location.href = "cashier-dashboard.html";
         break;
 
       case "collector":
-        window.location.href = `collector-dashboard.html?user=${data.assignedName}`;
+        window.location.href = "collector-dashboard.html";
         break;
 
       default:
-        alert("Unknown role");
+        msg.textContent = "Invalid role";
     }
 
   } catch (err) {
-    alert(err.message);
+    msg.textContent = err.message;
+    msg.style.color = "red";
   }
-
-  loader.style.display = "none";
-  loginBtn.disabled = false;
 });
