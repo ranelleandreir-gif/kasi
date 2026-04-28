@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Role Portal</title>
+
+<style>
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-family:Arial;
+  background: linear-gradient(135deg,#0b1220,#1e293b);
+  color:white;
+}
+
+.container{
+  text-align:center;
+}
+
+h1{
+  margin-bottom:30px;
+}
+
+.cards{
+  display:flex;
+  gap:20px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+
+.card{
+  width:160px;
+  padding:20px;
+  border-radius:12px;
+  background:rgba(255,255,255,0.08);
+  backdrop-filter:blur(10px);
+  cursor:pointer;
+  transition:0.3s;
+}
+
+.card:hover{
+  transform:scale(1.1);
+  background:rgba(255,255,255,0.15);
+}
+
+.card h3{
+  margin:10px 0;
+}
+
+button{
+  margin-top:10px;
+  padding:8px;
+  width:100%;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.admin-btn{background:#ef4444; color:white;}
+.cashier-btn{background:#3b82f6; color:white;}
+.collector-btn{background:#22c55e; color:white;}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+  <h1>Choose Portal</h1>
+
+  <div class="cards">
+
+    <div class="card">
+      <h3>👑 Admin</h3>
+      <button class="admin-btn" onclick="go('admin')">Enter</button>
+    </div>
+
+    <div class="card">
+      <h3>💰 Cashier</h3>
+      <button class="cashier-btn" onclick="go('cashier')">Enter</button>
+    </div>
+
+    <div class="card">
+      <h3>📦 Collector</h3>
+      <button class="collector-btn" onclick="go('collector')">Enter</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function go(role){
+  if(role === "admin"){
+    window.location.href = "login.html?role=admin";
+  }
+  else if(role === "cashier"){
+    window.location.href = "login.html?role=cashier";
+  }
+  else{
+    window.location.href = "login.html?role=collector";
+  }
+}
+</script>
+
+</body>
+</html>
