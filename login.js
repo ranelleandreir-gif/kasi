@@ -15,10 +15,8 @@ loginBtn.addEventListener("click", async () => {
     return;
   }
 
-  // show loader animation
   loader.style.display = "block";
   loginBtn.disabled = true;
-  loginBtn.innerText = "Logging in...";
 
   try {
     const userCred = await signInWithEmailAndPassword(auth, email, password);
@@ -26,34 +24,28 @@ loginBtn.addEventListener("click", async () => {
     const userDoc = await getDoc(doc(db, "users", userCred.user.uid));
 
     if (!userDoc.exists()) {
-      alert("User not found");
+      alert("No user data found");
       return;
     }
 
     const data = userDoc.data();
 
-    if (data.status !== "approved") {
-      alert("Waiting for approval");
-      return;
+    // 🔥 ROLE REDIRECT FIX
+    if (data.role === "admin") {
+      window.location.href = "admin-dashboard.html";
+    } 
+    else if (data.role === "cashier") {
+      window.location.href = "cashier.html";
+    } 
+    else {
+      window.location.href = "collector.html";
     }
 
-    // redirect
-    setTimeout(() => {
-      if (data.role === "admin") {
-        window.location.href = "admin-dashboard.html";
-      } else if (data.role === "cashier") {
-        window.location.href = "cashier.html";
-      } else {
-        window.location.href = "collector.html";
-      }
-    }, 800);
-
-  } catch (err) {
-    alert(err.message);
+  } catch (error) {
+    alert(error.message);
   }
 
   loader.style.display = "none";
   loginBtn.disabled = false;
-  loginBtn.innerText = "Login";
 
 });
