@@ -1,4 +1,4 @@
-import { db } from "./firebase.js";
+import { db, auth } from "./firebase.js";
 import {
   collection,
   onSnapshot,
@@ -8,6 +8,8 @@ import {
   query,
   where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const list = document.getElementById("list");
 
@@ -111,3 +113,11 @@ window.markUnpaid = async (loanId) => {
 };
 
 loadTasks();
+
+// =====================
+// 🚪 LOGOUT
+// =====================
+window.logout = async () => {
+  await signOut(auth);
+  window.location.href = "login.html";
+};

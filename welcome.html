@@ -35,6 +35,29 @@ body {
   box-shadow: 0 32px 90px rgba(0,0,0,0.35);
 }
 
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.logout-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.logout-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
+}
+
 .title {
   margin: 0;
   font-size: clamp(2.2rem, 3vw, 3rem);
@@ -153,7 +176,10 @@ body {
 </head>
 <body>
   <div class="panel">
-    <h1 class="title">Welcome, Admin</h1>
+    <div class="panel-header">
+      <h1 class="title">Welcome, Admin</h1>
+      <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+    </div>
     <p class="subtext">Your dashboard is loading. When it is ready, you will be taken to the admin control center.</p>
     <div class="admin-key-panel">
       <input id="adminKey" type="password" placeholder="Enter admin access key">
@@ -195,6 +221,27 @@ body {
       window.location.replace("admin-dashboard.html");
     }, 1400);
   });
+
+  async function logout() {
+    // Import Firebase auth dynamically
+    const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    
+    const firebaseConfig = {
+      apiKey: "AIzaSyAw_VjcITG-Rltan00gLQF7gui64O1hfPo",
+      authDomain: "kasi-76cbd.firebaseapp.com",
+      projectId: "kasi-76cbd",
+      storageBucket: "kasi-76cbd.appspot.com",
+      messagingSenderId: "887548997152",
+      appId: "1:887548997152:web:ce02811972446a86a15645"
+    };
+    
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    
+    await signOut(auth);
+    window.location.href = "login.html";
+  }
 </script>
 </body>
 </html>

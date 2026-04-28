@@ -22,6 +22,7 @@ btn.addEventListener("click", async () => {
   btn.disabled = true;
   loader.classList.add("show");
   msg.textContent = "";
+  document.getElementById("backBtn").style.display = "none";
 
   try {
 
@@ -34,6 +35,7 @@ btn.addEventListener("click", async () => {
     if (!userSnap.exists()) {
       msg.textContent = "User profile not found";
       msg.style.color = "red";
+      document.getElementById("backBtn").style.display = "block";
       return;
     }
 
@@ -49,12 +51,14 @@ btn.addEventListener("click", async () => {
     if (data.status === "pending") {
       msg.textContent = "Account still pending admin approval";
       msg.style.color = "orange";
+      document.getElementById("backBtn").style.display = "block";
       return;
     }
 
     if (data.status === "rejected") {
       msg.textContent = "Account rejected by admin";
       msg.style.color = "red";
+      document.getElementById("backBtn").style.display = "block";
       return;
     }
 
@@ -79,13 +83,22 @@ btn.addEventListener("click", async () => {
       default:
         msg.textContent = "Invalid role";
         msg.style.color = "#f87171";
+        document.getElementById("backBtn").style.display = "block";
     }
 
   } catch (err) {
     msg.textContent = err.message;
     msg.style.color = "red";
+    document.getElementById("backBtn").style.display = "block";
   } finally {
     btn.disabled = false;
     loader.classList.remove("show");
   }
 });
+
+// =====================
+// 🔙 BACK BUTTON FUNCTION
+// =====================
+window.goBack = () => {
+  window.location.href = "role-selector.html";
+};

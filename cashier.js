@@ -9,7 +9,7 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const list = document.getElementById("paymentsList");
 
@@ -181,3 +181,11 @@ function loadPayments() {
     });
   });
 }
+
+// =====================
+// 🚪 LOGOUT
+// =====================
+window.logout = async () => {
+  await signOut(auth);
+  window.location.href = "login.html";
+};

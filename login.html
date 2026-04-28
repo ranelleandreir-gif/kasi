@@ -153,10 +153,26 @@ button:hover::after {
 
 .status-row {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 1fr auto;
   gap: 12px;
   align-items: center;
   margin-top: 18px;
+}
+
+.back-btn {
+  background: #6b7280;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.back-btn:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
 }
 
 #msg {
@@ -265,6 +281,7 @@ button:hover::after {
       <div class="status-row">
         <div class="loader" id="loader"></div>
         <div id="msg"></div>
+        <button id="backBtn" class="back-btn" style="display: none;" onclick="goBack()">← Back</button>
       </div>
 
       <p class="support">Not registered yet? Choose your portal, then create your account.</p>

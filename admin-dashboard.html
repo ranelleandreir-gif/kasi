@@ -136,6 +136,29 @@ body::before {
   color: var(--muted);
 }
 
+.header-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.logout-btn {
+  align-self: flex-end;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.logout-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -382,11 +405,14 @@ input, select {
       <h1 class="title">Kasipag Admin Dashboard</h1>
       <p class="subtitle">Manage users, approve accounts, and create loans from a fast, polished control panel.</p>
     </div>
-    <div class="stats-grid">
-      <div class="stat-card"><strong id="totalUsers">0</strong><span>Total users</span></div>
-      <div class="stat-card"><strong id="pending">0</strong><span>Pending approvals</span></div>
-      <div class="stat-card"><strong id="approved">0</strong><span>Approved users</span></div>
-      <div class="stat-card"><strong id="collectors">0</strong><span>Collectors</span></div>
+    <div class="header-actions">
+      <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+      <div class="stats-grid">
+        <div class="stat-card"><strong id="totalUsers">0</strong><span>Total users</span></div>
+        <div class="stat-card"><strong id="pending">0</strong><span>Pending approvals</span></div>
+        <div class="stat-card"><strong id="approved">0</strong><span>Approved users</span></div>
+        <div class="stat-card"><strong id="collectors">0</strong><span>Collectors</span></div>
+      </div>
     </div>
   </header>
 
@@ -427,7 +453,7 @@ import {
   getDocs,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -678,6 +704,11 @@ window.createLoan = async () => {
     document.getElementById("collectorSelect").selectedIndex = 0;
     alert("Loan created and assigned successfully.");
   });
+};
+
+window.logout = async () => {
+  await signOut(auth);
+  window.location.href = "login.html";
 };
 </script>
 </body>
