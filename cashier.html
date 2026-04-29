@@ -874,33 +874,34 @@ window.payLoan = async (loanId, borrowerName, currentBalance) => {
   try {
     const loanRef = doc(db, "loans", loanId);
     
-    // Only create payment record and mark as confirmed if fully paid (balance = 0)
-    if (newBalance === 0) {
-      await updateDoc(loanRef, {
-        balance: newBalance,
-        status: "paid",
-        confirmedAt: serverTimestamp(),
-        confirmedById: cashierId
-      });
+    // Create payment record and mark as processed for any payment (full or partial)
+    const updateData = {
+      balance: newBalance,
+      lastPaymentAt: serverTimestamp(),
+      lastPaymentBy: cashierId
+    };
 
-      await addDoc(collection(db, "payments"), {
-        loanId,
-        borrowerName,
-        amountPaid,
-        remainingBalance: newBalance,
-        cashierId,
-        cashierName,
-        createdAt: serverTimestamp()
-      });
+    if (newBalance === 0) {
+      updateData.status = "paid";
+      updateData.confirmedAt = serverTimestamp();
+      updateData.confirmedById = cashierId;
     } else {
-      // If balance remains, keep it in collected but update balance
-      await updateDoc(loanRef, {
-        balance: newBalance,
-        status: "collected",
-        lastPaymentAt: serverTimestamp(),
-        lastPaymentBy: cashierId
-      });
+      updateData.status = "collected"; // Keep as collected for partial payments
+      updateData.confirmedAt = serverTimestamp(); // Mark as processed
+      updateData.confirmedById = cashierId;
     }
+
+    await updateDoc(loanRef, updateData);
+
+    await addDoc(collection(db, "payments"), {
+      loanId,
+      borrowerName,
+      amountPaid,
+      remainingBalance: newBalance,
+      cashierId,
+      cashierName,
+      createdAt: serverTimestamp()
+    });
 
     input.value = "";
     alert(`✅ Payment confirmed! Remaining: ₱${newBalance}`);
