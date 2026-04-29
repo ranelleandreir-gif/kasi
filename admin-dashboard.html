@@ -822,6 +822,7 @@ function loadLoans() {
 
     snap.forEach(d => {
       const l = d.data();
+      if (l.deleted) return; // Skip deleted loans
       if (l.status === "paid" || l.balance === 0) {
         paid.push({ id: d.id, ...l });
       } else {

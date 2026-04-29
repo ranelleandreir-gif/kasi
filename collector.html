@@ -667,6 +667,7 @@ function loadTasks() {
   const collectorLoans = [];
   snap.forEach(d => {
     const data = d.data();
+    if (data.deleted) return; // Skip deleted loans
     if (data.assignedCollectorId === collectorId && data.balance > 0 && (data.status === "assigned" || data.status === "unpaid")) {
       collectorLoans.push({ id: d.id, ...data });
     }
@@ -708,7 +709,7 @@ function loadTasks() {
           <select id="cashier-${data.id}">${cashierOptions(data)}</select>
         </div>
         <div class="row">
-          <button class="collected">✔ Collect & Assign</button>
+          <button class="collected">👤 Assign to Cashier</button>
         </div>
       `;
       
@@ -718,7 +719,7 @@ function loadTasks() {
         const selectedCashier = cashiers.find(c => c.id === selectedId);
 
         if (cashiers.length > 0 && !selectedId) {
-          alert("Please select a cashier before marking collected.");
+          alert("Please select a cashier before assigning.");
           return;
         }
 
@@ -726,8 +727,8 @@ function loadTasks() {
           status: "collected",
           collectedAt: serverTimestamp(),
           assignedCashierId: selectedCashier?.id || null,
-          assignedCashierName: selectedCashier?.name || "",
-          balance: 0
+          assignedCashierName: selectedCashier?.name || ""
+          // Keep current balance - cashier will deduct later
         });
       };
       
@@ -750,7 +751,7 @@ function loadTasks() {
           <select id="cashier-${data.id}">${cashierOptions(data)}</select>
         </div>
         <div class="row">
-          <button class="collected">✔ Collected</button>
+          <button class="collected">👤 Assign to Cashier</button>
           <button class="unpaid">❌ Unpaid</button>
         </div>
       `;
@@ -761,7 +762,7 @@ function loadTasks() {
         const selectedCashier = cashiers.find(c => c.id === selectedId);
 
         if (cashiers.length > 0 && !selectedId) {
-          alert("Please select a cashier before marking collected.");
+          alert("Please select a cashier before assigning.");
           return;
         }
 
@@ -769,8 +770,8 @@ function loadTasks() {
           status: "collected",
           collectedAt: serverTimestamp(),
           assignedCashierId: selectedCashier?.id || null,
-          assignedCashierName: selectedCashier?.name || "",
-          balance: 0
+          assignedCashierName: selectedCashier?.name || ""
+          // Keep current balance - cashier will deduct later
         });
       };
 

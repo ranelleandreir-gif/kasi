@@ -838,6 +838,7 @@ function loadLoans() {
       if (l.status !== "collected") return;
       if (l.assignedCashierId !== cashierId) return;
       if (l.confirmedAt) return; // Skip if already confirmed/paid
+      if (l.deleted) return; // Skip deleted loans
       count += 1;
       pendingCount += 1;
       loansList.insertAdjacentHTML("beforeend", buildLoanCard(l, d.id));
