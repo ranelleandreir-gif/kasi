@@ -688,6 +688,16 @@ function renderLoanFolder(title, list, parent) {
   }
 
   list.forEach(l => {
+    const confirmedAtText = l.confirmedAt
+      ? (l.confirmedAt.toDate ? new Date(l.confirmedAt.toDate()).toLocaleString() : new Date(l.confirmedAt).toLocaleString())
+      : "";
+    const lastPaymentAtText = l.lastPaymentAt
+      ? (l.lastPaymentAt.toDate ? new Date(l.lastPaymentAt.toDate()).toLocaleString() : new Date(l.lastPaymentAt).toLocaleString())
+      : "";
+    const paymentDateText = l.balance === 0
+      ? confirmedAtText ? `Paid at: ${confirmedAtText}` : ""
+      : lastPaymentAtText ? `Last payment: ${lastPaymentAtText}` : "";
+
     const item = document.createElement("div");
     item.className = "item-card";
     item.innerHTML = `
@@ -695,7 +705,7 @@ function renderLoanFolder(title, list, parent) {
         <strong>👤 ${l.borrowerName}</strong>
         <span class="status-chip ${l.balance === 0 ? 'paid' : l.status}">${l.balance === 0 ? 'PAID' : l.status.toUpperCase()}</span>
       </div>
-      <div class="item-meta">Remaining Balance: ₱${l.balance}</div>
+      <div class="item-meta">Remaining Balance: ₱${l.balance}${paymentDateText ? ` | ${paymentDateText}` : ''}</div>
       <div class="item-meta">Collector: <strong>${l.assignedCollectorName || '-'}</strong> | Address: <strong>${l.address || 'N/A'}</strong></div>
       <div class="item-meta">Type: <strong>${l.loanType || 'solo'}</strong> ${l.memberNames && l.memberNames.length > 0 ? `| Members: <strong>${l.memberNames.join(', ')}</strong>` : ''}</div>
       <div class="card-actions">
