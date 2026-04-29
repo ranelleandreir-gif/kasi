@@ -365,6 +365,24 @@ input, select {
   padding: 14px 16px;
 }
 
+textarea {
+  width: 100%;
+  grid-column: 1 / -1;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  padding: 14px 16px;
+  font-family: Inter, Arial, sans-serif;
+  font-size: 0.95rem;
+  min-height: 80px;
+  resize: vertical;
+}
+
+textarea::placeholder {
+  color: rgba(255,255,255,0.5);
+}
+
 .button {
   border: none;
   border-radius: 14px;
@@ -502,6 +520,13 @@ input, select {
             <input id="amount" type="number" placeholder="Amount">
             <input id="address" placeholder="Address / Location">
             <select id="collectorSelect"></select>
+            <select id="loanType" onchange="toggleMemberNames()">
+              <option value="solo">Solo Loan</option>
+              <option value="group">Group Loan</option>
+            </select>
+            <div id="memberNamesContainer" style="display: none;">
+              <textarea id="memberNames" placeholder="Add member names (comma-separated)&#10;e.g. John Doe, Jane Smith, Bob Johnson"></textarea>
+            </div>
           </div>
           <button class="button blue" style="margin-top:18px;" onclick="createLoan()">Create & Assign</button>
         </div>
@@ -608,6 +633,7 @@ function renderLoanFolder(title, list, parent) {
       </div>
       <div class="item-meta">Amount: ₱${l.amount} | Balance: ₱${l.balance}</div>
       <div class="item-meta">Collector: <strong>${l.assignedCollectorName || '-'}</strong> | Address: <strong>${l.address || 'N/A'}</strong></div>
+      <div class="item-meta">Type: <strong>${l.loanType || 'solo'}</strong> ${l.memberNames && l.memberNames.length > 0 ? `| Members: <strong>${l.memberNames.join(', ')}</strong>` : ''}</div>
       <div class="card-actions">
         <button class="button green" onclick="markPaid('${l.id}')">Mark Paid</button>
         <button class="button red" onclick="deleteLoan('${l.id}')">Delete</button>
@@ -738,16 +764,38 @@ window.markPaid = async (id) => {
   });
 };
 
+window.toggleMemberNames = () => {
+  const loanType = document.getElementById("loanType").value;
+  const memberNamesContainer = document.getElementById("memberNamesContainer");
+  if (loanType === "group") {
+    memberNamesContainer.style.display = "block";
+  } else {
+    memberNamesContainer.style.display = "none";
+    document.getElementById("memberNames").value = "";
+  }
+};
+
 window.createLoan = async () => {
   const borrowerName = document.getElementById("borrowerName").value.trim();
   const amount = Number(document.getElementById("amount").value.trim());
   const address = document.getElementById("address").value.trim();
   const collectorId = document.getElementById("collectorSelect").value;
+  const loanType = document.getElementById("loanType").value;
+  const memberNamesInput = document.getElementById("memberNames").value.trim();
 
   if (!borrowerName || !amount || !address || !collectorId) {
     alert("Fill all fields before creating the loan.");
     return;
   }
+
+  if (loanType === "group" && !memberNamesInput) {
+    alert("For group loans, please add at least one member name.");
+    return;
+  }
+
+  const memberNames = loanType === "group" 
+    ? memberNamesInput.split(",").map(name => name.trim()).filter(name => name)
+    : [];
 
   await runAction("Creating loan...", "Assigning the loan and saving borrower details.", async () => {
     const usersSnap = await getDocs(collection(db, "users"));
@@ -761,6 +809,8 @@ window.createLoan = async () => {
       amount,
       balance: amount,
       address,
+      loanType,
+      memberNames: memberNames.length > 0 ? memberNames : null,
       status: "assigned",
       assignedCollectorId: collectorId,
       assignedCollectorName: collectorName,
@@ -771,6 +821,9 @@ window.createLoan = async () => {
     document.getElementById("amount").value = "";
     document.getElementById("address").value = "";
     document.getElementById("collectorSelect").selectedIndex = 0;
+    document.getElementById("loanType").selectedIndex = 0;
+    document.getElementById("memberNames").value = "";
+    document.getElementById("memberNamesContainer").style.display = "none";
     alert("Loan created and assigned successfully.");
   });
 };

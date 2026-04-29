@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cashier Pro System</title>
+<title>Kasipag Cashier</title>
 
 <style>
 :root {
@@ -453,8 +453,8 @@ button:hover {
   <div class="dashboard-grid">
     <aside class="sidebar">
       <h2>Cashier Menu</h2>
-      <button class="nav-link active">Collected Loans</button>
-      <button class="nav-link">Payment History</button>
+      <button id="collectedTabBtn" class="nav-link active" onclick="showCashierTab('collected')">Collected Loans</button>
+      <button id="paymentsTabBtn" class="nav-link" onclick="showCashierTab('payments')">Payment History</button>
       <div class="sidebar-summary">
         <div class="summary-item"><strong>Collected</strong><span id="sideCollected">0</span></div>
         <div class="summary-item"><strong>Pending</strong><span id="sidePending">0</span></div>
@@ -465,7 +465,7 @@ button:hover {
   <section class="header">
     <div class="header-content">
       <h1>💰 Cashier Dashboard</h1>
-      <p>Review rider-collected loans, confirm payments, and keep transaction history up to date.</p>
+      <p>“To HELP, to CREATE and to PROVIDE”</p>
     </div>
     <div class="header-actions">
       <button class="logout-btn" onclick="logout()">🚪 Logout</button>
@@ -487,12 +487,12 @@ button:hover {
   </section>
 
   <div class="container">
-    <section class="card">
+    <section class="card" id="collectedSection">
       <h2>📦 Collected Loans</h2>
       <div id="loansList"></div>
     </section>
 
-    <section class="card">
+    <section class="card hidden" id="paymentSection">
       <h2>📜 Payment History</h2>
       <div id="paymentsList"></div>
     </section>
@@ -520,6 +520,25 @@ const paymentsList = document.getElementById("paymentsList");
 const summaryCollected = document.getElementById("summaryCollected");
 const summaryPending = document.getElementById("summaryPending");
 const summaryPayments = document.getElementById("summaryPayments");
+
+window.showCashierTab = (tab) => {
+  const collectedBtn = document.getElementById("collectedTabBtn");
+  const paymentsBtn = document.getElementById("paymentsTabBtn");
+  const collectedSection = document.getElementById("collectedSection");
+  const paymentSection = document.getElementById("paymentSection");
+
+  if (tab === "payments") {
+    collectedSection.classList.add("hidden");
+    paymentSection.classList.remove("hidden");
+    collectedBtn.classList.remove("active");
+    paymentsBtn.classList.add("active");
+  } else {
+    collectedSection.classList.remove("hidden");
+    paymentSection.classList.add("hidden");
+    collectedBtn.classList.add("active");
+    paymentsBtn.classList.remove("active");
+  }
+};
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -550,6 +569,7 @@ function buildLoanCard(l, id) {
         <div>🚚 Collector: <strong>${l.assignedCollectorName || "N/A"}</strong></div>
         <div>Cashier: <strong>${l.assignedCashierName || "Unassigned"}</strong></div>
         <div>Address: <strong>${l.address || "N/A"}</strong></div>
+        <div>Type: <strong>${l.loanType || 'solo'}</strong> ${l.memberNames && l.memberNames.length > 0 ? `| Members: ${l.memberNames.join(', ')}` : ''}</div>
       </div>
       <div class="input-group">
         <input type="number" placeholder="Enter amount paid" id="pay-${id}" min="0" max="${l.balance}" />

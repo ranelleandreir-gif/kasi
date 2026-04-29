@@ -382,6 +382,10 @@ button:hover {
   }
 }
 
+.hidden {
+  display: none !important;
+}
+
 .row{
   display:flex;
   justify-content:space-between;
@@ -448,8 +452,8 @@ button:hover {
   <div class="dashboard-grid">
     <aside class="sidebar">
       <h2>Collector Menu</h2>
-      <button class="nav-link active">Assigned Loans</button>
-      <button class="nav-link">Collect & Assign</button>
+      <button id="assignedTabBtn" class="nav-link active" onclick="showCollectorTab('assigned')">Assigned Loans</button>
+      <button id="collectTabBtn" class="nav-link" onclick="showCollectorTab('collect')">Collect & Assign</button>
       <div class="sidebar-summary">
         <div class="summary-item"><strong>Total</strong><span id="sideTotal">0</span></div>
         <div class="summary-item"><strong>Collected</strong><span id="sideCollected">0</span></div>
@@ -460,8 +464,8 @@ button:hover {
     <div class="main-panel">
       <div class="top">
     <div class="top-content">
-      <h1>💀 Collector Dashboard</h1>
-      <p>Track and collect payments from assigned borrowers. Mark loans as collected or unpaid.</p>
+      <h1>Kasipag Collector</h1>
+      <p>“To HELP, to CREATE and to PROVIDE”</p>
     </div>
     <button class="logout-btn" onclick="logout()">🚪 Logout</button>
   </div>
@@ -485,7 +489,8 @@ button:hover {
   </div>
 
   <!-- LIST -->
-  <div id="list"></div>
+  <div id=\"assignedList\"></div>
+  <div id=\"collectList\" class=\"hidden\"></div>
     </div>
   </div>
 </div>
@@ -504,6 +509,25 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 let cashiers = [];
+
+window.showCollectorTab = (tab) => {
+  const assignedBtn = document.getElementById("assignedTabBtn");
+  const collectBtn = document.getElementById("collectTabBtn");
+  const assignedList = document.getElementById("assignedList");
+  const collectList = document.getElementById("collectList");
+
+  if (tab === "collect") {
+    assignedList.classList.add("hidden");
+    collectList.classList.remove("hidden");
+    assignedBtn.classList.remove("active");
+    collectBtn.classList.add("active");
+  } else {
+    assignedList.classList.remove("hidden");
+    collectList.classList.add("hidden");
+    assignedBtn.classList.add("active");
+    collectBtn.classList.remove("active");
+  }
+};
 
 async function loadCashiers() {
   const usersSnap = await getDocs(collection(db, "users"));
@@ -545,8 +569,10 @@ onSnapshot(q, async (snap) => {
   let collected = 0;
   let unpaid = 0;
 
-  const list = document.getElementById("list");
-  list.innerHTML="";
+  const assignedList = document.getElementById("assignedList");
+  const collectList = document.getElementById("collectList");
+  assignedList.innerHTML="";
+  collectList.innerHTML="";
 
   snap.forEach(d=>{
 
@@ -564,6 +590,7 @@ onSnapshot(q, async (snap) => {
       <p>💰 ₱${data.amount}</p>
       <p>📍 ${data.address || "No address"}</p>
       <p>Status: ${data.status}</p>
+      <p>Type: <strong>${data.loanType || 'solo'}</strong> ${data.memberNames && data.memberNames.length > 0 ? `| Members: ${data.memberNames.join(', ')}` : ''}</p>
       <p>Cashier: <strong>${data.assignedCashierName || "Not assigned"}</strong></p>
       <div class="row">
         <select id="cashier-${d.id}">${cashierOptions(data)}</select>
@@ -600,7 +627,9 @@ onSnapshot(q, async (snap) => {
       });
     };
 
-    list.appendChild(card);
+    // Add card to both tabs
+    assignedList.appendChild(card.cloneNode(true));
+    collectList.appendChild(card);
   });
 
   /* UPDATE STATS */

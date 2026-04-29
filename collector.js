@@ -9,7 +9,7 @@ import {
   where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const list = document.getElementById("list");
 
@@ -117,13 +117,11 @@ loadTasks();
 // =====================
 // 🚪 LOGOUT
 // =====================
-window.logout = async () => {
-  try {
-    await signOut(auth);
+window.logout = () => {
+  signOut(auth).then(() => {
     window.location.href = "role-selector.html";
-  } catch (error) {
+  }).catch((error) => {
     console.error("Logout error:", error);
-    // Force redirect even if signOut fails
     window.location.href = "role-selector.html";
-  }
+  });
 };

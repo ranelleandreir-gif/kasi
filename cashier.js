@@ -185,13 +185,11 @@ function loadPayments() {
 // =====================
 // 🚪 LOGOUT
 // =====================
-window.logout = async () => {
-  try {
-    await signOut(auth);
+window.logout = () => {
+  signOut(auth).then(() => {
     window.location.href = "role-selector.html";
-  } catch (error) {
+  }).catch((error) => {
     console.error("Logout error:", error);
-    // Force redirect even if signOut fails
     window.location.href = "role-selector.html";
-  }
+  });
 };
