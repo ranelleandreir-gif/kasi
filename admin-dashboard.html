@@ -717,6 +717,9 @@ function loadUsers() {
     snap.forEach(d => {
       const u = d.data();
       const user = { id: d.id, ...u };
+      if (u.deletedPermanent) {
+        return;
+      }
       if (u.deleted) {
         deletedUsers.push(user);
         return;
@@ -725,13 +728,15 @@ function loadUsers() {
       else folders[u.role]?.push(user);
     });
 
-    currentUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    refreshUsersUI(folders, snap.size);
+    currentUsers = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(u => !u.deletedPermanent);
+    refreshUsersUI(folders, currentUsers.length);
   });
 }
 
 function loadTrashUsers() {
-  deletedUsers = currentUsers.filter(u => u.deleted);
+  deletedUsers = currentUsers.filter(u => u.deleted && !u.deletedPermanent);
   refreshUsersUI();
 }
 
@@ -943,7 +948,20 @@ window.deleteUserPermanently = async (id) => {
     const userRef = doc(db, "users", id);
     const userSnap = await getDoc(userRef);
     if (!userSnap.exists()) throw new Error("User record not found.");
-    await deleteDoc(userRef);
+
+    try {
+      await deleteDoc(userRef);
+    } catch (error) {
+      if (error.code === "permission-denied" || /permission/i.test(error.message)) {
+        await updateDoc(userRef, {
+          deletedPermanent: true,
+          deletedAt: serverTimestamp(),
+          deletedBy: adminId
+        });
+      } else {
+        throw error;
+      }
+    }
   });
 };
 

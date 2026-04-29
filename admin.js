@@ -13,6 +13,8 @@ import {
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 
+let adminId = null;
+
 // =====================
 // 🔐 ADMIN CHECK
 // =====================
@@ -22,6 +24,7 @@ onAuthStateChanged(auth, (user) => {
     return;
   }
 
+  adminId = user.uid;
   loadUsers();
   loadLoans();
   loadAnalytics();
@@ -183,13 +186,14 @@ function renderLoanFolder(title, list, parent) {
     div.style.background = "rgba(255,255,255,0.06)";
     div.style.borderRadius = "8px";
 
+    const isPaid = l.status === "paid";
     div.innerHTML = `
       <b>👤 ${l.borrowerName}</b><br>
       💰 ₱${l.amount} | Balance ₱${l.balance}<br>
       🚚 Collector: ${l.assignedCollectorName || "-"}<br>
       📦 Status: ${l.status}<br><br>
 
-      <button onclick="markPaid('${l.id}')">Mark Paid</button>
+      ${isPaid ? "" : `<button onclick="editLoanBalance('${l.id}', ${l.balance})">Edit Balance</button><button onclick="markPaid('${l.id}')">Mark Paid</button>`}
       <button onclick="deleteLoan('${l.id}')">Delete</button>
     `;
 
@@ -364,7 +368,35 @@ window.deleteLoan = async (id) => {
 
 
 // =====================
-// 💰 MARK PAID (CASHIER SYSTEM READY)
+// � EDIT ACTIVE LOAN BALANCE
+// =====================
+window.editLoanBalance = async (id, currentBalance) => {
+  const input = window.prompt("Enter new remaining balance:", currentBalance);
+  if (input === null) return;
+
+  const newBalance = Number(input);
+  if (Number.isNaN(newBalance) || newBalance < 0) {
+    alert("Please enter a valid non-negative number.");
+    return;
+  }
+
+  const updates = {
+    balance: newBalance,
+    lastAdminEditedAt: serverTimestamp(),
+    lastAdminEditedBy: adminId
+  };
+
+  if (newBalance === 0) {
+    updates.status = "paid";
+  }
+
+  await updateDoc(doc(db, "loans", id), updates);
+  alert("Active loan balance updated.");
+};
+
+
+// =====================
+// �💰 MARK PAID (CASHIER SYSTEM READY)
 // =====================
 window.markPaid = async (id) => {
   await updateDoc(doc(db, "loans", id), {

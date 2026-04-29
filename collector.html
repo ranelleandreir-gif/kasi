@@ -434,6 +434,30 @@ button:hover {
 }
 
 @media (max-width: 640px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    top: auto;
+    min-height: auto;
+  }
+
+  .top {
+    flex-wrap: wrap;
+  }
+
+  .top-content {
+    width: 100%;
+  }
+
+  .top-actions {
+    width: 100%;
+    margin-top: 16px;
+    justify-content: flex-start;
+  }
+
   .item-title {
     flex-direction: column;
     align-items: flex-start;
@@ -449,6 +473,10 @@ button:hover {
   }
 
   button {
+    width: 100%;
+  }
+
+  select {
     width: 100%;
   }
 }
@@ -473,6 +501,18 @@ button {
 
   .card {
     padding: 16px;
+  }
+
+  .stats {
+    gap: 12px;
+  }
+
+  .sidebar {
+    padding: 18px;
+  }
+
+  .summary-item {
+    padding: 12px 14px;
   }
 }
 </style>

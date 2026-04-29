@@ -564,6 +564,39 @@ button:hover {
     gap: 10px;
   }
 
+  .dashboard-grid,
+  .container {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    top: auto;
+    min-height: auto;
+    padding: 20px;
+  }
+
+  .sidebar-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .nav-link {
+    width: 100%;
+  }
+
+  .button-row {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .button-row button {
+    width: 100%;
+  }
+
+  .input-group {
+    width: 100%;
+  }
+
   button {
     width: 100%;
   }
@@ -904,7 +937,7 @@ function loadTrashPayments() {
     deletedPayments = [];
     snap.forEach((d) => {
       const p = d.data();
-      if (!p.deleted || p.cashierId !== cashierId) return;
+      if (!p.deleted || p.deletedPermanent || p.cashierId !== cashierId) return;
       deletedPayments.push({
         paymentId: d.id,
         ...p
@@ -950,8 +983,23 @@ window.deletePaymentPermanently = async (paymentId) => {
   try {
     const confirmed = window.confirm("Are you sure you want to permanently delete this payment? This cannot be undone.");
     if (!confirmed) return;
-    await deleteDoc(doc(db, "payments", paymentId));
-    alert("Payment permanently deleted.");
+
+    const paymentRef = doc(db, "payments", paymentId);
+    try {
+      await deleteDoc(paymentRef);
+      alert("Payment permanently deleted.");
+    } catch (error) {
+      if (error.code === "permission-denied" || /permission/i.test(error.message)) {
+        await updateDoc(paymentRef, {
+          deletedPermanent: true,
+          deletedAt: serverTimestamp(),
+          deletedBy: cashierId
+        });
+        alert("Payment hidden permanently in the app. Firestore delete requires higher permission.");
+      } else {
+        throw error;
+      }
+    }
   } catch (error) {
     alert("Error: " + error.message);
   }
