@@ -684,65 +684,103 @@ function loadTasks() {
 
     if(data.status==="unpaid") unpaid++;
 
-    const card = document.createElement("div");
-    card.className="card";
+    if (data.status === "assigned") {
+      // ===== ASSIGNED LOANS TAB =====
+      const assignedCard = document.createElement("div");
+      assignedCard.className = "card";
+      assignedCard.innerHTML = `
+        <h3>${data.borrowerName}</h3>
+        <p>💰 Amount: ₱${data.amount}</p>
+        <p>💵 Balance: <strong>₱${data.balance}</strong></p>
+        <p>📍 ${data.address || "No address"}</p>
+        <p>Status: ${data.status}</p>
+        <p>Type: <strong>${data.loanType || 'solo'}</strong> ${data.memberNames && data.memberNames.length > 0 ? `| Members: ${data.memberNames.join(', ')}` : ''}</p>
+        <p>Cashier: <strong>${data.assignedCashierName || "Not assigned"}</strong></p>
+        <div class="row">
+          <select id="cashier-${d.id}">${cashierOptions(data)}</select>
+        </div>
+        <div class="row">
+          <button class="collected">✔ Collect & Assign</button>
+        </div>
+      `;
+      
+      assignedCard.querySelector(".collected").onclick = async () => {
+        const select = assignedCard.querySelector(`#cashier-${d.id}`);
+        const selectedId = select?.value;
+        const selectedCashier = cashiers.find(c => c.id === selectedId);
 
-    card.innerHTML=`
-      <h3>${data.borrowerName}</h3>
-      <p>💰 Amount: ₱${data.amount}</p>
-      <p>💵 Balance: <strong>₱${data.balance}</strong></p>
-      <p>📍 ${data.address || "No address"}</p>
-      <p>Status: ${data.status}</p>
-      <p>Type: <strong>${data.loanType || 'solo'}</strong> ${data.memberNames && data.memberNames.length > 0 ? `| Members: ${data.memberNames.join(', ')}` : ''}</p>
-      <p>Cashier: <strong>${data.assignedCashierName || "Not assigned"}</strong></p>
-      <div class="row">
-        <select id="cashier-${d.id}">${cashierOptions(data)}</select>
-      </div>
-      <div class="row">
-        <button class="collected">✔ Collected</button>
-        <button class="unpaid">❌ Unpaid</button>
-      </div>
-    `;
+        if (cashiers.length > 0 && !selectedId) {
+          alert("Please select a cashier before marking collected.");
+          return;
+        }
 
-    /* ✔ COLLECTED */
-    card.querySelector(".collected").onclick = async () => {
-      const select = card.querySelector(`#cashier-${d.id}`);
-      const selectedId = select?.value;
-      const selectedCashier = cashiers.find(c => c.id === selectedId);
+        await updateDoc(doc(db, "loans", d.id), {
+          status: "collected",
+          collectedAt: serverTimestamp(),
+          assignedCashierId: selectedCashier?.id || null,
+          assignedCashierName: selectedCashier?.name || "",
+          balance: 0
+        });
+      };
+      
+      assignedList.appendChild(assignedCard);
+      
+    } else if (data.status === "unpaid") {
+      // ===== COLLECT LOANS TAB (For Retries) =====
+      const card = document.createElement("div");
+      card.className="card";
 
-      if (cashiers.length > 0 && !selectedId) {
-        alert("Please select a cashier before marking collected.");
-        return;
-      }
+      card.innerHTML=`
+        <h3>${data.borrowerName}</h3>
+        <p>💰 Amount: ₱${data.amount}</p>
+        <p>💵 Balance: <strong>₱${data.balance}</strong></p>
+        <p>📍 ${data.address || "No address"}</p>
+        <p>Status: ${data.status}</p>
+        <p>Type: <strong>${data.loanType || 'solo'}</strong> ${data.memberNames && data.memberNames.length > 0 ? `| Members: ${data.memberNames.join(', ')}` : ''}</p>
+        <p>Cashier: <strong>${data.assignedCashierName || "Not assigned"}</strong></p>
+        <div class="row">
+          <select id="cashier-${d.id}">${cashierOptions(data)}</select>
+        </div>
+        <div class="row">
+          <button class="collected">✔ Collected</button>
+          <button class="unpaid">❌ Unpaid</button>
+        </div>
+      `;
 
-      await updateDoc(doc(db, "loans", d.id), {
-        status: "collected",
-        collectedAt: serverTimestamp(),
-        assignedCashierId: selectedCashier?.id || null,
-        assignedCashierName: selectedCashier?.name || "",
-        balance: 0
-      });
-    };
+      card.querySelector(".collected").onclick = async () => {
+        const select = card.querySelector(`#cashier-${d.id}`);
+        const selectedId = select?.value;
+        const selectedCashier = cashiers.find(c => c.id === selectedId);
 
-    /* ❌ UNPAID */
-    card.querySelector(".unpaid").onclick = async ()=>{
-      await updateDoc(doc(db,"loans",d.id),{
-        status:"unpaid"
-      });
-    };
+        if (cashiers.length > 0 && !selectedId) {
+          alert("Please select a cashier before marking collected.");
+          return;
+        }
 
-    // Add a read-only view for assigned loans and an interactive view for collection
-    const readonlyCard = card.cloneNode(true);
-    const actionRow = readonlyCard.querySelector('.row:last-child');
-    if (actionRow) actionRow.remove();
+        await updateDoc(doc(db, "loans", d.id), {
+          status: "collected",
+          collectedAt: serverTimestamp(),
+          assignedCashierId: selectedCashier?.id || null,
+          assignedCashierName: selectedCashier?.name || "",
+          balance: 0
+        });
+      };
 
-    assignedList.appendChild(readonlyCard);
-    collectList.appendChild(card);
+      card.querySelector(".unpaid").onclick = async ()=>{
+        await updateDoc(doc(db,"loans",d.id),{
+          status:"unpaid"
+        });
+      };
+      
+      collectList.appendChild(card);
+    }
   });
 
   // Add empty states if needed
-  if (total === 0) {
+  if (assignedList.children.length === 0) {
     assignedList.innerHTML = `<div class="empty-state">No assigned loans. Wait for admin to assign loans.</div>`;
+  }
+  if (collectList.children.length === 0) {
     collectList.innerHTML = `<div class="empty-state">No loans to collect yet.</div>`;
   }
 
