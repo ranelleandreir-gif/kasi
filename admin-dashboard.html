@@ -136,6 +136,48 @@ body::before {
   color: var(--muted);
 }
 
+.page-brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.page-brand img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+}
+
+.page-header-text {
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .page-brand {
+    gap: 14px;
+  }
+
+  .page-brand img {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+@media (max-width: 560px) {
+  .page-brand {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .logout-btn {
+    width: 100%;
+    align-self: stretch;
+  }
+}
+
 .header-actions {
   display: flex;
   flex-direction: column;
@@ -379,6 +421,13 @@ textarea {
   resize: vertical;
 }
 
+.input-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
 textarea::placeholder {
   color: rgba(255,255,255,0.5);
 }
@@ -478,9 +527,12 @@ textarea::placeholder {
     </div>
   </div>
   <header class="page-header">
-    <div>
-      <h1 class="title">Kasipag Admin Dashboard</h1>
-      <p class="subtitle">“To HELP, to CREATE and to PROVIDE”</p>
+    <div class="page-brand">
+      <img src="logopo.png" alt="Kasipag Logo">
+      <div class="page-header-text">
+        <h1 class="title">Kasipag Admin Dashboard</h1>
+        <p class="subtitle">“To HELP, to CREATE and to PROVIDE”</p>
+      </div>
     </div>
     <div class="header-actions">
       <button class="logout-btn" onclick="logout()">🚪 Logout</button>
@@ -525,7 +577,8 @@ textarea::placeholder {
               <option value="group">Group Loan</option>
             </select>
             <div id="memberNamesContainer" style="display: none;">
-              <textarea id="memberNames" placeholder="Add member names (comma-separated)&#10;e.g. John Doe, Jane Smith, Bob Johnson"></textarea>
+              <label class="input-label" for="memberNames">Add member names</label>
+              <textarea id="memberNames" placeholder="Enter member names separated by commas&#10;e.g. John Doe, Jane Smith, Bob Johnson"></textarea>
             </div>
           </div>
           <button class="button blue" style="margin-top:18px;" onclick="createLoan()">Create & Assign</button>
@@ -547,7 +600,7 @@ import {
   getDocs,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -605,6 +658,8 @@ function renderFolder(title, list, parent) {
       <div class="card-actions">
         <button class="button green" onclick="approve('${u.id}','${u.role}')">Approve</button>
         <button class="button red" onclick="reject('${u.id}')">Reject</button>
+        <button class="button blue" onclick="promptUpdateEmail('${u.id}')">Update Email</button>
+        <button class="button orange" onclick="sendPasswordReset('${u.id}')">Reset Password</button>
       </div>
     `;
     box.appendChild(item);
@@ -752,6 +807,32 @@ window.reject = async (id) => {
   });
 };
 
+window.promptUpdateEmail = async (id) => {
+  const newEmail = window.prompt("Enter the user's new email address:");
+  if (!newEmail) return;
+  if (!newEmail.includes("@")) {
+    alert("Please enter a valid email address.");
+    return;
+  }
+
+  await runAction("Updating email...", "Saving the new email address to the user profile.", async () => {
+    await updateDoc(doc(db, "users", id), { email: newEmail.trim() });
+    alert("User email updated successfully.");
+  });
+};
+
+window.sendPasswordReset = async (id) => {
+  await runAction("Sending password reset...", "Dispatching a reset link to the user's registered email.", async () => {
+    const userSnap = await getDoc(doc(db, "users", id));
+    if (!userSnap.exists()) throw new Error("User not found.");
+    const userData = userSnap.data();
+    const email = userData.email;
+    if (!email) throw new Error("User has no email on record.");
+    await sendPasswordResetEmail(auth, email);
+    alert(`Password reset email sent to ${email}.`);
+  });
+};
+
 window.deleteLoan = async (id) => {
   await runAction("Deleting loan...", "Removing this loan from the system.", async () => {
     await deleteDoc(doc(db, "loans", id));
@@ -797,6 +878,10 @@ window.createLoan = async () => {
     ? memberNamesInput.split(",").map(name => name.trim()).filter(name => name)
     : [];
 
+  const borrowerDisplayName = loanType === "group" && memberNames.length > 0
+    ? `${borrowerName} (Members: ${memberNames.join(", ")})`
+    : borrowerName;
+
   await runAction("Creating loan...", "Assigning the loan and saving borrower details.", async () => {
     const usersSnap = await getDocs(collection(db, "users"));
     let collectorName = "";
@@ -805,7 +890,7 @@ window.createLoan = async () => {
     });
 
     await addDoc(collection(db, "loans"), {
-      borrowerName,
+      borrowerName: borrowerDisplayName,
       amount,
       balance: amount,
       address,
