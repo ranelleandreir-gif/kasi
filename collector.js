@@ -117,11 +117,25 @@ loadTasks();
 // =====================
 // 🚪 LOGOUT
 // =====================
+import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const auth = getAuth();
+
+// global logout (para gumana sa onclick)
 window.logout = () => {
-  signOut(auth).then(() => {
+  if (!auth) {
+    console.error("Auth not initialized");
     window.location.href = "role-selector.html";
-  }).catch((error) => {
-    console.error("Logout error:", error);
-    window.location.href = "role-selector.html";
-  });
+    return;
+  }
+
+  signOut(auth)
+    .then(() => {
+      console.log("User logged out");
+      window.location.href = "role-selector.html";
+    })
+    .catch((error) => {
+      console.error("Logout error:", error);
+      window.location.href = "role-selector.html";
+    });
 };

@@ -185,11 +185,21 @@ function loadPayments() {
 // =====================
 // 🚪 LOGOUT
 // =====================
-window.logout = () => {
-  signOut(auth).then(() => {
-    window.location.href = "role-selector.html";
-  }).catch((error) => {
-    console.error("Logout error:", error);
-    window.location.href = "role-selector.html";
-  });
-};
+import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const auth = getAuth();
+
+// logout function
+function logout() {
+  signOut(auth)
+    .then(() => {
+      window.location.href = "role-selector.html";
+    })
+    .catch((error) => {
+      console.error("Logout error:", error);
+      window.location.href = "role-selector.html";
+    });
+}
+
+// connect button
+document.querySelector(".logout-btn").addEventListener("click", logout);
