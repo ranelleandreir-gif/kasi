@@ -625,7 +625,7 @@ async function loadCashiers() {
   cashiers = [];
   usersSnap.forEach(d => {
     const u = d.data();
-    if (u.role === "cashier" && u.status === "approved") {
+    if (u.role === "cashier" && u.status === "approved" && !u.deleted) {
       cashiers.push({
         id: d.id,
         name: u.assignedName || u.name || u.email
@@ -635,6 +635,10 @@ async function loadCashiers() {
 }
 
 function cashierOptions(loan) {
+  if (cashiers.length === 0) {
+    return "<option value=''>No cashier available</option>";
+  }
+
   let options = "<option value=''>Select a cashier</option>";
   cashiers.forEach(c => {
     const selected = loan.assignedCashierId === c.id ? "selected" : "";
@@ -694,13 +698,13 @@ function loadTasks() {
       assignedCard.className = "card";
       assignedCard.innerHTML = `
         <h3>${data.borrowerName}</h3>
-        <p>💰 Original Loan: ₱${data.amount}</p>
-        <p>💵 Remaining Balance: <strong>₱${data.balance}</strong></p>
+        <p> Remaining Balance: <strong>₱${data.balance}</strong></p>
         <p>📍 ${data.address || "No address"}</p>
         <p>Status: ${data.status}</p>
         <p>Type: <strong>${data.loanType || 'solo'}</strong> ${data.memberNames && data.memberNames.length > 0 ? `| Members: ${data.memberNames.join(', ')}` : ''}</p>
         <p>Cashier: <strong>${data.assignedCashierName || "Not assigned"}</strong></p>
         <div class="row">
+          <label for="cashier-${data.id}" class="select-label">Choose cashier:</label>
           <select id="cashier-${data.id}">${cashierOptions(data)}</select>
         </div>
         <div class="row">
@@ -736,13 +740,13 @@ function loadTasks() {
 
       card.innerHTML=`
         <h3>${data.borrowerName}</h3>
-        <p>💰 Original Loan: ₱${data.amount}</p>
-        <p>💵 Remaining Balance: <strong>₱${data.balance}</strong></p>
+        <p> Remaining Balance: <strong>₱${data.balance}</strong></p>
         <p>📍 ${data.address || "No address"}</p>
         <p>Status: ${data.status}</p>
         <p>Type: <strong>${data.loanType || 'solo'}</strong> ${data.memberNames && data.memberNames.length > 0 ? `| Members: ${data.memberNames.join(', ')}` : ''}</p>
         <p>Cashier: <strong>${data.assignedCashierName || "Not assigned"}</strong></p>
         <div class="row">
+          <label for="cashier-${data.id}" class="select-label">Choose cashier:</label>
           <select id="cashier-${data.id}">${cashierOptions(data)}</select>
         </div>
         <div class="row">

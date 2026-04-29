@@ -1095,7 +1095,7 @@ window.assignCollector = async (loanId) => {
   let collectors = [];
   usersSnap.forEach(d => {
     const u = d.data();
-    if (u.role === "collector" && u.status === "approved") {
+    if (u.role === "collector" && u.status === "approved" && !u.deleted) {
       collectors.push({
         id: d.id,
         name: u.assignedName || u.name
