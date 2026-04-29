@@ -619,6 +619,7 @@ button:hover {
       <button id="collectedTabBtn" class="nav-link active" onclick="showCashierTab('collected')">Collected Loans</button>
       <button id="paymentsTabBtn" class="nav-link" onclick="showCashierTab('payments')">Payment History</button>
       <button id="deletedPaymentsTabBtn" class="nav-link" onclick="showCashierTab('deleted')">Deleted Payments</button>
+      <button id="deletedLoansTabBtn" class="nav-link" onclick="showCashierTab('deletedLoans')">Deleted Loans</button>
       <button id="balanceTabBtn" class="nav-link" onclick="showCashierTab('balance')">Borrower Loan Balance</button>
       <div class="sidebar-summary">
         <div class="summary-item"><strong>Collected</strong><span id="sideCollected">0</span></div>
@@ -674,6 +675,11 @@ button:hover {
       <div id="deletedPaymentsList"></div>
     </section>
 
+    <section class="card hidden" id="deletedLoansSection">
+      <h2>🗑️ Deleted Loans</h2>
+      <div id="deletedLoansList"></div>
+    </section>
+
     <section class="card hidden" id="balanceSection">
       <h2>💳 Borrower Loan Balance</h2>
       <div class="button-row" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
@@ -691,7 +697,6 @@ import { db, auth } from "./firebase.js";
 import {
   collection,
   addDoc,
-  setDoc,
   updateDoc,
   doc,
   getDoc,
@@ -720,20 +725,24 @@ window.showCashierTab = (tab) => {
   const collectedBtn = document.getElementById("collectedTabBtn");
   const paymentsBtn = document.getElementById("paymentsTabBtn");
   const deletedBtn = document.getElementById("deletedPaymentsTabBtn");
+  const deletedLoansBtn = document.getElementById("deletedLoansTabBtn");
   const balanceBtn = document.getElementById("balanceTabBtn");
   const collectedSection = document.getElementById("collectedSection");
   const paymentSection = document.getElementById("paymentSection");
   const deletedSection = document.getElementById("deletedPaymentsSection");
+  const deletedLoansSection = document.getElementById("deletedLoansSection");
   const balanceSection = document.getElementById("balanceSection");
 
   // Hide all sections
   collectedSection.classList.add("hidden");
   paymentSection.classList.add("hidden");
   deletedSection.classList.add("hidden");
+  deletedLoansSection.classList.add("hidden");
   balanceSection.classList.add("hidden");
   collectedBtn.classList.remove("active");
   paymentsBtn.classList.remove("active");
   deletedBtn.classList.remove("active");
+  deletedLoansBtn.classList.remove("active");
   balanceBtn.classList.remove("active");
 
   if (tab === "payments") {
@@ -742,6 +751,9 @@ window.showCashierTab = (tab) => {
   } else if (tab === "deleted") {
     deletedSection.classList.remove("hidden");
     deletedBtn.classList.add("active");
+  } else if (tab === "deletedLoans") {
+    deletedLoansSection.classList.remove("hidden");
+    deletedLoansBtn.classList.add("active");
   } else if (tab === "balance") {
     balanceSection.classList.remove("hidden");
     balanceBtn.classList.add("active");
@@ -782,6 +794,7 @@ onAuthStateChanged(auth, async (user) => {
   loadLoans();
   loadPayments();
   loadTrashPayments();
+  loadDeletedLoans();
   loadBorrowerBalances();
   showBalancePanel('active');
 
@@ -807,6 +820,9 @@ function buildLoanCard(l, id) {
       <div class="input-group">
         <input type="number" placeholder="Enter amount paid" id="pay-${id}" min="0" max="${l.balance}" />
         <button class="button green" onclick="payLoan('${id}','${l.borrowerName}',${l.balance})">✔ Confirm Payment</button>
+      </div>
+      <div class="card-actions" style="margin-top: 12px;">
+        <button class="button red" onclick="deleteLoanRecord('${id}')">Delete Loan</button>
       </div>
     </div>
   `;
@@ -1084,6 +1100,115 @@ function loadBorrowerBalances() {
     }
   });
 }
+
+let deletedLoans = [];
+
+function loadDeletedLoans() {
+  onSnapshot(collection(db, "loans"), (snap) => {
+    deletedLoans = [];
+    snap.forEach(d => {
+      const l = d.data();
+      if (l.deleted && !l.deletedPermanent && (!l.assignedCashierId || l.assignedCashierId === cashierId)) {
+        deletedLoans.push({ loanId: d.id, ...l });
+      }
+    });
+    renderDeletedLoans();
+  });
+}
+
+function renderDeletedLoans() {
+  const deletedLoansList = document.getElementById("deletedLoansList");
+  if (!deletedLoansList) return;
+  deletedLoansList.innerHTML = "";
+
+  if (!deletedLoans.length) {
+    deletedLoansList.innerHTML = `<div class="empty-state">No deleted loans in bin.</div>`;
+    return;
+  }
+
+  deletedLoans.forEach(l => {
+    const item = document.createElement("div");
+    item.className = "item";
+    item.innerHTML = `
+      <div class="item-title">
+        <h3>${l.borrowerName}</h3>
+        <span class="badge">₱${l.balance}</span>
+      </div>
+      <div style="display:grid; gap:8px; color:#d1d5db;">
+        <div>💰 Amount: <strong>₱${l.amount}</strong></div>
+        <div>💵 Balance: <strong>₱${l.balance}</strong></div>
+        <div>🚚 Collector: <strong>${l.assignedCollectorName || "N/A"}</strong></div>
+        <div>Address: <strong>${l.address || "N/A"}</strong></div>
+        <div>Deleted At: <strong>${l.deletedAt && l.deletedAt.toDate ? new Date(l.deletedAt.toDate()).toLocaleString() : 'N/A'}</strong></div>
+      </div>
+      <div class="card-actions">
+        <button class="button green" onclick="recoverLoan('${l.loanId}')">Recover</button>
+        <button class="button red" onclick="deleteLoanPermanently('${l.loanId}')">Delete Permanently</button>
+      </div>
+    `;
+    deletedLoansList.appendChild(item);
+  });
+}
+
+window.deleteLoanRecord = async (loanId) => {
+  try {
+    const confirmed = window.confirm("Move this loan to deleted bin?");
+    if (!confirmed) return;
+
+    const loanRef = doc(db, "loans", loanId);
+    await updateDoc(loanRef, {
+      deleted: true,
+      deletedAt: serverTimestamp(),
+      deletedBy: cashierId
+    });
+    alert("Loan moved to deleted bin.");
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+};
+
+window.recoverLoan = async (loanId) => {
+  try {
+    const confirmed = window.confirm("Recover this deleted loan?");
+    if (!confirmed) return;
+
+    const loanRef = doc(db, "loans", loanId);
+    await updateDoc(loanRef, {
+      deleted: false,
+      deletedAt: null,
+      deletedBy: null
+    });
+    alert("Loan recovered from deleted bin.");
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+};
+
+window.deleteLoanPermanently = async (loanId) => {
+  try {
+    const confirmed = window.confirm("Are you sure you want to permanently delete this loan? This cannot be undone.");
+    if (!confirmed) return;
+
+    const loanRef = doc(db, "loans", loanId);
+    try {
+      await deleteDoc(loanRef);
+      alert("Loan permanently deleted.");
+    } catch (error) {
+      if (error.code === "permission-denied" || /permission/i.test(error.message)) {
+        await updateDoc(loanRef, {
+          deletedPermanent: true,
+          deletedAt: serverTimestamp(),
+          deletedBy: cashierId
+        });
+        alert("Loan hidden permanently in the app. Firestore delete requires higher permission.");
+      } else {
+        throw error;
+      }
+    }
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+};
 
 window.logout = async () => {
   await signOut(auth);
