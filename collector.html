@@ -554,6 +554,7 @@ button {
           </div>
         </div>
         <div class="top-actions">
+          <button class="logout-btn" onclick="loadTasks()">🔄 Refresh</button>
           <button class="logout-btn" onclick="logout()">🚪 Sign Out</button>
         </div>
       </div>
@@ -645,7 +646,12 @@ function cashierOptions(loan) {
 let collectorId = null;
 
 function loadTasks() {
-  if (!collectorId) return;
+  if (!collectorId) {
+    console.warn("collectorId not set yet");
+    return;
+  }
+
+  console.log("Loading tasks for collector:", collectorId);
 
   const q = query(
     collection(db, "loans"),
@@ -654,6 +660,7 @@ function loadTasks() {
   );
 
   onSnapshot(q, async (snap) => {
+  console.log("Snapshot received with", snap.size, "loans");
   await loadCashiers();
 
   let total = 0;
@@ -668,13 +675,13 @@ function loadTasks() {
   snap.forEach(d=>{
 
     const data = d.data();
+    console.log("Processing loan:", d.id, "Status:", data.status, "Balance:", data.balance, "AssignedCollectorId:", data.assignedCollectorId);
     
     // Only show assigned and unpaid loans
     if (data.status !== "assigned" && data.status !== "unpaid") return;
     
     total++;
 
-    if(data.status==="collected") collected++;
     if(data.status==="unpaid") unpaid++;
 
     const card = document.createElement("div");
@@ -732,6 +739,12 @@ function loadTasks() {
     assignedList.appendChild(readonlyCard);
     collectList.appendChild(card);
   });
+
+  // Add empty states if needed
+  if (total === 0) {
+    assignedList.innerHTML = `<div class="empty-state">No assigned loans. Wait for admin to assign loans.</div>`;
+    collectList.innerHTML = `<div class="empty-state">No loans to collect yet.</div>`;
+  }
 
   /* UPDATE STATS */
   document.getElementById("total").innerText=total;

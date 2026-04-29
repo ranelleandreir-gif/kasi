@@ -1083,13 +1083,31 @@ window.assignCollector = async (loanId) => {
     alert("No collectors available");
     return;
   }
-  const selected = collectors[0]; // or random / dropdown later
-  await updateDoc(doc(db, "loans", loanId), {
-    assignedCollectorId: selected.id,
-    assignedCollectorName: selected.name,
-    status: "assigned"
-  });
-  alert("Assigned to " + selected.name);
+  
+  // If only one collector, assign directly
+  let selected = collectors[0];
+  if (collectors.length > 1) {
+    const collectorList = collectors.map((c, i) => `${i + 1}. ${c.name}`).join("\n");
+    const choice = prompt(`Select a collector:\n${collectorList}\n\nEnter number (1-${collectors.length}):`, "1");
+    if (!choice || isNaN(choice) || choice < 1 || choice > collectors.length) {
+      alert("Assignment cancelled.");
+      return;
+    }
+    selected = collectors[parseInt(choice) - 1];
+  }
+  
+  try {
+    await updateDoc(doc(db, "loans", loanId), {
+      assignedCollectorId: selected.id,
+      assignedCollectorName: selected.name,
+      status: "assigned",
+      balance: (await getDoc(doc(db, "loans", loanId))).data().amount // Ensure balance is set to amount
+    });
+    alert(`Assigned to ${selected.name}`);
+  } catch (error) {
+    console.error("Assignment error:", error);
+    alert("Error assigning loan: " + error.message);
+  }
 };
 
 window.logout = async () => {
