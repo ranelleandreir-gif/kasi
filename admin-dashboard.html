@@ -339,6 +339,22 @@ body::before {
   border-color: rgba(59,130,246,0.3);
 }
 
+.online-user {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.online-user .user-info {
+  flex: 1;
+}
+
+.online-user .online-indicator {
+  color: #10b981;
+  font-weight: bold;
+  font-size: 14px;
+}
+
 .item-row {
   display: flex;
   flex-wrap: wrap;
@@ -549,6 +565,7 @@ textarea::placeholder {
     <aside class="sidebar">
       <h2>Admin Navigation</h2>
       <button class="nav-link active" onclick="openTab(this,'users')" data-tab="users">👤 Users</button>
+      <button class="nav-link" onclick="openTab(this,'online')" data-tab="online">🟢 Online Users</button>
       <button class="nav-link" onclick="openTab(this,'loans')" data-tab="loans">📦 Loans</button>
       <button class="nav-link" onclick="openTab(this,'create')" data-tab="create">➕ Create Loan</button>
 
@@ -560,6 +577,7 @@ textarea::placeholder {
 
     <main class="dashboard-main">
       <section id="users" class="section active"></section>
+      <section id="online" class="section"></section>
       <section id="loans" class="section"></section>
       <section id="create" class="section">
         <div class="card">
@@ -599,6 +617,7 @@ import {
   deleteDoc,
   addDoc,
   getDocs,
+  updateDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -744,12 +763,58 @@ function loadUsers() {
       .map(d => ({ id: d.id, ...d.data() }))
       .filter(u => !u.deletedPermanent);
     refreshUsersUI(folders, currentUsers.length);
+    loadOnlineUsers();
   });
 }
 
 function loadTrashUsers() {
   deletedUsers = currentUsers.filter(u => u.deleted && !u.deletedPermanent);
   refreshUsersUI();
+}
+
+function loadOnlineUsers() {
+  const onlineDiv = document.getElementById("online");
+  if (!onlineDiv) return;
+
+  onlineDiv.innerHTML = `<h2>🟢 Online Users</h2>`;
+
+  const onlineUsers = currentUsers.filter(u => u.online && !u.deleted);
+
+  if (!onlineUsers.length) {
+    onlineDiv.innerHTML += `<div class="empty-state">No users online right now.</div>`;
+    return;
+  }
+
+  const roles = {
+    admin: "👑 Admin",
+    cashier: "💰 Cashier", 
+    collector: "🚚 Collector"
+  };
+
+  Object.keys(roles).forEach(role => {
+    const roleUsers = onlineUsers.filter(u => u.role === role);
+    if (roleUsers.length) {
+      const box = document.createElement("div");
+      box.className = "folder-box";
+      box.innerHTML = `<h3>${roles[role]} (${roleUsers.length})</h3>`;
+
+      roleUsers.forEach(u => {
+        const item = document.createElement("div");
+        item.className = "item-card online-user";
+        item.innerHTML = `
+          <div class="user-info">
+            <strong>${u.name || u.email}</strong>
+            <small>${u.email}</small>
+            <small>Last seen: ${u.lastSeen ? new Date(u.lastSeen.toDate()).toLocaleString() : 'Now'}</small>
+          </div>
+          <div class="online-indicator">🟢 Online</div>
+        `;
+        box.appendChild(item);
+      });
+
+      onlineDiv.appendChild(box);
+    }
+  });
 }
 
 function refreshUsersUI(folders = null, totalCount = null) {
@@ -1137,7 +1202,25 @@ window.assignCollector = async (loanId) => {
   }
 };
 
+// 🔥 SET OFFLINE ON PAGE UNLOAD
+window.addEventListener('beforeunload', async () => {
+  const uid = localStorage.getItem("uid");
+  if (uid) {
+    await updateDoc(doc(db, "users", uid), {
+      online: false,
+      lastSeen: serverTimestamp()
+    });
+  }
+});
+
 window.logout = async () => {
+  const uid = localStorage.getItem("uid");
+  if (uid) {
+    await updateDoc(doc(db, "users", uid), {
+      online: false,
+      lastSeen: serverTimestamp()
+    });
+  }
   await signOut(auth);
   window.location.href = "role-selector.html";
 };

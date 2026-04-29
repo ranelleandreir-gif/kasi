@@ -1,7 +1,7 @@
 import { auth, db } from "./firebase.js";
 import { signInWithEmailAndPassword } 
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { doc, getDoc } 
+import { doc, getDoc, updateDoc, serverTimestamp } 
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const btn = document.getElementById("loginBtn");
@@ -46,6 +46,12 @@ btn.addEventListener("click", async () => {
     localStorage.setItem("role", data.role || "");
     localStorage.setItem("assignedName", data.assignedName || "");
     localStorage.setItem("email", data.email || "");
+
+    // 🔥 SET ONLINE STATUS
+    await updateDoc(doc(db, "users", uid), {
+      online: true,
+      lastSeen: serverTimestamp()
+    });
 
     // 🔥 STATUS CHECK
     if (data.deleted) {

@@ -837,14 +837,32 @@ onAuthStateChanged(auth, async (user) => {
   loadTasks();
 });
 
+// 🔥 SET OFFLINE ON PAGE UNLOAD
+window.addEventListener('beforeunload', async () => {
+  const uid = localStorage.getItem("uid");
+  if (uid) {
+    await updateDoc(doc(db, "users", uid), {
+      online: false,
+      lastSeen: serverTimestamp()
+    });
+  }
+});
+
 window.logout = async () => {
+  const uid = localStorage.getItem("uid");
+  if (uid) {
+    await updateDoc(doc(db, "users", uid), {
+      online: false,
+      lastSeen: serverTimestamp()
+    });
+  }
   localStorage.removeItem("uid");
   localStorage.removeItem("role");
   localStorage.removeItem("assignedName");
   localStorage.removeItem("email");
   await signOut(auth);
   window.location.href = "role-selector.html";
-};
+};;
 </script>
 
 </body>
