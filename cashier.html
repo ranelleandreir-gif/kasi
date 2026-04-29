@@ -53,6 +53,10 @@ body::before {
   animation: pagePop 0.72s ease forwards;
 }
 
+.hidden {
+  display: none;
+}
+
 .action-overlay {
   position: fixed;
   inset: 0;
@@ -639,7 +643,12 @@ button:hover {
 
     <section class="card hidden" id="balanceSection">
       <h2>💳 Borrower Loan Balance</h2>
-      <div id="borrowersList"></div>
+      <div class="button-row" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+        <button type="button" id="activeBalancesBtn" class="button blue">Borrower Loan Balance</button>
+        <button type="button" id="deletedBorrowersBtn" class="button red">Deleted Borrowers</button>
+      </div>
+      <div id="activeBorrowerBalances"></div>
+      <div id="deletedBorrowerBalances" class="hidden"></div>
     </section>
   </div>
 </div>
@@ -666,7 +675,10 @@ let deletedPayments = [];
 const loansList = document.getElementById("loansList");
 const paymentsList = document.getElementById("paymentsList");
 const deletedPaymentsList = document.getElementById("deletedPaymentsList");
-const borrowersList = document.getElementById("borrowersList");
+const activeBorrowerBalances = document.getElementById("activeBorrowerBalances");
+const deletedBorrowerBalances = document.getElementById("deletedBorrowerBalances");
+const activeBalancesBtn = document.getElementById("activeBalancesBtn");
+const deletedBorrowersBtn = document.getElementById("deletedBorrowersBtn");
 const summaryCollected = document.getElementById("summaryCollected");
 const summaryPending = document.getElementById("summaryPending");
 const summaryPayments = document.getElementById("summaryPayments");
@@ -700,9 +712,25 @@ window.showCashierTab = (tab) => {
   } else if (tab === "balance") {
     balanceSection.classList.remove("hidden");
     balanceBtn.classList.add("active");
+    showBalancePanel('active');
   } else {
     collectedSection.classList.remove("hidden");
     collectedBtn.classList.add("active");
+  }
+};
+
+window.showBalancePanel = (panel) => {
+  activeBorrowerBalances.classList.add("hidden");
+  deletedBorrowerBalances.classList.add("hidden");
+  activeBalancesBtn.classList.remove("active");
+  deletedBorrowersBtn.classList.remove("active");
+
+  if (panel === "deleted") {
+    deletedBorrowerBalances.classList.remove("hidden");
+    deletedBorrowersBtn.classList.add("active");
+  } else {
+    activeBorrowerBalances.classList.remove("hidden");
+    activeBalancesBtn.classList.add("active");
   }
 };
 
@@ -722,6 +750,10 @@ onAuthStateChanged(auth, async (user) => {
   loadPayments();
   loadTrashPayments();
   loadBorrowerBalances();
+  showBalancePanel('active');
+
+  activeBalancesBtn?.addEventListener('click', () => showBalancePanel('active'));
+  deletedBorrowersBtn?.addEventListener('click', () => showBalancePanel('deleted'));
 });
 
 function buildLoanCard(l, id) {
@@ -947,16 +979,16 @@ window.recoverPayment = async (paymentId) => {
 
 function loadBorrowerBalances() {
   onSnapshot(collection(db, "loans"), (snap) => {
-    borrowersList.innerHTML = "";
-    let count = 0;
+    activeBorrowerBalances.innerHTML = "";
+    deletedBorrowerBalances.innerHTML = "";
+    let activeCount = 0;
+    let deletedCount = 0;
 
     snap.forEach((d) => {
       const l = d.data();
-      // Show loans with balance > 0 and either assigned to this cashier or all loans
       if (l.balance <= 0) return;
       if (l.assignedCashierId && l.assignedCashierId !== cashierId) return;
-      count += 1;
-      
+
       const item = document.createElement("div");
       item.className = "item";
       item.innerHTML = `
@@ -972,13 +1004,23 @@ function loadBorrowerBalances() {
           <div>Type: <strong>${l.loanType || 'solo'}</strong> ${l.memberNames && l.memberNames.length > 0 ? `| Members: ${l.memberNames.join(', ')}` : ''}</div>
         </div>
       `;
-      borrowersList.appendChild(item);
+
+      if (l.borrowerDeleted || l.deletedBorrower) {
+        deletedCount += 1;
+        deletedBorrowerBalances.appendChild(item);
+      } else {
+        activeCount += 1;
+        activeBorrowerBalances.appendChild(item);
+      }
     });
 
-    document.getElementById("sideBalance").innerText = count;
+    document.getElementById("sideBalance").innerText = activeCount;
 
-    if (count === 0) {
-      borrowersList.innerHTML = `<div class="empty-state">No active borrower balances.</div>`;
+    if (activeCount === 0) {
+      activeBorrowerBalances.innerHTML = `<div class="empty-state">No active borrower balances.</div>`;
+    }
+    if (deletedCount === 0) {
+      deletedBorrowerBalances.innerHTML = `<div class="empty-state">No deleted borrower balances.</div>`;
     }
   });
 }

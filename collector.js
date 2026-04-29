@@ -50,7 +50,8 @@ function loadTasks() {
 
   const q = query(
     collection(db, "loans"),
-    where("assignedCollectorId", "==", collectorId)
+    where("assignedCollectorId", "==", collectorId),
+    where("status", "in", ["assigned", "collected", "unpaid"])
   );
 
   onSnapshot(q, (snapshot) => {
@@ -63,8 +64,13 @@ function loadTasks() {
     }
 
     snapshot.forEach((docSnap) => {
-
       const d = docSnap.data();
+      const statusLabel = d.status === "collected"
+        ? "📦 Collected"
+        : d.status === "unpaid"
+        ? "⏳ Unpaid"
+        : "📝 Assigned";
+      const statusClass = d.status === "collected" ? "collected" : "unpaid";
 
       const div = document.createElement("div");
       div.className = "card";
@@ -72,7 +78,7 @@ function loadTasks() {
       div.innerHTML = `
         <div class="item-title">
           <h3>👤 ${d.borrowerName}</h3>
-          <span class="badge ${d.status === 'collected' ? 'collected' : 'unpaid'}">${d.status === 'collected' ? '📦 Collected' : '⏳ Unpaid'}</span>
+          <span class="badge ${statusClass}">${statusLabel}</span>
         </div>
         <div class="row">
           <span>💰 Amount: ₱${d.amount}</span>
