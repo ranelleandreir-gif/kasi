@@ -810,15 +810,15 @@ function buildLoanCard(l, id) {
         <span class="badge">${l.status.toUpperCase()}</span>
       </div>
       <div style="display:grid; gap:8px; color:#d1d5db;">
-        <div>💰 Amount: <strong>₱${l.amount}</strong></div>
-        <div>💵 Balance: <strong>₱${l.balance}</strong></div>
+        <div>💰 Original Loan: <strong>₱${l.amount}</strong></div>
+        <div>💵 Remaining Balance: <strong>₱${l.balance}</strong></div>
         <div>🚚 Collector: <strong>${l.assignedCollectorName || "N/A"}</strong></div>
         <div>Cashier: <strong>${l.assignedCashierName || "Unassigned"}</strong></div>
         <div>Address: <strong>${l.address || "N/A"}</strong></div>
         <div>Type: <strong>${l.loanType || 'solo'}</strong> ${l.memberNames && l.memberNames.length > 0 ? `| Members: ${l.memberNames.join(', ')}` : ''}</div>
       </div>
       <div class="input-group">
-        <input type="number" placeholder="Enter amount paid" id="pay-${id}" min="0" max="${l.balance}" />
+        <input type="number" placeholder="Enter payment amount to subtract from balance" id="pay-${id}" min="0" max="${l.balance}" />
         <button class="button green" onclick="payLoan('${id}','${l.borrowerName}',${l.balance})">✔ Confirm Payment</button>
       </div>
       <div class="card-actions" style="margin-top: 12px;">
@@ -925,10 +925,10 @@ function loadPayments() {
       item.innerHTML = `
         <div class="item-title">
           <h3>${p.borrowerName}</h3>
-          <span class="badge">₱${p.amountPaid}</span>
+          <span class="badge">Payment: ₱${p.amountPaid}</span>
         </div>
         <div style="display:grid; gap:8px; color:#d1d5db;">
-          <div>Balance: <strong>₱${p.remainingBalance}</strong></div>
+          <div>Remaining Balance After Payment: <strong>₱${p.remainingBalance}</strong></div>
           <div>Cashier: <strong>${p.cashierName}</strong></div>
           <div>Time: <strong>${createdAt}</strong></div>
         </div>
@@ -978,10 +978,10 @@ function renderDeletedPayments() {
     item.innerHTML = `
       <div class="item-title">
         <h3>${p.borrowerName}</h3>
-        <span class="badge">₱${p.amountPaid}</span>
+        <span class="badge">Payment: ₱${p.amountPaid}</span>
       </div>
       <div style="display:grid; gap:8px; color:#d1d5db;">
-        <div>Balance: <strong>₱${p.remainingBalance}</strong></div>
+        <div>Remaining Balance After Payment: <strong>₱${p.remainingBalance}</strong></div>
         <div>Cashier: <strong>${p.cashierName}</strong></div>
         <div>Deleted At: <strong>${p.deletedAt && p.deletedAt.toDate ? new Date(p.deletedAt.toDate()).toLocaleString() : 'N/A'}</strong></div>
         <div>Deleted By: <strong>${p.deletedBy || 'Unknown'}</strong></div>

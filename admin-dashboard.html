@@ -693,15 +693,15 @@ function renderLoanFolder(title, list, parent) {
     item.innerHTML = `
       <div class="item-row">
         <strong>👤 ${l.borrowerName}</strong>
-        <span class="status-chip ${l.status}">${l.status}</span>
+        <span class="status-chip ${l.balance === 0 ? 'paid' : l.status}">${l.balance === 0 ? 'PAID' : l.status.toUpperCase()}</span>
       </div>
-      <div class="item-meta">Amount: ₱${l.amount} | Balance: ₱${l.balance}</div>
+      <div class="item-meta">Original Loan: ₱${l.amount} | Remaining Balance: ₱${l.balance}</div>
       <div class="item-meta">Collector: <strong>${l.assignedCollectorName || '-'}</strong> | Address: <strong>${l.address || 'N/A'}</strong></div>
       <div class="item-meta">Type: <strong>${l.loanType || 'solo'}</strong> ${l.memberNames && l.memberNames.length > 0 ? `| Members: <strong>${l.memberNames.join(', ')}</strong>` : ''}</div>
       <div class="card-actions">
-        ${!l.assignedCollectorId ? `<button class="button orange" onclick="assignCollector('${l.id}')">Assign Collector</button>` : ''}
+        ${l.balance > 0 ? `<button class="button orange" onclick="assignCollector('${l.id}')">${l.assignedCollectorId ? '🔄 Reassign Collector' : 'Assign Collector'}</button>` : ''}
         <button class="button blue" onclick="editLoanBalance('${l.id}', ${l.balance})">✏️ Edit Balance</button>
-        <button class="button green" onclick="markPaid('${l.id}')">Mark Paid</button>
+        ${l.balance > 0 ? `<button class="button green" onclick="markPaid('${l.id}')">Mark Paid</button>` : ''}
         <button class="button red" onclick="deleteLoan('${l.id}')">Delete</button>
       </div>
     `;
@@ -812,12 +812,15 @@ function loadLoans() {
 
     snap.forEach(d => {
       const l = d.data();
-      if (l.status === "paid") paid.push({ id: d.id, ...l });
-      else active.push({ id: d.id, ...l });
+      if (l.status === "paid" || l.balance === 0) {
+        paid.push({ id: d.id, ...l });
+      } else {
+        active.push({ id: d.id, ...l });
+      }
     });
 
-    renderLoanFolder("📦 Active Loans", active, loansDiv);
-    renderLoanFolder("✅ Paid Loans", paid, loansDiv);
+    renderLoanFolder("📦 Active Loans (Need Collection)", active, loansDiv);
+    renderLoanFolder("✅ Paid Loans (Balance = 0)", paid, loansDiv);
     document.getElementById("paidCount").textContent = paid.length;
   });
 }
@@ -1107,13 +1110,16 @@ window.assignCollector = async (loanId) => {
   }
   
   try {
+    const loanDoc = await getDoc(doc(db, "loans", loanId));
+    const currentData = loanDoc.data();
+    
     await updateDoc(doc(db, "loans", loanId), {
       assignedCollectorId: selected.id,
       assignedCollectorName: selected.name,
-      status: "assigned",
-      balance: (await getDoc(doc(db, "loans", loanId))).data().amount // Ensure balance is set to amount
+      status: "assigned"
+      // Keep current balance - don't reset it
     });
-    alert(`Assigned to ${selected.name}`);
+    alert(`Reassigned to ${selected.name}. Current balance: ₱${currentData.balance}`);
   } catch (error) {
     console.error("Assignment error:", error);
     alert("Error assigning loan: " + error.message);
