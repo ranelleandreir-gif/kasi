@@ -650,8 +650,7 @@ function loadTasks() {
   const q = query(
     collection(db, "loans"),
     where("assignedCollectorId", "==", collectorId),
-    where("balance", ">", 0),
-    where("status", "in", ["assigned", "unpaid"])
+    where("balance", ">", 0)
   );
 
   onSnapshot(q, async (snap) => {
@@ -669,6 +668,10 @@ function loadTasks() {
   snap.forEach(d=>{
 
     const data = d.data();
+    
+    // Only show assigned and unpaid loans
+    if (data.status !== "assigned" && data.status !== "unpaid") return;
+    
     total++;
 
     if(data.status==="collected") collected++;
