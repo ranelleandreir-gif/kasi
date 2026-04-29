@@ -649,7 +649,8 @@ function loadTasks() {
 
   const q = query(
     collection(db, "loans"),
-    where("assignedCollectorId", "==", collectorId)
+    where("assignedCollectorId", "==", collectorId),
+    where("balance", ">", 0)
   );
 
   onSnapshot(q, async (snap) => {
@@ -677,7 +678,8 @@ function loadTasks() {
 
     card.innerHTML=`
       <h3>${data.borrowerName}</h3>
-      <p>💰 ₱${data.amount}</p>
+      <p>💰 Amount: ₱${data.amount}</p>
+      <p>💵 Balance: <strong>₱${data.balance}</strong></p>
       <p>📍 ${data.address || "No address"}</p>
       <p>Status: ${data.status}</p>
       <p>Type: <strong>${data.loanType || 'solo'}</strong> ${data.memberNames && data.memberNames.length > 0 ? `| Members: ${data.memberNames.join(', ')}` : ''}</p>

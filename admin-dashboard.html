@@ -699,6 +699,7 @@ function renderLoanFolder(title, list, parent) {
       <div class="item-meta">Collector: <strong>${l.assignedCollectorName || '-'}</strong> | Address: <strong>${l.address || 'N/A'}</strong></div>
       <div class="item-meta">Type: <strong>${l.loanType || 'solo'}</strong> ${l.memberNames && l.memberNames.length > 0 ? `| Members: <strong>${l.memberNames.join(', ')}</strong>` : ''}</div>
       <div class="card-actions">
+        <button class="button blue" onclick="editLoanBalance('${l.id}', ${l.balance})">✏️ Edit Balance</button>
         <button class="button green" onclick="markPaid('${l.id}')">Mark Paid</button>
         <button class="button red" onclick="deleteLoan('${l.id}')">Delete</button>
       </div>
@@ -968,6 +969,26 @@ window.deleteUserPermanently = async (id) => {
 window.deleteLoan = async (id) => {
   await runAction("Deleting loan...", "Removing this loan from the system.", async () => {
     await deleteDoc(doc(db, "loans", id));
+  });
+};
+
+window.editLoanBalance = async (loanId, currentBalance) => {
+  const newBalance = window.prompt(`Edit loan balance (current: ₱${currentBalance}):`, currentBalance);
+  if (newBalance === null) return;
+  
+  const parsedBalance = Number(newBalance.trim());
+  if (isNaN(parsedBalance) || parsedBalance < 0) {
+    alert("Please enter a valid balance amount.");
+    return;
+  }
+
+  await runAction("Updating balance...", "Saving the corrected loan balance.", async () => {
+    await updateDoc(doc(db, "loans", loanId), {
+      balance: parsedBalance,
+      balanceEditedBy: adminId,
+      balanceEditedAt: serverTimestamp()
+    });
+    alert(`Balance updated to ₱${parsedBalance}. This change is visible realtime across collector and cashier pages.`);
   });
 };
 
