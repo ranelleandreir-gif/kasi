@@ -787,6 +787,7 @@ function renderDeletedUsers(title, list, parent) {
       <div class="item-meta">Role: <strong>${u.role || "unknown"}</strong> | Assigned: <strong>${u.assignedName || '-'}</strong></div>
       <div class="card-actions">
         <button class="button green" onclick="recoverUser('${u.id}')">Recover</button>
+        <button class="button red" onclick="deleteUserPermanently('${u.id}')">Delete Permanently</button>
       </div>
     `;
     box.appendChild(item);
@@ -934,6 +935,15 @@ window.recoverUser = async (id) => {
       deletedAt: null,
       deletedBy: null
     });
+  });
+};
+
+window.deleteUserPermanently = async (id) => {
+  await runAction("Deleting permanently...", "Removing this deleted user forever.", async () => {
+    const userRef = doc(db, "users", id);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) throw new Error("User record not found.");
+    await deleteDoc(userRef);
   });
 };
 
