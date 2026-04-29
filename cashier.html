@@ -837,7 +837,7 @@ function loadLoans() {
     snap.forEach((d) => {
       const l = d.data();
       if (l.status !== "collected") return;
-      if (l.assignedCashierId && l.assignedCashierId !== cashierId) return;
+      if (l.assignedCashierId !== cashierId) return;
       if (l.confirmedAt) return; // Skip if already confirmed/paid
       count += 1;
       pendingCount += 1;

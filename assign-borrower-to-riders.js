@@ -27,7 +27,8 @@ window.assignCollector = async (loanId) => {
 
   await updateDoc(doc(db, "loans", loanId), {
     assignedCollectorId: selected.id,
-    assignedCollectorName: selected.name
+    assignedCollectorName: selected.name,
+    status: "assigned"
   });
 
   alert("Assigned to " + selected.name);

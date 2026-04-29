@@ -699,6 +699,7 @@ function renderLoanFolder(title, list, parent) {
       <div class="item-meta">Collector: <strong>${l.assignedCollectorName || '-'}</strong> | Address: <strong>${l.address || 'N/A'}</strong></div>
       <div class="item-meta">Type: <strong>${l.loanType || 'solo'}</strong> ${l.memberNames && l.memberNames.length > 0 ? `| Members: <strong>${l.memberNames.join(', ')}</strong>` : ''}</div>
       <div class="card-actions">
+        ${!l.assignedCollectorId ? `<button class="button orange" onclick="assignCollector('${l.id}')">Assign Collector</button>` : ''}
         <button class="button blue" onclick="editLoanBalance('${l.id}', ${l.balance})">✏️ Edit Balance</button>
         <button class="button green" onclick="markPaid('${l.id}')">Mark Paid</button>
         <button class="button red" onclick="deleteLoan('${l.id}')">Delete</button>
@@ -1064,6 +1065,31 @@ window.createLoan = async () => {
     document.getElementById("memberNamesContainer").style.display = "none";
     alert("Loan created and assigned successfully.");
   });
+};
+
+window.assignCollector = async (loanId) => {
+  const usersSnap = await getDocs(collection(db, "users"));
+  let collectors = [];
+  usersSnap.forEach(d => {
+    const u = d.data();
+    if (u.role === "collector" && u.status === "approved") {
+      collectors.push({
+        id: d.id,
+        name: u.assignedName || u.name
+      });
+    }
+  });
+  if (collectors.length === 0) {
+    alert("No collectors available");
+    return;
+  }
+  const selected = collectors[0]; // or random / dropdown later
+  await updateDoc(doc(db, "loans", loanId), {
+    assignedCollectorId: selected.id,
+    assignedCollectorName: selected.name,
+    status: "assigned"
+  });
+  alert("Assigned to " + selected.name);
 };
 
 window.logout = async () => {

@@ -650,7 +650,8 @@ function loadTasks() {
   const q = query(
     collection(db, "loans"),
     where("assignedCollectorId", "==", collectorId),
-    where("balance", ">", 0)
+    where("balance", ">", 0),
+    where("status", "in", ["assigned", "unpaid"])
   );
 
   onSnapshot(q, async (snap) => {
@@ -708,7 +709,8 @@ function loadTasks() {
         status: "collected",
         collectedAt: serverTimestamp(),
         assignedCashierId: selectedCashier?.id || null,
-        assignedCashierName: selectedCashier?.name || ""
+        assignedCashierName: selectedCashier?.name || "",
+        balance: 0
       });
     };
 
