@@ -741,7 +741,6 @@ function loadUsers() {
   onSnapshot(collection(db, "users"), (snap) => {
     currentUsers = [];
     deletedUsers = [];
-    const folders = { admin: [], cashier: [], collector: [], pending: [] };
 
     snap.forEach(d => {
       const u = d.data();
@@ -753,14 +752,10 @@ function loadUsers() {
         deletedUsers.push(user);
         return;
       }
-      if (u.status === "pending") folders.pending.push(user);
-      else folders[u.role]?.push(user);
+      currentUsers.push(user);
     });
 
-    currentUsers = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(u => !u.deletedPermanent);
-    refreshUsersUI(folders, currentUsers.length);
+    refreshUsersUI(null, currentUsers.length);
   });
 }
 
