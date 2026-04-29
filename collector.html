@@ -641,6 +641,11 @@ onSnapshot(q, async (snap) => {
   document.getElementById("sideUnpaid").innerText=unpaid;
 
 });
+
+window.logout = async () => {
+  await signOut(auth);
+  window.location.href = "role-selector.html";
+};
 </script>
 
 </body>
