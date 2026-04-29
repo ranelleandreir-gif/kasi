@@ -551,6 +551,7 @@ textarea::placeholder {
     <aside class="sidebar">
       <h2>Admin Navigation</h2>
       <button class="nav-link active" onclick="openTab(this,'users')" data-tab="users">👤 Users</button>
+      <button class="nav-link" onclick="openTab(this,'online')" data-tab="online">🟢 Online Users</button>
       <button class="nav-link" onclick="openTab(this,'loans')" data-tab="loans">📦 Loans</button>
       <button class="nav-link" onclick="openTab(this,'create')" data-tab="create">➕ Create Loan</button>
 
@@ -563,6 +564,7 @@ textarea::placeholder {
 
     <main class="dashboard-main">
       <section id="users" class="section active"></section>
+      <section id="online" class="section"></section>
       <section id="loans" class="section"></section>
       <section id="create" class="section">
         <div class="card">
@@ -628,6 +630,7 @@ onAuthStateChanged(auth, async (user) => {
 
   loadUsers();
   loadTrashUsers();
+  loadOnlineUsers();
   loadLoans();
   loadCollectors();
 });
@@ -743,6 +746,57 @@ function renderLoanFolder(title, list, parent) {
     box.appendChild(item);
   });
   parent.appendChild(box);
+}
+
+function loadOnlineUsers() {
+  onSnapshot(collection(db, "users"), (snap) => {
+    const onlineDiv = document.getElementById("online");
+    if (!onlineDiv) return;
+    onlineDiv.innerHTML = "<h2>🟢 Online Users</h2>";
+
+    const onlineUsers = [];
+    snap.forEach(d => {
+      const u = d.data();
+      if (u.online && !u.deleted) {
+        onlineUsers.push({ id: d.id, ...u });
+      }
+    });
+
+    if (onlineUsers.length === 0) {
+      onlineDiv.innerHTML += `<div class="empty-state">No users online right now.</div>`;
+      return;
+    }
+
+    // Group by role
+    const roles = { admin: [], cashier: [], collector: [] };
+    onlineUsers.forEach(u => {
+      if (roles[u.role]) roles[u.role].push(u);
+    });
+
+    const roleLabels = { admin: "👑 Admin", cashier: "💰 Cashier", collector: "🚚 Collector" };
+    Object.keys(roles).forEach(role => {
+      if (roles[role].length > 0) {
+        const box = document.createElement("div");
+        box.className = "card";
+        box.innerHTML = `<h3>${roleLabels[role]} (${roles[role].length})</h3>`;
+        
+        roles[role].forEach(u => {
+          const item = document.createElement("div");
+          item.className = "item-card";
+          item.innerHTML = `
+            <div class="item-row">
+              <strong>${u.name || u.email}</strong>
+              <span class="status-chip online">🟢 Online</span>
+            </div>
+            <div class="item-meta">${u.email}</div>
+            <div class="item-meta">Last seen: ${u.lastSeen ? new Date(u.lastSeen.toDate()).toLocaleString() : 'Now'}</div>
+          `;
+          box.appendChild(item);
+        });
+        onlineDiv.appendChild(box);
+      }
+    });
+  });
 }
 
 function loadUsers() {
