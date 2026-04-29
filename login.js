@@ -48,6 +48,13 @@ btn.addEventListener("click", async () => {
     localStorage.setItem("email", data.email || "");
 
     // 🔥 STATUS CHECK
+    if (data.deleted) {
+      msg.textContent = "Account deleted. Contact admin to recover.";
+      msg.style.color = "red";
+      document.getElementById("backBtn").style.display = "block";
+      return;
+    }
+
     if (data.status === "pending") {
       msg.textContent = "Account still pending admin approval";
       msg.style.color = "orange";

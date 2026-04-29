@@ -836,6 +836,7 @@ function loadPayments() {
     snap.forEach((d) => {
       const p = d.data();
       if (p.cashierId !== cashierId) return;
+      if (p.deleted) return;
       count += 1;
       const createdAt = p.createdAt && p.createdAt.toDate ? new Date(p.createdAt.toDate()).toLocaleString() : "N/A";
       const item = document.createElement("div");
@@ -867,18 +868,14 @@ function loadPayments() {
 }
 
 function loadTrashPayments() {
-  onSnapshot(collection(db, "trash"), (snap) => {
+  onSnapshot(collection(db, "payments"), (snap) => {
     deletedPayments = [];
     snap.forEach((d) => {
-      const trash = d.data();
-      if (trash.type !== "payment" || !trash.payload) return;
-      if (trash.payload.cashierId !== cashierId) return;
+      const p = d.data();
+      if (!p.deleted || p.cashierId !== cashierId) return;
       deletedPayments.push({
-        trashId: d.id,
-        originalId: trash.originalId,
-        deletedAt: trash.deletedAt,
-        deletedBy: trash.deletedBy,
-        ...trash.payload
+        paymentId: d.id,
+        ...p
       });
     });
     renderDeletedPayments();
@@ -909,7 +906,7 @@ function renderDeletedPayments() {
         <div>Deleted By: <strong>${p.deletedBy || 'Unknown'}</strong></div>
       </div>
       <div class="card-actions">
-        <button class="button green" onclick="recoverPayment('${p.trashId}','${p.originalId}')">Recover</button>
+        <button class="button green" onclick="recoverPayment('${p.paymentId}')">Recover</button>
       </div>
     `;
     deletedPaymentsList.appendChild(item);
@@ -921,30 +918,27 @@ window.deletePayment = async (id) => {
     const paymentRef = doc(db, "payments", id);
     const snap = await getDoc(paymentRef);
     if (!snap.exists()) throw new Error("Payment not found.");
-    const payload = snap.data();
-    await addDoc(collection(db, "trash"), {
-      type: "payment",
-      originalId: id,
+    await updateDoc(paymentRef, {
+      deleted: true,
       deletedAt: serverTimestamp(),
-      deletedBy: cashierId,
-      payload
+      deletedBy: cashierId
     });
-    await deleteDoc(paymentRef);
     alert("Payment moved to bin.");
   } catch (error) {
     alert("Error: " + error.message);
   }
 };
 
-window.recoverPayment = async (trashId, originalId) => {
+window.recoverPayment = async (paymentId) => {
   try {
-    const trashRef = doc(db, "trash", trashId);
-    const trashSnap = await getDoc(trashRef);
-    if (!trashSnap.exists()) throw new Error("Deleted payment not found.");
-    const trashData = trashSnap.data();
-    if (!trashData.payload) throw new Error("Invalid trashed payment.");
-    await setDoc(doc(db, "payments", originalId), trashData.payload);
-    await deleteDoc(trashRef);
+    const paymentRef = doc(db, "payments", paymentId);
+    const paymentSnap = await getDoc(paymentRef);
+    if (!paymentSnap.exists()) throw new Error("Deleted payment not found.");
+    await updateDoc(paymentRef, {
+      deleted: false,
+      deletedAt: null,
+      deletedBy: null
+    });
     alert("Payment recovered from bin.");
   } catch (error) {
     alert("Error: " + error.message);

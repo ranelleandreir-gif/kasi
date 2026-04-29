@@ -710,12 +710,18 @@ function renderLoanFolder(title, list, parent) {
 function loadUsers() {
   onSnapshot(collection(db, "users"), (snap) => {
     currentUsers = [];
+    deletedUsers = [];
     const folders = { admin: [], cashier: [], collector: [], pending: [] };
 
     snap.forEach(d => {
       const u = d.data();
-      if (u.status === "pending") folders.pending.push({ id: d.id, ...u });
-      else folders[u.role]?.push({ id: d.id, ...u });
+      const user = { id: d.id, ...u };
+      if (u.deleted) {
+        deletedUsers.push(user);
+        return;
+      }
+      if (u.status === "pending") folders.pending.push(user);
+      else folders[u.role]?.push(user);
     });
 
     currentUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -724,20 +730,8 @@ function loadUsers() {
 }
 
 function loadTrashUsers() {
-  onSnapshot(collection(db, "trash"), (snap) => {
-    deletedUsers = [];
-    snap.forEach(d => {
-      const trash = d.data();
-      if (trash.type === "user" && trash.payload) {
-        deletedUsers.push({
-          trashId: d.id,
-          originalId: trash.originalId,
-          ...trash.payload
-        });
-      }
-    });
-    refreshUsersUI();
-  });
+  deletedUsers = currentUsers.filter(u => u.deleted);
+  refreshUsersUI();
 }
 
 function refreshUsersUI(folders = null, totalCount = null) {
@@ -791,7 +785,7 @@ function renderDeletedUsers(title, list, parent) {
       <div class="item-meta">${u.email}</div>
       <div class="item-meta">Role: <strong>${u.role || "unknown"}</strong> | Assigned: <strong>${u.assignedName || '-'}</strong></div>
       <div class="card-actions">
-        <button class="button green" onclick="recoverUser('${u.trashId}','${u.originalId}')">Recover</button>
+        <button class="button green" onclick="recoverUser('${u.id}')">Recover</button>
       </div>
     `;
     box.appendChild(item);
@@ -903,27 +897,24 @@ window.deleteUser = async (id) => {
     const userRef = doc(db, "users", id);
     const userSnap = await getDoc(userRef);
     if (!userSnap.exists()) throw new Error("User not found.");
-    const payload = userSnap.data();
-    await addDoc(collection(db, "trash"), {
-      type: "user",
-      originalId: id,
+    await updateDoc(userRef, {
+      deleted: true,
       deletedAt: serverTimestamp(),
-      deletedBy: adminId,
-      payload
+      deletedBy: adminId
     });
-    await deleteDoc(userRef);
   });
 };
 
-window.recoverUser = async (trashId, originalId) => {
+window.recoverUser = async (id) => {
   await runAction("Recovering user...", "Restoring the deleted account from bin.", async () => {
-    const trashRef = doc(db, "trash", trashId);
-    const trashSnap = await getDoc(trashRef);
-    if (!trashSnap.exists()) throw new Error("Deleted record not found.");
-    const trashData = trashSnap.data();
-    if (!trashData.payload) throw new Error("Invalid trash contents.");
-    await setDoc(doc(db, "users", originalId), trashData.payload);
-    await deleteDoc(trashRef);
+    const userRef = doc(db, "users", id);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) throw new Error("Deleted record not found.");
+    await updateDoc(userRef, {
+      deleted: false,
+      deletedAt: null,
+      deletedBy: null
+    });
   });
 };
 
