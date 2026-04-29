@@ -595,6 +595,7 @@ import {
   doc,
   getDoc,
   updateDoc,
+  setDoc,
   deleteDoc,
   addDoc,
   getDocs,
@@ -602,12 +603,17 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+let adminId = null;
+let currentUsers = [];
+let deletedUsers = [];
+
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = "login.html";
     return;
   }
 
+  adminId = user.uid;
   const userDoc = await getDoc(doc(db, "users", user.uid));
   const isAdmin = userDoc.exists() && userDoc.data().role === "admin";
 
@@ -618,6 +624,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   loadUsers();
+  loadTrashUsers();
   loadLoans();
 });
 
@@ -660,6 +667,7 @@ function renderFolder(title, list, parent) {
         <button class="button red" onclick="reject('${u.id}')">Reject</button>
         <button class="button blue" onclick="promptUpdateEmail('${u.id}')">Update Email</button>
         <button class="button orange" onclick="sendPasswordReset('${u.id}')">Reset Password</button>
+        <button class="button red" onclick="deleteUser('${u.id}')">Delete</button>
       </div>
     `;
     box.appendChild(item);
@@ -701,8 +709,7 @@ function renderLoanFolder(title, list, parent) {
 
 function loadUsers() {
   onSnapshot(collection(db, "users"), (snap) => {
-    const usersDiv = document.getElementById("users");
-    usersDiv.innerHTML = "";
+    currentUsers = [];
     const folders = { admin: [], cashier: [], collector: [], pending: [] };
 
     snap.forEach(d => {
@@ -711,28 +718,86 @@ function loadUsers() {
       else folders[u.role]?.push({ id: d.id, ...u });
     });
 
-    renderFolder("🟡 Pending Users", folders.pending, usersDiv);
-    renderFolder("💰 Cashiers", folders.cashier, usersDiv);
-    renderFolder("🚚 Collectors", folders.collector, usersDiv);
-    renderFolder("👑 Admin", folders.admin, usersDiv);
-
-    const collectorSelect = document.getElementById("collectorSelect");
-    if (collectorSelect) {
-      collectorSelect.innerHTML = "<option value=''>Select a collector</option>";
-      folders.collector.forEach(c => {
-        const option = document.createElement("option");
-        option.value = c.id;
-        option.textContent = c.assignedName || c.name || c.email;
-        collectorSelect.appendChild(option);
-      });
-    }
-
-    document.getElementById("totalUsers").textContent = snap.size;
-    document.getElementById("pending").textContent = folders.pending.length;
-    document.getElementById("pendingCount").textContent = folders.pending.length;
-    document.getElementById("approved").textContent = folders.cashier.length + folders.collector.length + folders.admin.length;
-    document.getElementById("collectors").textContent = folders.collector.length;
+    currentUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    refreshUsersUI(folders, snap.size);
   });
+}
+
+function loadTrashUsers() {
+  onSnapshot(collection(db, "trash"), (snap) => {
+    deletedUsers = [];
+    snap.forEach(d => {
+      const trash = d.data();
+      if (trash.type === "user" && trash.payload) {
+        deletedUsers.push({
+          trashId: d.id,
+          originalId: trash.originalId,
+          ...trash.payload
+        });
+      }
+    });
+    refreshUsersUI();
+  });
+}
+
+function refreshUsersUI(folders = null, totalCount = null) {
+  const usersDiv = document.getElementById("users");
+  if (!usersDiv) return;
+  usersDiv.innerHTML = "";
+
+  if (!folders) {
+    folders = { admin: [], cashier: [], collector: [], pending: [] };
+    currentUsers.forEach(u => {
+      if (u.status === "pending") folders.pending.push(u);
+      else folders[u.role]?.push(u);
+    });
+  }
+
+  renderFolder("🟡 Pending Users", folders.pending, usersDiv);
+  renderFolder("💰 Cashiers", folders.cashier, usersDiv);
+  renderFolder("🚚 Collectors", folders.collector, usersDiv);
+  renderFolder("👑 Admin", folders.admin, usersDiv);
+  renderDeletedUsers("🗑️ Deleted Users", deletedUsers, usersDiv);
+
+  const total = totalCount ?? currentUsers.length;
+  const approved = folders.cashier.length + folders.collector.length + folders.admin.length;
+
+  document.getElementById("totalUsers").textContent = total;
+  document.getElementById("pending").textContent = folders.pending.length;
+  document.getElementById("pendingCount").textContent = folders.pending.length;
+  document.getElementById("approved").textContent = approved;
+  document.getElementById("collectors").textContent = folders.collector.length;
+}
+
+function renderDeletedUsers(title, list, parent) {
+  const box = document.createElement("div");
+  box.className = "card";
+  box.innerHTML = `<h3>${title} (${list.length})</h3>`;
+
+  if (!list.length) {
+    box.innerHTML += `<div class="empty-state">No deleted users in bin.</div>`;
+    parent.appendChild(box);
+    return;
+  }
+
+  list.forEach(u => {
+    const item = document.createElement("div");
+    item.className = "item-card";
+    item.innerHTML = `
+      <div class="item-row">
+        <strong>${u.name || "No Name"}</strong>
+        <span class="status-chip deleted">Deleted</span>
+      </div>
+      <div class="item-meta">${u.email}</div>
+      <div class="item-meta">Role: <strong>${u.role || "unknown"}</strong> | Assigned: <strong>${u.assignedName || '-'}</strong></div>
+      <div class="card-actions">
+        <button class="button green" onclick="recoverUser('${u.trashId}','${u.originalId}')">Recover</button>
+      </div>
+    `;
+    box.appendChild(item);
+  });
+
+  parent.appendChild(box);
 }
 
 function loadLoans() {
@@ -830,6 +895,35 @@ window.sendPasswordReset = async (id) => {
     if (!email) throw new Error("User has no email on record.");
     await sendPasswordResetEmail(auth, email);
     alert(`Password reset email sent to ${email}.`);
+  });
+};
+
+window.deleteUser = async (id) => {
+  await runAction("Deleting user...", "Moving this account to bin so it can be recovered later.", async () => {
+    const userRef = doc(db, "users", id);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) throw new Error("User not found.");
+    const payload = userSnap.data();
+    await addDoc(collection(db, "trash"), {
+      type: "user",
+      originalId: id,
+      deletedAt: serverTimestamp(),
+      deletedBy: adminId,
+      payload
+    });
+    await deleteDoc(userRef);
+  });
+};
+
+window.recoverUser = async (trashId, originalId) => {
+  await runAction("Recovering user...", "Restoring the deleted account from bin.", async () => {
+    const trashRef = doc(db, "trash", trashId);
+    const trashSnap = await getDoc(trashRef);
+    if (!trashSnap.exists()) throw new Error("Deleted record not found.");
+    const trashData = trashSnap.data();
+    if (!trashData.payload) throw new Error("Invalid trash contents.");
+    await setDoc(doc(db, "users", originalId), trashData.payload);
+    await deleteDoc(trashRef);
   });
 };
 

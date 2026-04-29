@@ -18,6 +18,9 @@
   --accent-soft: rgba(34,197,94,0.15);
   --blue: #3b82f6;
   --blue-soft: rgba(59,130,246,0.15);
+  --red: #ef4444;
+  --orange: #f59e0b;
+  --panel-stronger: rgba(255,255,255,0.16);
 }
 
 * {
@@ -333,6 +336,74 @@ body::before {
   border-color: rgba(59,130,246,0.3);
 }
 
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 120px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  color: #0f172a;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+}
+
+.button.green {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+}
+
+.button.red {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+}
+
+.button.orange {
+  background: linear-gradient(135deg, #f59e0b, #ea580c);
+  color: #0f172a;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+  background: rgba(15,23,42,0.85);
+  border: 1px solid rgba(148,163,184,0.18);
+}
+
+.status-chip.deleted {
+  background: rgba(248,113,113,0.12);
+  color: #fee2e2;
+  border-color: rgba(248,113,113,0.22);
+}
+
+.note {
+  margin-top: 20px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: rgba(59,130,246,0.12);
+  border: 1px solid rgba(59,130,246,0.22);
+  color: #c7d2fe;
+}
+
 .card h2 {
   margin-top: 0;
   margin-bottom: 18px;
@@ -510,6 +581,7 @@ button:hover {
       <h2>Cashier Menu</h2>
       <button id="collectedTabBtn" class="nav-link active" onclick="showCashierTab('collected')">Collected Loans</button>
       <button id="paymentsTabBtn" class="nav-link" onclick="showCashierTab('payments')">Payment History</button>
+      <button id="deletedPaymentsTabBtn" class="nav-link" onclick="showCashierTab('deleted')">Deleted Payments</button>
       <button id="balanceTabBtn" class="nav-link" onclick="showCashierTab('balance')">Borrower Loan Balance</button>
       <div class="sidebar-summary">
         <div class="summary-item"><strong>Collected</strong><span id="sideCollected">0</span></div>
@@ -559,6 +631,12 @@ button:hover {
       <div id="paymentsList"></div>
     </section>
 
+    <section class="card hidden" id="deletedPaymentsSection">
+      <h2>🗑️ Deleted Payments</h2>
+      <p class="note">Ang mga binura na payment record ay napupunta muna sa bin. Maaari mo itong i-recover kung nagkamali o gusto mong ibalik ang record.</p>
+      <div id="deletedPaymentsList"></div>
+    </section>
+
     <section class="card hidden" id="balanceSection">
       <h2>💳 Borrower Loan Balance</h2>
       <div id="borrowersList"></div>
@@ -571,9 +649,11 @@ import { db, auth } from "./firebase.js";
 import {
   collection,
   addDoc,
+  setDoc,
   updateDoc,
   doc,
   getDoc,
+  deleteDoc,
   onSnapshot,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -581,9 +661,11 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 
 let cashierName = "";
 let cashierId = "";
+let deletedPayments = [];
 
 const loansList = document.getElementById("loansList");
 const paymentsList = document.getElementById("paymentsList");
+const deletedPaymentsList = document.getElementById("deletedPaymentsList");
 const borrowersList = document.getElementById("borrowersList");
 const summaryCollected = document.getElementById("summaryCollected");
 const summaryPending = document.getElementById("summaryPending");
@@ -592,22 +674,29 @@ const summaryPayments = document.getElementById("summaryPayments");
 window.showCashierTab = (tab) => {
   const collectedBtn = document.getElementById("collectedTabBtn");
   const paymentsBtn = document.getElementById("paymentsTabBtn");
+  const deletedBtn = document.getElementById("deletedPaymentsTabBtn");
   const balanceBtn = document.getElementById("balanceTabBtn");
   const collectedSection = document.getElementById("collectedSection");
   const paymentSection = document.getElementById("paymentSection");
+  const deletedSection = document.getElementById("deletedPaymentsSection");
   const balanceSection = document.getElementById("balanceSection");
 
   // Hide all sections
   collectedSection.classList.add("hidden");
   paymentSection.classList.add("hidden");
+  deletedSection.classList.add("hidden");
   balanceSection.classList.add("hidden");
   collectedBtn.classList.remove("active");
   paymentsBtn.classList.remove("active");
+  deletedBtn.classList.remove("active");
   balanceBtn.classList.remove("active");
 
   if (tab === "payments") {
     paymentSection.classList.remove("hidden");
     paymentsBtn.classList.add("active");
+  } else if (tab === "deleted") {
+    deletedSection.classList.remove("hidden");
+    deletedBtn.classList.add("active");
   } else if (tab === "balance") {
     balanceSection.classList.remove("hidden");
     balanceBtn.classList.add("active");
@@ -631,6 +720,7 @@ onAuthStateChanged(auth, async (user) => {
 
   loadLoans();
   loadPayments();
+  loadTrashPayments();
   loadBorrowerBalances();
 });
 
@@ -651,7 +741,7 @@ function buildLoanCard(l, id) {
       </div>
       <div class="input-group">
         <input type="number" placeholder="Enter amount paid" id="pay-${id}" min="0" max="${l.balance}" />
-        <button onclick="payLoan('${id}','${l.borrowerName}',${l.balance})">✔ Confirm Payment</button>
+        <button class="button green" onclick="payLoan('${id}','${l.borrowerName}',${l.balance})">✔ Confirm Payment</button>
       </div>
     </div>
   `;
@@ -747,6 +837,7 @@ function loadPayments() {
       const p = d.data();
       if (p.cashierId !== cashierId) return;
       count += 1;
+      const createdAt = p.createdAt && p.createdAt.toDate ? new Date(p.createdAt.toDate()).toLocaleString() : "N/A";
       const item = document.createElement("div");
       item.className = "item";
       item.innerHTML = `
@@ -757,7 +848,10 @@ function loadPayments() {
         <div style="display:grid; gap:8px; color:#d1d5db;">
           <div>Balance: <strong>₱${p.remainingBalance}</strong></div>
           <div>Cashier: <strong>${p.cashierName}</strong></div>
-          <div>Time: <strong>${new Date(p.createdAt.toDate()).toLocaleString()}</strong></div>
+          <div>Time: <strong>${createdAt}</strong></div>
+        </div>
+        <div class="card-actions">
+          <button class="button red" onclick="deletePayment('${d.id}')">Delete</button>
         </div>
       `;
       paymentsList.appendChild(item);
@@ -770,6 +864,91 @@ function loadPayments() {
       paymentsList.innerHTML = `<div class="empty-state">No payment history yet.</div>`;
     }
   });
+}
+
+function loadTrashPayments() {
+  onSnapshot(collection(db, "trash"), (snap) => {
+    deletedPayments = [];
+    snap.forEach((d) => {
+      const trash = d.data();
+      if (trash.type !== "payment" || !trash.payload) return;
+      if (trash.payload.cashierId !== cashierId) return;
+      deletedPayments.push({
+        trashId: d.id,
+        originalId: trash.originalId,
+        deletedAt: trash.deletedAt,
+        deletedBy: trash.deletedBy,
+        ...trash.payload
+      });
+    });
+    renderDeletedPayments();
+  });
+}
+
+function renderDeletedPayments() {
+  if (!deletedPaymentsList) return;
+  deletedPaymentsList.innerHTML = "";
+  if (!deletedPayments.length) {
+    deletedPaymentsList.innerHTML = `<div class="empty-state">No deleted payments in bin.</div>`;
+    return;
+  }
+
+  deletedPayments.forEach((p) => {
+    const item = document.createElement("div");
+    item.className = "item";
+    const createdAt = p.createdAt && p.createdAt.toDate ? new Date(p.createdAt.toDate()).toLocaleString() : "N/A";
+    item.innerHTML = `
+      <div class="item-title">
+        <h3>${p.borrowerName}</h3>
+        <span class="badge">₱${p.amountPaid}</span>
+      </div>
+      <div style="display:grid; gap:8px; color:#d1d5db;">
+        <div>Balance: <strong>₱${p.remainingBalance}</strong></div>
+        <div>Cashier: <strong>${p.cashierName}</strong></div>
+        <div>Deleted At: <strong>${p.deletedAt && p.deletedAt.toDate ? new Date(p.deletedAt.toDate()).toLocaleString() : 'N/A'}</strong></div>
+        <div>Deleted By: <strong>${p.deletedBy || 'Unknown'}</strong></div>
+      </div>
+      <div class="card-actions">
+        <button class="button green" onclick="recoverPayment('${p.trashId}','${p.originalId}')">Recover</button>
+      </div>
+    `;
+    deletedPaymentsList.appendChild(item);
+  });
+}
+
+window.deletePayment = async (id) => {
+  try {
+    const paymentRef = doc(db, "payments", id);
+    const snap = await getDoc(paymentRef);
+    if (!snap.exists()) throw new Error("Payment not found.");
+    const payload = snap.data();
+    await addDoc(collection(db, "trash"), {
+      type: "payment",
+      originalId: id,
+      deletedAt: serverTimestamp(),
+      deletedBy: cashierId,
+      payload
+    });
+    await deleteDoc(paymentRef);
+    alert("Payment moved to bin.");
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+};
+
+window.recoverPayment = async (trashId, originalId) => {
+  try {
+    const trashRef = doc(db, "trash", trashId);
+    const trashSnap = await getDoc(trashRef);
+    if (!trashSnap.exists()) throw new Error("Deleted payment not found.");
+    const trashData = trashSnap.data();
+    if (!trashData.payload) throw new Error("Invalid trashed payment.");
+    await setDoc(doc(db, "payments", originalId), trashData.payload);
+    await deleteDoc(trashRef);
+    alert("Payment recovered from bin.");
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
 }
 
 function loadBorrowerBalances() {
