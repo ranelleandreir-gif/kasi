@@ -855,6 +855,7 @@ window.logout = async () => {
       online: false,
       lastSeen: serverTimestamp()
     });
+    console.log("✅ Set offline status for user:", uid);
   }
   localStorage.removeItem("uid");
   localStorage.removeItem("role");
@@ -862,7 +863,7 @@ window.logout = async () => {
   localStorage.removeItem("email");
   await signOut(auth);
   window.location.href = "role-selector.html";
-};;
+};
 </script>
 
 </body>

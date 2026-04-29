@@ -644,6 +644,18 @@ window.openTab = (tabElement, tabId) => {
   if (sidebarLink) sidebarLink.classList.add("active");
 };
 
+// 🔥 SET OFFLINE WHEN LEAVING PAGE
+window.addEventListener('beforeunload', async () => {
+  const uid = localStorage.getItem("uid");
+  if (uid) {
+    await updateDoc(doc(db, "users", uid), {
+      online: false,
+      lastSeen: serverTimestamp()
+    });
+    console.log("✅ Set offline (page close) for user:", uid);
+  }
+});
+
 function renderOnlineUsers(onlineUsers, parent) {
   const box = document.createElement("div");
   box.className = "card";
@@ -757,10 +769,16 @@ function loadOnlineUsers() {
     const onlineUsers = [];
     snap.forEach(d => {
       const u = d.data();
+      console.log(`User: ${u.email}, Online: ${u.online}, Deleted: ${u.deleted}`);
       if (u.online && !u.deleted) {
         onlineUsers.push({ id: d.id, ...u });
       }
     });
+
+    console.log("Total online users detected:", onlineUsers.length);
+    
+    // Update sidebar count
+    document.getElementById("onlineCount").textContent = onlineUsers.length;
 
     if (onlineUsers.length === 0) {
       onlineDiv.innerHTML += `<div class="empty-state">No users online right now.</div>`;
@@ -1237,6 +1255,7 @@ window.logout = async () => {
       online: false,
       lastSeen: serverTimestamp()
     });
+    console.log("✅ Set offline status for user:", uid);
   }
   await signOut(auth);
   window.location.href = "role-selector.html";

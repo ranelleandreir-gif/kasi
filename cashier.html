@@ -1229,10 +1229,11 @@ window.logout = async () => {
       online: false,
       lastSeen: serverTimestamp()
     });
+    console.log("✅ Set offline status for user:", uid);
   }
   await signOut(auth);
   window.location.href = "role-selector.html";
-};;
+};
 </script>
 </body>
 </html>

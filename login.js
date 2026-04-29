@@ -52,6 +52,7 @@ btn.addEventListener("click", async () => {
       online: true,
       lastSeen: serverTimestamp()
     });
+    console.log("✅ Set online status for user:", uid);
 
     // 🔥 STATUS CHECK
     if (data.deleted) {
