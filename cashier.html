@@ -510,10 +510,12 @@ button:hover {
       <h2>Cashier Menu</h2>
       <button id="collectedTabBtn" class="nav-link active" onclick="showCashierTab('collected')">Collected Loans</button>
       <button id="paymentsTabBtn" class="nav-link" onclick="showCashierTab('payments')">Payment History</button>
+      <button id="balanceTabBtn" class="nav-link" onclick="showCashierTab('balance')">Borrower Loan Balance</button>
       <div class="sidebar-summary">
         <div class="summary-item"><strong>Collected</strong><span id="sideCollected">0</span></div>
         <div class="summary-item"><strong>Pending</strong><span id="sidePending">0</span></div>
         <div class="summary-item"><strong>Payments</strong><span id="sidePayments">0</span></div>
+        <div class="summary-item"><strong>Active Balance</strong><span id="sideBalance">0</span></div>
       </div>
     </aside>
     <div class="main-panel">
@@ -556,6 +558,11 @@ button:hover {
       <h2>📜 Payment History</h2>
       <div id="paymentsList"></div>
     </section>
+
+    <section class="card hidden" id="balanceSection">
+      <h2>💳 Borrower Loan Balance</h2>
+      <div id="borrowersList"></div>
+    </section>
   </div>
 </div>
 
@@ -577,6 +584,7 @@ let cashierId = "";
 
 const loansList = document.getElementById("loansList");
 const paymentsList = document.getElementById("paymentsList");
+const borrowersList = document.getElementById("borrowersList");
 const summaryCollected = document.getElementById("summaryCollected");
 const summaryPending = document.getElementById("summaryPending");
 const summaryPayments = document.getElementById("summaryPayments");
@@ -584,19 +592,28 @@ const summaryPayments = document.getElementById("summaryPayments");
 window.showCashierTab = (tab) => {
   const collectedBtn = document.getElementById("collectedTabBtn");
   const paymentsBtn = document.getElementById("paymentsTabBtn");
+  const balanceBtn = document.getElementById("balanceTabBtn");
   const collectedSection = document.getElementById("collectedSection");
   const paymentSection = document.getElementById("paymentSection");
+  const balanceSection = document.getElementById("balanceSection");
+
+  // Hide all sections
+  collectedSection.classList.add("hidden");
+  paymentSection.classList.add("hidden");
+  balanceSection.classList.add("hidden");
+  collectedBtn.classList.remove("active");
+  paymentsBtn.classList.remove("active");
+  balanceBtn.classList.remove("active");
 
   if (tab === "payments") {
-    collectedSection.classList.add("hidden");
     paymentSection.classList.remove("hidden");
-    collectedBtn.classList.remove("active");
     paymentsBtn.classList.add("active");
+  } else if (tab === "balance") {
+    balanceSection.classList.remove("hidden");
+    balanceBtn.classList.add("active");
   } else {
     collectedSection.classList.remove("hidden");
-    paymentSection.classList.add("hidden");
     collectedBtn.classList.add("active");
-    paymentsBtn.classList.remove("active");
   }
 };
 
@@ -614,6 +631,7 @@ onAuthStateChanged(auth, async (user) => {
 
   loadLoans();
   loadPayments();
+  loadBorrowerBalances();
 });
 
 function buildLoanCard(l, id) {
@@ -649,6 +667,7 @@ function loadLoans() {
       const l = d.data();
       if (l.status !== "collected") return;
       if (l.assignedCashierId && l.assignedCashierId !== cashierId) return;
+      if (l.confirmedAt) return; // Skip if already confirmed/paid
       count += 1;
       pendingCount += 1;
       loansList.insertAdjacentHTML("beforeend", buildLoanCard(l, d.id));
@@ -683,22 +702,34 @@ window.payLoan = async (loanId, borrowerName, currentBalance) => {
 
   try {
     const loanRef = doc(db, "loans", loanId);
-    await updateDoc(loanRef, {
-      balance: newBalance,
-      status: newBalance === 0 ? "paid" : "collected",
-      confirmedAt: serverTimestamp(),
-      confirmedById: cashierId
-    });
+    
+    // Only create payment record and mark as confirmed if fully paid (balance = 0)
+    if (newBalance === 0) {
+      await updateDoc(loanRef, {
+        balance: newBalance,
+        status: "paid",
+        confirmedAt: serverTimestamp(),
+        confirmedById: cashierId
+      });
 
-    await addDoc(collection(db, "payments"), {
-      loanId,
-      borrowerName,
-      amountPaid,
-      remainingBalance: newBalance,
-      cashierId,
-      cashierName,
-      createdAt: serverTimestamp()
-    });
+      await addDoc(collection(db, "payments"), {
+        loanId,
+        borrowerName,
+        amountPaid,
+        remainingBalance: newBalance,
+        cashierId,
+        cashierName,
+        createdAt: serverTimestamp()
+      });
+    } else {
+      // If balance remains, keep it in collected but update balance
+      await updateDoc(loanRef, {
+        balance: newBalance,
+        status: "collected",
+        lastPaymentAt: serverTimestamp(),
+        lastPaymentBy: cashierId
+      });
+    }
 
     input.value = "";
     alert(`✅ Payment confirmed! Remaining: ₱${newBalance}`);
@@ -737,6 +768,44 @@ function loadPayments() {
 
     if (count === 0) {
       paymentsList.innerHTML = `<div class="empty-state">No payment history yet.</div>`;
+    }
+  });
+}
+
+function loadBorrowerBalances() {
+  onSnapshot(collection(db, "loans"), (snap) => {
+    borrowersList.innerHTML = "";
+    let count = 0;
+
+    snap.forEach((d) => {
+      const l = d.data();
+      // Show loans with balance > 0 and either assigned to this cashier or all loans
+      if (l.balance <= 0) return;
+      if (l.assignedCashierId && l.assignedCashierId !== cashierId) return;
+      count += 1;
+      
+      const item = document.createElement("div");
+      item.className = "item";
+      item.innerHTML = `
+        <div class="item-title">
+          <h3>${l.borrowerName}</h3>
+          <span class="badge">₱${l.balance}</span>
+        </div>
+        <div style="display:grid; gap:8px; color:#d1d5db;">
+          <div>💰 Original Amount: <strong>₱${l.amount}</strong></div>
+          <div>💵 Remaining Balance: <strong>₱${l.balance}</strong></div>
+          <div>🚚 Collector: <strong>${l.assignedCollectorName || "N/A"}</strong></div>
+          <div>Address: <strong>${l.address || "N/A"}</strong></div>
+          <div>Type: <strong>${l.loanType || 'solo'}</strong> ${l.memberNames && l.memberNames.length > 0 ? `| Members: ${l.memberNames.join(', ')}` : ''}</div>
+        </div>
+      `;
+      borrowersList.appendChild(item);
+    });
+
+    document.getElementById("sideBalance").innerText = count;
+
+    if (count === 0) {
+      borrowersList.innerHTML = `<div class="empty-state">No active borrower balances.</div>`;
     }
   });
 }
