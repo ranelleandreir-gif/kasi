@@ -824,10 +824,14 @@ function loadLoans() {
 
 function loadCollectors() {
   const select = document.getElementById("collectorSelect");
-  if (!select) return;
+  if (!select) {
+    console.error("collectorSelect element not found");
+    return;
+  }
   
   onSnapshot(collection(db, "users"), (snap) => {
     select.innerHTML = '<option value="">-- Select a Collector --</option>';
+    let collectorCount = 0;
     snap.forEach(d => {
       const u = d.data();
       if (u.role === "collector" && u.status === "approved" && !u.deleted) {
@@ -835,8 +839,10 @@ function loadCollectors() {
         option.value = d.id;
         option.textContent = `${u.assignedName} (${u.name})`;
         select.appendChild(option);
+        collectorCount++;
       }
     });
+    console.log("Loaded", collectorCount, "collectors into dropdown");
   });
 }
 
@@ -1018,6 +1024,8 @@ window.createLoan = async () => {
   const loanType = document.getElementById("loanType").value;
   const memberNamesInput = document.getElementById("memberNames").value.trim();
 
+  console.log("Creating loan with collectorId:", collectorId, "borrowerName:", borrowerName, "amount:", amount);
+
   if (!borrowerName || !amount || !address || !collectorId) {
     alert("Fill all fields before creating the loan.");
     return;
@@ -1055,6 +1063,8 @@ window.createLoan = async () => {
       assignedCollectorName: collectorName,
       createdAt: serverTimestamp()
     });
+
+    console.log("Loan created with assignedCollectorId:", collectorId, "status: assigned", "balance:", amount, "collectorName:", collectorName);
 
     document.getElementById("borrowerName").value = "";
     document.getElementById("amount").value = "";

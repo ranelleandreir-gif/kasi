@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Collector Final Boss</title>
+<title> Kasipag Collector</title>
 
 <style>
 body{
@@ -653,14 +653,23 @@ function loadTasks() {
 
   console.log("Loading tasks for collector:", collectorId);
 
-  const q = query(
-    collection(db, "loans"),
-    where("assignedCollectorId", "==", collectorId),
-    where("balance", ">", 0)
-  );
+  // First try to get all loans to see if we can read them
+  const q = query(collection(db, "loans"));
 
   onSnapshot(q, async (snap) => {
-  console.log("Snapshot received with", snap.size, "loans");
+  console.log("Snapshot received with", snap.size, "total loans");
+  
+  // Filter loans for this collector
+  const collectorLoans = [];
+  snap.forEach(d => {
+    const data = d.data();
+    if (data.assignedCollectorId === collectorId && data.balance > 0 && (data.status === "assigned" || data.status === "unpaid")) {
+      collectorLoans.push({ id: d.id, ...data });
+    }
+  });
+  
+  console.log("Found", collectorLoans.length, "loans for this collector");
+  
   await loadCashiers();
 
   let total = 0;
@@ -672,13 +681,8 @@ function loadTasks() {
   assignedList.innerHTML="";
   collectList.innerHTML="";
 
-  snap.forEach(d=>{
-
-    const data = d.data();
-    console.log("Processing loan:", d.id, "Status:", data.status, "Balance:", data.balance, "AssignedCollectorId:", data.assignedCollectorId);
-    
-    // Only show assigned and unpaid loans
-    if (data.status !== "assigned" && data.status !== "unpaid") return;
+  collectorLoans.forEach(data => {
+    console.log("Processing loan:", data.id, "Status:", data.status, "Balance:", data.balance);
     
     total++;
 
@@ -697,7 +701,7 @@ function loadTasks() {
         <p>Type: <strong>${data.loanType || 'solo'}</strong> ${data.memberNames && data.memberNames.length > 0 ? `| Members: ${data.memberNames.join(', ')}` : ''}</p>
         <p>Cashier: <strong>${data.assignedCashierName || "Not assigned"}</strong></p>
         <div class="row">
-          <select id="cashier-${d.id}">${cashierOptions(data)}</select>
+          <select id="cashier-${data.id}">${cashierOptions(data)}</select>
         </div>
         <div class="row">
           <button class="collected">✔ Collect & Assign</button>
@@ -705,7 +709,7 @@ function loadTasks() {
       `;
       
       assignedCard.querySelector(".collected").onclick = async () => {
-        const select = assignedCard.querySelector(`#cashier-${d.id}`);
+        const select = assignedCard.querySelector(`#cashier-${data.id}`);
         const selectedId = select?.value;
         const selectedCashier = cashiers.find(c => c.id === selectedId);
 
@@ -714,7 +718,7 @@ function loadTasks() {
           return;
         }
 
-        await updateDoc(doc(db, "loans", d.id), {
+        await updateDoc(doc(db, "loans", data.id), {
           status: "collected",
           collectedAt: serverTimestamp(),
           assignedCashierId: selectedCashier?.id || null,
@@ -739,7 +743,7 @@ function loadTasks() {
         <p>Type: <strong>${data.loanType || 'solo'}</strong> ${data.memberNames && data.memberNames.length > 0 ? `| Members: ${data.memberNames.join(', ')}` : ''}</p>
         <p>Cashier: <strong>${data.assignedCashierName || "Not assigned"}</strong></p>
         <div class="row">
-          <select id="cashier-${d.id}">${cashierOptions(data)}</select>
+          <select id="cashier-${data.id}">${cashierOptions(data)}</select>
         </div>
         <div class="row">
           <button class="collected">✔ Collected</button>
@@ -748,7 +752,7 @@ function loadTasks() {
       `;
 
       card.querySelector(".collected").onclick = async () => {
-        const select = card.querySelector(`#cashier-${d.id}`);
+        const select = card.querySelector(`#cashier-${data.id}`);
         const selectedId = select?.value;
         const selectedCashier = cashiers.find(c => c.id === selectedId);
 
@@ -757,7 +761,7 @@ function loadTasks() {
           return;
         }
 
-        await updateDoc(doc(db, "loans", d.id), {
+        await updateDoc(doc(db, "loans", data.id), {
           status: "collected",
           collectedAt: serverTimestamp(),
           assignedCashierId: selectedCashier?.id || null,
@@ -767,7 +771,7 @@ function loadTasks() {
       };
 
       card.querySelector(".unpaid").onclick = async ()=>{
-        await updateDoc(doc(db,"loans",d.id),{
+        await updateDoc(doc(db,"loans",data.id),{
           status:"unpaid"
         });
       };
@@ -802,8 +806,19 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   collectorId = user.uid;
+  console.log("Collector authenticated with ID:", collectorId, "email:", user.email);
   const userSnap = await getDoc(doc(db, "users", collectorId));
-  if (!userSnap.exists() || userSnap.data().role !== "collector") {
+  if (!userSnap.exists()) {
+    console.error("User document does not exist for collectorId:", collectorId);
+    alert("Collector access only.");
+    window.location.href = "login.html";
+    return;
+  }
+  
+  const userData = userSnap.data();
+  console.log("User data:", userData);
+  if (userData.role !== "collector") {
+    console.error("User role is not collector:", userData.role);
     alert("Collector access only.");
     window.location.href = "login.html";
     return;
@@ -811,7 +826,7 @@ onAuthStateChanged(auth, async (user) => {
 
   const collectorNameEl = document.getElementById("collectorName");
   if (collectorNameEl) {
-    collectorNameEl.textContent = userSnap.data().assignedName || userSnap.data().name || "Collector";
+    collectorNameEl.textContent = userData.assignedName || userData.name || "Collector";
   }
 
   loadTasks();
