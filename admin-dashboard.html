@@ -626,6 +626,7 @@ onAuthStateChanged(auth, async (user) => {
   loadUsers();
   loadTrashUsers();
   loadLoans();
+  loadCollectors();
 });
 
 window.openTab = (tabElement, tabId) => {
@@ -810,6 +811,24 @@ function loadLoans() {
     renderLoanFolder("📦 Active Loans", active, loansDiv);
     renderLoanFolder("✅ Paid Loans", paid, loansDiv);
     document.getElementById("paidCount").textContent = paid.length;
+  });
+}
+
+function loadCollectors() {
+  const select = document.getElementById("collectorSelect");
+  if (!select) return;
+  
+  onSnapshot(collection(db, "users"), (snap) => {
+    select.innerHTML = '<option value="">-- Select a Collector --</option>';
+    snap.forEach(d => {
+      const u = d.data();
+      if (u.role === "collector" && u.status === "approved" && !u.deleted) {
+        const option = document.createElement("option");
+        option.value = d.id;
+        option.textContent = `${u.assignedName} (${u.name})`;
+        select.appendChild(option);
+      }
+    });
   });
 }
 
