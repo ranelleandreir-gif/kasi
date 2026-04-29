@@ -695,7 +695,7 @@ function renderLoanFolder(title, list, parent) {
         <strong>👤 ${l.borrowerName}</strong>
         <span class="status-chip ${l.balance === 0 ? 'paid' : l.status}">${l.balance === 0 ? 'PAID' : l.status.toUpperCase()}</span>
       </div>
-      <div class="item-meta">Original Loan: ₱${l.amount} | Remaining Balance: ₱${l.balance}</div>
+      <div class="item-meta">Remaining Balance: ₱${l.balance}</div>
       <div class="item-meta">Collector: <strong>${l.assignedCollectorName || '-'}</strong> | Address: <strong>${l.address || 'N/A'}</strong></div>
       <div class="item-meta">Type: <strong>${l.loanType || 'solo'}</strong> ${l.memberNames && l.memberNames.length > 0 ? `| Members: <strong>${l.memberNames.join(', ')}</strong>` : ''}</div>
       <div class="card-actions">
