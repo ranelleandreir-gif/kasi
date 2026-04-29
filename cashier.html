@@ -939,11 +939,23 @@ function renderDeletedPayments() {
       </div>
       <div class="card-actions">
         <button class="button green" onclick="recoverPayment('${p.paymentId}')">Recover</button>
+        <button class="button red" onclick="deletePaymentPermanently('${p.paymentId}')">Delete Permanently</button>
       </div>
     `;
     deletedPaymentsList.appendChild(item);
   });
 }
+
+window.deletePaymentPermanently = async (paymentId) => {
+  try {
+    const confirmed = window.confirm("Are you sure you want to permanently delete this payment? This cannot be undone.");
+    if (!confirmed) return;
+    await deleteDoc(doc(db, "payments", paymentId));
+    alert("Payment permanently deleted.");
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+};
 
 window.deletePayment = async (id) => {
   try {
