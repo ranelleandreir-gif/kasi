@@ -569,7 +569,6 @@ textarea::placeholder {
       <button class="nav-link" onclick="openTab(this,'create')" data-tab="create">➕ Create Loan</button>
 
       <div class="sidebar-summary">
-        <div class="summary-item"><strong>Online Users</strong><span id="onlineCount">0</span></div>
         <div class="summary-item"><strong>Pending Users</strong><span id="pendingCount">0</span></div>
         <div class="summary-item"><strong>Paid Loans</strong><span id="paidCount">0</span></div>
       </div>
@@ -770,28 +769,6 @@ function loadTrashUsers() {
   refreshUsersUI();
 }
 
-function renderOnlineUsers(onlineUsers, parent) {
-  const box = document.createElement("div");
-  box.className = "card";
-  box.innerHTML = `<h3>🟢 Online Users (${onlineUsers.length})</h3>`;
-
-  onlineUsers.forEach(u => {
-    const item = document.createElement("div");
-    item.className = "item-card online-user";
-    item.innerHTML = `
-      <div class="user-info">
-        <strong>${u.name || u.email}</strong>
-        <small>${u.email}</small>
-        <small>${u.role} • Last seen: ${u.lastSeen ? new Date(u.lastSeen.toDate()).toLocaleString() : 'Now'}</small>
-      </div>
-      <div class="online-indicator">🟢 Online</div>
-    `;
-    box.appendChild(item);
-  });
-
-  parent.appendChild(box);
-}
-
 function refreshUsersUI(folders = null, totalCount = null) {
   const usersDiv = document.getElementById("users");
   if (!usersDiv) return;
@@ -805,12 +782,6 @@ function refreshUsersUI(folders = null, totalCount = null) {
     });
   }
 
-  // 🔥 ADD ONLINE USERS AT THE TOP
-  const onlineUsers = currentUsers.filter(u => u.online && !u.deleted);
-  if (onlineUsers.length > 0) {
-    renderOnlineUsers(onlineUsers, usersDiv);
-  }
-
   renderFolder("🟡 Pending Users", folders.pending, usersDiv);
   renderFolder("💰 Cashiers", folders.cashier, usersDiv);
   renderFolder("🚚 Collectors", folders.collector, usersDiv);
@@ -819,13 +790,11 @@ function refreshUsersUI(folders = null, totalCount = null) {
 
   const total = totalCount ?? currentUsers.length;
   const approved = folders.cashier.length + folders.collector.length + folders.admin.length;
-  const online = currentUsers.filter(u => u.online && !u.deleted).length;
 
   document.getElementById("totalUsers").textContent = total;
   document.getElementById("pending").textContent = folders.pending.length;
   document.getElementById("pendingCount").textContent = folders.pending.length;
   document.getElementById("approved").textContent = approved;
-  document.getElementById("onlineCount").textContent = online;
   document.getElementById("collectors").textContent = folders.collector.length;
 }
 
