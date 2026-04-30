@@ -315,7 +315,12 @@ async function autoAssignCollector(loanId) {
       await updateDoc(doc(db, "loans", loanId), {
         assignedCollectorId: selected.id,
         assignedCollectorName: selected.name,
-        status: "assigned"
+        status: "assigned",
+        assignedCashierId: null,
+        assignedCashierName: "",
+        collectedAt: null,
+        confirmedAt: null,
+        confirmedById: null
       });
     }
   } catch (error) {
@@ -340,7 +345,12 @@ window.assignCollector = async (loanId) => {
       updateDoc(doc(db, "loans", loanId), {
         assignedCollectorId: d.id,
         assignedCollectorName: u.assignedName || u.name,
-        status: "assigned"
+        status: "assigned",
+        assignedCashierId: null,
+        assignedCashierName: "",
+        collectedAt: null,
+        confirmedAt: null,
+        confirmedById: null
       });
       alert("Assigned to " + (u.assignedName || u.name));
       found = true;

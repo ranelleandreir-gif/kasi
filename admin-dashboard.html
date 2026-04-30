@@ -1227,7 +1227,12 @@ window.assignCollector = async (loanId) => {
     await updateDoc(doc(db, "loans", loanId), {
       assignedCollectorId: selected.id,
       assignedCollectorName: selected.name,
-      status: "assigned"
+      status: "assigned",
+      assignedCashierId: null,
+      assignedCashierName: "",
+      collectedAt: null,
+      confirmedAt: null,
+      confirmedById: null
       // Keep current balance - don't reset it
     });
     alert(`Reassigned to ${selected.name}. Current balance: ₱${currentData.balance}`);
