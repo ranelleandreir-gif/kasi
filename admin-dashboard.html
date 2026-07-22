@@ -963,6 +963,7 @@ function loadCollectors() {
 const actionOverlay = document.getElementById("actionOverlay");
 const actionTitle = document.getElementById("actionTitle");
 const actionMessage = document.getElementById("actionMessage");
+const ADMIN_APPROVAL_PASSWORD = "KASIPAG-ADMIN-2026";
 
 function setActionState(title, message, visible = true) {
   actionTitle.textContent = title;
@@ -983,6 +984,14 @@ async function runAction(title, message, task) {
 }
 
 window.approve = async (id, role) => {
+  if (role === "admin") {
+    const enteredPassword = window.prompt("Enter the admin password to approve this admin account:");
+    if (enteredPassword !== ADMIN_APPROVAL_PASSWORD) {
+      alert("Incorrect admin password. Approval cancelled.");
+      return;
+    }
+  }
+
   await runAction("Approving user...", "Assigning a secure role tag and preparing login.", async () => {
     const snap = await getDocs(collection(db, "users"));
     const numbers = [];

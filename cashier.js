@@ -29,7 +29,16 @@ onAuthStateChanged(auth, async (user) => {
   cashierId = user.uid;
 
   const snap = await getDoc(doc(db, "users", user.uid));
-  cashierName = snap.data()?.assignedName || snap.data()?.name;
+  const userData = snap.data() || {};
+
+  if (userData.role !== "cashier") {
+    alert("This account is not allowed to access the cashier portal.");
+    await signOut(auth);
+    window.location.href = "role-selector.html";
+    return;
+  }
+
+  cashierName = userData.assignedName || userData.name;
 
   loadLoans();
   loadPayments();

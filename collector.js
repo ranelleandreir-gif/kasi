@@ -21,6 +21,26 @@ if (!collectorId) {
   window.location.href = "login.html";
 }
 
+async function enforceCollectorAccess() {
+  const user = auth.currentUser;
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  const snap = await getDoc(doc(db, "users", user.uid));
+  const userData = snap.data() || {};
+
+  if (userData.role !== "collector") {
+    alert("This account is not allowed to access the collector portal.");
+    await signOut(auth);
+    window.location.href = "role-selector.html";
+    return;
+  }
+}
+
+enforceCollectorAccess();
+
 // =====================
 // 🎯 ACTION OVERLAY
 // =====================
