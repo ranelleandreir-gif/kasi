@@ -192,11 +192,16 @@ body {
 <script>
 function selectRole(role){
   localStorage.setItem("selectedRole", role);
-  window.location.href = "login.html";
+  window.location.href = `login.html?role=${encodeURIComponent(role)}`;
 }
 
 function goLogin() {
-  window.location.href = "login.html";
+  const selectedRole = (localStorage.getItem("selectedRole") || "").trim();
+  if (selectedRole) {
+    window.location.href = `login.html?role=${encodeURIComponent(selectedRole)}`;
+  } else {
+    window.location.href = "login.html";
+  }
 }
 
 function goRegister() {

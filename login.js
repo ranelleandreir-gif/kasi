@@ -80,15 +80,15 @@ btn.addEventListener("click", async () => {
     msg.textContent = "Approved — redirecting to your dashboard...";
     msg.style.color = "#22c55e";
 
-    const requestedRole = (new URLSearchParams(window.location.search).get("role") || "").trim().toLowerCase();
+    const requestedRole = (new URLSearchParams(window.location.search).get("role") || localStorage.getItem("selectedRole") || "").trim().toLowerCase();
     const allowedRoles = {
       admin: ["admin"],
       cashier: ["cashier"],
       collector: ["collector"]
     };
 
-    if (requestedRole && !allowedRoles[data.role]?.includes(requestedRole)) {
-      msg.textContent = "This portal is not available for your account role.";
+    if (requestedRole && data.role !== requestedRole) {
+      msg.textContent = `This ${requestedRole} portal is not available for your ${data.role} account.`;
       msg.style.color = "#f87171";
       document.getElementById("backBtn").style.display = "block";
       return;
