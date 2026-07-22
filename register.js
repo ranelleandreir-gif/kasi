@@ -7,14 +7,21 @@ async function register() {
   const password = document.getElementById("password").value;
   const role = document.getElementById("role").value;
 
+  if (role !== "admin" && role !== "cashier" && role !== "collector") {
+    alert("Invalid role selected.");
+    return;
+  }
+
   const userCred = await createUserWithEmailAndPassword(auth, email, password);
+  const isAdmin = role === "admin";
 
   await setDoc(doc(db, "users", userCred.user.uid), {
+    name: email.split("@")[0],
     email: email,
     role: role,
-    status: "pending",
-    assignedName: ""
+    status: isAdmin ? "approved" : "pending",
+    assignedName: isAdmin ? "admin1" : ""
   });
 
-  alert("Registered! Wait for admin approval.");
+  alert(isAdmin ? "Admin account created successfully." : "Registered! Wait for admin approval.");
 }

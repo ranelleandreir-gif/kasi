@@ -18,8 +18,8 @@ window.signup = async function () {
     return;
   }
 
-  if (role !== "cashier" && role !== "collector") {
-    msg.textContent = "Only cashier and collector accounts can be created here.";
+  if (role !== "admin" && role !== "cashier" && role !== "collector") {
+    msg.textContent = "Only admin, cashier, and collector accounts can be created here.";
     msg.style.color = "red";
     return;
   }
@@ -27,18 +27,21 @@ window.signup = async function () {
   try {
 
     const userCred = await createUserWithEmailAndPassword(auth, email, password);
+    const isAdmin = role === "admin";
 
-    // 🔥 SAVE TO FIRESTORE (PENDING SYSTEM)
+    // 🔥 SAVE TO FIRESTORE
     await setDoc(doc(db, "users", userCred.user.uid), {
       name,
       email,
-      role,                 // cashier / collector
-      status: "pending",    // admin approval system
-      assignedName: "",     // lalagyan ng cashier2 / collector2 after approve
+      role,
+      status: isAdmin ? "approved" : "pending",
+      assignedName: isAdmin ? "admin1" : "",
       createdAt: serverTimestamp()
     });
 
-    msg.textContent = "Request sent! Waiting for admin approval...";
+    msg.textContent = isAdmin
+      ? "Admin account created successfully. You can now log in."
+      : "Request sent! Waiting for admin approval...";
     msg.style.color = "green";
 
   } catch (err) {

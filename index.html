@@ -614,6 +614,7 @@ input, select {
     <input id="email" type="email" placeholder="Email">
     <input id="password" type="password" placeholder="Password">
     <select id="role">
+      <option value="admin">Admin</option>
       <option value="cashier">Cashier</option>
       <option value="collector">Collector</option>
     </select>
@@ -657,19 +658,28 @@ window.signup = async function () {
     return;
   }
 
+  if (role !== "admin" && role !== "cashier" && role !== "collector") {
+    msg.textContent = "Select a valid role.";
+    msg.style.color = "#f87171";
+    return;
+  }
+
   try {
     const userCred = await createUserWithEmailAndPassword(auth, email, password);
+    const isAdmin = role === "admin";
 
     await setDoc(doc(db, "users", userCred.user.uid), {
       name,
       email,
       role,
-      status: "pending",
-      assignedName: "",
+      status: isAdmin ? "approved" : "pending",
+      assignedName: isAdmin ? "admin1" : "",
       createdAt: serverTimestamp()
     });
 
-    msg.textContent = "Request submitted — wait for admin approval.";
+    msg.textContent = isAdmin
+      ? "Admin account created successfully. You can now log in."
+      : "Request submitted — wait for admin approval.";
     msg.style.color = "#22c55e";
   } catch (err) {
     msg.textContent = err.message;
