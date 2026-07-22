@@ -81,14 +81,16 @@ btn.addEventListener("click", async () => {
     msg.style.color = "#22c55e";
 
     const requestedRole = (new URLSearchParams(window.location.search).get("role") || localStorage.getItem("selectedRole") || "").trim().toLowerCase();
-    const allowedRoles = {
-      admin: ["admin"],
-      cashier: ["cashier"],
-      collector: ["collector"]
-    };
 
     if (requestedRole && data.role !== requestedRole) {
-      msg.textContent = `This ${requestedRole} portal is not available for your ${data.role} account.`;
+      msg.textContent = `Access denied. This account is ${data.role}, not ${requestedRole}.`;
+      msg.style.color = "#f87171";
+      document.getElementById("backBtn").style.display = "block";
+      return;
+    }
+
+    if (!requestedRole) {
+      msg.textContent = "Please select a portal first.";
       msg.style.color = "#f87171";
       document.getElementById("backBtn").style.display = "block";
       return;

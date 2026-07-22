@@ -18,8 +18,8 @@ window.signup = async function () {
     return;
   }
 
-  if (role !== "admin" && role !== "cashier" && role !== "collector") {
-    msg.textContent = "Only admin, cashier, and collector accounts can be created here.";
+  if (role !== "cashier" && role !== "collector") {
+    msg.textContent = "Only cashier and collector accounts can be created here.";
     msg.style.color = "red";
     return;
   }
@@ -27,21 +27,18 @@ window.signup = async function () {
   try {
 
     const userCred = await createUserWithEmailAndPassword(auth, email, password);
-    const isAdmin = role === "admin";
 
     // 🔥 SAVE TO FIRESTORE
     await setDoc(doc(db, "users", userCred.user.uid), {
       name,
       email,
       role,
-      status: isAdmin ? "approved" : "pending",
-      assignedName: isAdmin ? "admin1" : "",
+      status: "pending",
+      assignedName: "",
       createdAt: serverTimestamp()
     });
 
-    msg.textContent = isAdmin
-      ? "Admin account created successfully. You can now log in."
-      : "Request sent! Waiting for admin approval...";
+    msg.textContent = "Request sent! Waiting for admin approval...";
     msg.style.color = "green";
 
   } catch (err) {
