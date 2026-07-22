@@ -984,6 +984,13 @@ async function runAction(title, message, task) {
 }
 
 window.approve = async (id, role) => {
+  const confirmMessage = role === "admin"
+    ? "This will approve the account as an admin. Continue?"
+    : "Approve this account for login?";
+
+  const confirmed = window.confirm(confirmMessage);
+  if (!confirmed) return;
+
   if (role === "admin") {
     const enteredPassword = window.prompt("Enter the admin password to approve this admin account:");
     if (enteredPassword !== ADMIN_APPROVAL_PASSWORD) {
@@ -1265,13 +1272,28 @@ window.addEventListener('beforeunload', async () => {
 window.logout = async () => {
   const uid = localStorage.getItem("uid");
   if (uid) {
-    await updateDoc(doc(db, "users", uid), {
-      online: false,
-      lastSeen: serverTimestamp()
-    });
-    console.log("✅ Set offline status for user:", uid);
+    try {
+      await updateDoc(doc(db, "users", uid), {
+        online: false,
+        lastSeen: serverTimestamp()
+      });
+    } catch (err) {
+      console.warn("Logout status update failed:", err);
+    }
   }
-  await signOut(auth);
+
+  localStorage.removeItem("uid");
+  localStorage.removeItem("role");
+  localStorage.removeItem("assignedName");
+  localStorage.removeItem("email");
+  localStorage.removeItem("selectedRole");
+
+  try {
+    await signOut(auth);
+  } catch (err) {
+    console.warn("Sign out failed:", err);
+  }
+
   window.location.href = "role-selector.html";
 };
 </script>
