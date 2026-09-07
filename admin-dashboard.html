@@ -4,396 +4,584 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kasipag Admin Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
+/* ============ TOKENS ============ */
 :root {
-  color-scheme: dark;
-  font-family: Inter, Arial, sans-serif;
-  --bg: #050b16;
-  --panel: rgba(15,23,42,0.92);
-  --panel-soft: rgba(15,23,42,0.76);
-  --border: rgba(148,163,184,0.14);
-  --text: #e2e8f0;
-  --muted: #94a3b8;
-  --green: #22c55e;
-  --blue: #3b82f6;
-  --red: #ef4444;
+  color-scheme: light;
+  --font-head: 'Manrope', Arial, sans-serif;
+  --font-body: 'Inter', Arial, sans-serif;
+
+  --navy-900: #0b1e3d;
+  --navy-800: #12294e;
+  --navy-700: #1b3763;
+  --navy-600: #274a80;
+  --blue: #2f6fed;
+  --blue-soft: #e8effe;
+  --teal: #0f9d82;
+  --teal-soft: #e3f7f2;
+  --gold: #c79a3c;
+  --gold-soft: #faf1dd;
+  --amber: #b8791c;
+  --amber-soft: #fbf0dd;
+  --red: #c13b3b;
+  --red-soft: #fbeaea;
+
+  --bg: #f2f5fa;
+  --surface: #ffffff;
+  --surface-alt: #f7f9fc;
+  --border: #e2e7f0;
+  --text: #14213d;
+  --muted: #5c6a86;
+  --muted-2: #8592ab;
+
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --shadow-card: 0 1px 2px rgba(15,30,60,0.04), 0 8px 24px rgba(15,30,60,0.06);
+  --shadow-pop: 0 24px 60px rgba(11,30,61,0.28);
 }
 
 * { box-sizing: border-box; }
 
-body {
+html, body {
   margin: 0;
-  min-height: 100vh;
-  background: radial-gradient(circle at top right, rgba(59,130,246,0.14), transparent 18%),
-              radial-gradient(circle at bottom left, rgba(34,197,94,0.16), transparent 22%),
-              linear-gradient(180deg, #050b16 0%, #06101a 100%);
+  padding: 0;
+  background: var(--bg);
   color: var(--text);
-  overflow-x: hidden;
-  position: relative;
+  font-family: var(--font-body);
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(circle at 20% 20%, rgba(59,130,246,0.08), transparent 18%),
-              radial-gradient(circle at 80% 80%, rgba(34,197,94,0.09), transparent 16%);
-  pointer-events: none;
-}
+h1, h2, h3, h4 { font-family: var(--font-head); margin: 0; color: var(--navy-900); }
 
-.page {
-  width: min(1200px, calc(100% - 32px));
-  margin: 0 auto;
-  padding: 28px 0 40px;
-  opacity: 0;
-  transform: translateY(16px);
-  animation: pagePop 0.7s ease forwards;
-}
+.num, td.num, .stat-value, .amount { font-variant-numeric: tabular-nums; }
 
-.action-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(7,11,18,0.74);
+button { font-family: var(--font-body); }
+
+a { color: var(--blue); }
+
+::selection { background: var(--blue-soft); }
+
+/* ============ APP SHELL ============ */
+.app-shell {
   display: grid;
-  place-items: center;
-  z-index: 50;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.24s ease, visibility 0.24s ease;
+  grid-template-columns: 248px 1fr;
+  grid-template-rows: 64px 1fr;
+  grid-template-areas:
+    "sidebar topbar"
+    "sidebar main";
+  min-height: 100vh;
 }
 
-.action-overlay.active {
-  opacity: 1;
-  visibility: visible;
-}
-
-.action-popup {
-  width: min(420px, calc(100% - 40px));
-  padding: 28px 26px;
-  border-radius: 28px;
-  background: rgba(15,23,42,0.96);
-  border: 1px solid rgba(148,163,184,0.16);
-  box-shadow: 0 34px 90px rgba(0,0,0,0.35);
-  text-align: center;
-  animation: popIn 0.28s ease both;
-}
-
-.action-popup .spinner {
-  width: 52px;
-  height: 52px;
-  margin: 0 auto 16px;
-  border-radius: 50%;
-  border: 5px solid rgba(255,255,255,0.14);
-  border-top-color: #22c55e;
-  animation: spin 0.85s linear infinite;
-}
-
-.action-popup strong {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 1.1rem;
-}
-
-.action-popup span {
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-
-.section {
-  opacity: 0;
-  transform: translateY(12px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.section.active {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-@keyframes popIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes pagePop {
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.page-header {
-  display: grid;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.page-header .title {
-  margin: 0;
-  font-size: clamp(2rem, 3vw, 2.6rem);
-}
-
-.page-header .subtitle {
-  margin: 0;
-  color: var(--muted);
-}
-
-.page-brand {
+/* ---- Topbar ---- */
+.topbar {
+  grid-area: topbar;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 18px;
-  flex-wrap: wrap;
+  gap: 16px;
+  padding: 0 22px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
-.page-brand img {
-  width: 72px;
-  height: 72px;
+.hamburger {
+  display: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--navy-800);
+}
+
+.topbar-search {
+  flex: 1;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 9px 14px;
+  color: var(--muted);
+}
+
+.topbar-search svg { flex-shrink: 0; }
+
+.topbar-search input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 0.92rem;
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.topbar-date {
+  font-size: 0.82rem;
+  color: var(--muted-2);
+  display: none;
+}
+
+.icon-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--navy-800);
+  cursor: pointer;
+}
+
+.icon-btn .dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 1.5px solid var(--surface);
+  display: none;
+}
+
+.icon-btn .dot.show { display: block; }
+
+.admin-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 6px;
+  border-radius: 999px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+}
+
+.admin-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--navy-700), var(--blue));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.82rem;
+  font-family: var(--font-head);
+}
+
+.admin-chip-text { line-height: 1.25; }
+.admin-chip-text strong { display: block; font-size: 0.86rem; }
+.admin-chip-text span { font-size: 0.74rem; color: var(--muted-2); }
+
+.logout-btn {
+  border: 1px solid var(--red);
+  background: var(--red-soft);
+  color: var(--red);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background .15s ease;
+}
+.logout-btn:hover { background: #f6dcdc; }
+
+/* ---- Sidebar ---- */
+.sidebar {
+  grid-area: sidebar;
+  background: var(--navy-900);
+  background-image: radial-gradient(circle at 15% 0%, rgba(47,111,237,0.25), transparent 40%);
+  color: #cfd9ee;
+  padding: 18px 14px 20px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  z-index: 40;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 16px;
+}
+
+.brand img {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   object-fit: contain;
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+  background: #fff;
+  padding: 3px;
 }
 
-.page-header-text {
+.brand-text strong {
+  display: block;
+  color: #fff;
+  font-family: var(--font-head);
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.brand-text span {
+  font-size: 0.72rem;
+  color: #93a2c4;
+}
+
+.nav-group-label {
+  font-size: 0.68rem;
+  color: #6f7fa3;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 14px 10px 6px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #cfd9ee;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 3px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.87rem;
+  font-weight: 500;
+  transition: background .15s ease, color .15s ease;
+}
+
+.nav-link svg { flex-shrink: 0; opacity: 0.85; }
+
+.nav-link:hover { background: rgba(255,255,255,0.06); color: #fff; }
+
+.nav-link.active {
+  background: linear-gradient(135deg, rgba(47,111,237,0.9), rgba(47,111,237,0.55));
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(47,111,237,0.35);
+}
+
+.nav-link .nav-badge {
+  margin-left: auto;
+  background: rgba(255,255,255,0.14);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+.nav-link.active .nav-badge { background: rgba(255,255,255,0.3); }
+
+.sidebar-summary {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: grid;
+  gap: 8px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.04);
+  font-size: 0.8rem;
+}
+
+.summary-item strong { color: #dbe4f7; font-weight: 500; }
+.summary-item span { color: #fff; font-weight: 700; font-family: var(--font-head); }
+
+.sidebar-scrim {
+  display: none;
+}
+
+/* ---- Main ---- */
+.main {
+  grid-area: main;
+  padding: 22px 26px 60px;
   min-width: 0;
 }
 
-@media (max-width: 860px) {
-  .page-brand {
-    gap: 14px;
-  }
+.section { display: none; }
+.section.active { display: block; animation: fadeUp .28s ease both; }
 
-  .page-brand img {
-    width: 60px;
-    height: 60px;
-  }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 560px) {
-  .page-brand {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .logout-btn {
-    width: 100%;
-    align-self: stretch;
-  }
-}
-
-.header-actions {
+.section-head {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
 }
 
-.logout-btn {
-  align-self: flex-end;
-  background: var(--red);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 10px 16px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.section-head h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
 }
 
-.logout-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+.section-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
 }
 
+/* ============ STAT CARDS ============ */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: 14px;
+  margin-bottom: 22px;
 }
 
 .stat-card {
-  background: var(--panel);
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 22px;
-  padding: 22px;
-  transition: transform 0.26s ease, box-shadow 0.26s ease;
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+  transition: transform .18s ease, box-shadow .18s ease;
 }
 
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 20px 45px rgba(0,0,0,0.18);
+.stat-card::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--accent, var(--blue));
 }
 
-.stat-card strong {
-  display: block;
-  font-size: 2rem;
-  margin-bottom: 8px;
-}
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(15,30,60,0.1); }
 
-.stat-card span {
-  color: var(--muted);
-}
-
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: 260px minmax(0, 1fr);
-    gap: 24px;
-    align-items: start;
-    margin-top: 24px;
-  }
-
-  .sidebar {
-    background: rgba(15,23,42,0.96);
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 24px;
-    position: sticky;
-    top: 24px;
-    min-height: 320px;
-  }
-
-  .sidebar h2 {
-    margin: 0 0 20px;
-    font-size: 1.1rem;
-    letter-spacing: 0.02em;
-  }
-
-  .nav-link {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    border: 1px solid rgba(148,163,184,0.12);
-    background: transparent;
-    color: var(--text);
-    border-radius: 16px;
-    padding: 14px 16px;
-    margin-bottom: 12px;
-    cursor: pointer;
-    text-align: left;
-    transition: background .2s ease, border-color .2s ease;
-  }
-
-  .nav-link.active {
-    background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(34,197,94,0.14));
-    border-color: rgba(59,130,246,0.55);
-  }
-
-  .nav-link:hover {
-    border-color: rgba(59,130,246,0.35);
-  }
-
-  .sidebar-summary {
-    margin-top: 28px;
-    display: grid;
-    gap: 12px;
-  }
-
-  .summary-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 16px;
-    border-radius: 16px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(148,163,184,0.16);
-  }
-
-  .summary-item strong {
-    font-size: 0.98rem;
-    color: var(--text);
-  }
-
-  .summary-item span {
-    color: var(--text);
-    font-weight: 700;
-  }
-
-  .dashboard-main {
-    display: grid;
-    gap: 22px;
-  }
-
-  .tabs {
-    display: none;
-  }
-
-  .section {
-    display: none;
-  }
-
-  .section.active {
-    display: block;
-  }
-
-.item-card,
-.card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 22px;
-  margin-bottom: 18px;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-}
-
-.item-card:hover,
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 45px rgba(0,0,0,0.16);
-  border-color: rgba(59,130,246,0.3);
-}
-
-.item-row {
+.stat-top {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 12px;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 12px;
 }
 
-.item-row strong {
-  font-size: 1rem;
+.stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft, var(--blue-soft));
+  color: var(--accent, var(--blue));
 }
 
-.item-meta {
+.stat-trend {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.stat-trend.up { color: var(--teal); background: var(--teal-soft); }
+.stat-trend.warn { color: var(--amber); background: var(--amber-soft); }
+
+.stat-value {
+  font-family: var(--font-head);
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--navy-900);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.stat-label { color: var(--muted); font-size: 0.82rem; }
+
+/* ============ CARD / PANEL ============ */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.panel-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.panel-title h3 { font-size: 1.02rem; font-weight: 700; }
+
+.badge {
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.badge.muted { background: var(--surface-alt); color: var(--muted); }
+
+/* ============ TOOLBAR (search/filter) ============ */
+.toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.toolbar .field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
   color: var(--muted);
-  font-size: 0.95rem;
-  line-height: 1.5;
 }
 
+.toolbar .field input,
+.toolbar .field select {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.85rem;
+  color: var(--text);
+  font-family: var(--font-body);
+  min-width: 120px;
+}
+
+.toolbar .field.grow { flex: 1; min-width: 200px; }
+
+/* ============ TABLES ============ */
+.table-scroll { overflow-x: auto; }
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+.data-table thead th {
+  text-align: left;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  color: var(--muted-2);
+  font-weight: 700;
+  padding: 0 14px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.data-table tbody td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--surface-alt);
+  font-size: 0.87rem;
+  vertical-align: middle;
+}
+
+.data-table tbody tr:hover { background: var(--surface-alt); }
+.data-table tbody tr:last-child td { border-bottom: none; }
+
+.cell-primary { font-weight: 600; color: var(--navy-900); }
+.cell-sub { color: var(--muted-2); font-size: 0.78rem; margin-top: 2px; }
+
+.row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ============ CHIPS / STATUS ============ */
 .status-chip {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 6px 12px;
+  gap: 5px;
+  padding: 4px 10px;
   border-radius: 999px;
-  font-size: 0.86rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
-.status-chip.pending { background: rgba(245,158,11,0.16); color: #f59e0b; }
-.status-chip.approved { background: rgba(34,197,94,0.18); color: #22c55e; }
-.status-chip.rejected { background: rgba(239,68,68,0.16); color: #f87171; }
-.status-chip.assigned { background: rgba(59,130,246,0.16); color: #3b82f6; }
-.status-chip.paid { background: rgba(34,197,94,0.16); color: #22c55e; }
-.status-chip.deleted { background: rgba(209,50,53,0.16); color: #ef4444; }
-.status-chip.online { background: rgba(16,185,129,0.16); color: #10b981; }
+.status-chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
-.card-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 14px;
+.status-chip.pending { background: var(--amber-soft); color: var(--amber); }
+.status-chip.approved { background: var(--teal-soft); color: var(--teal); }
+.status-chip.rejected { background: var(--red-soft); color: var(--red); }
+.status-chip.assigned { background: var(--blue-soft); color: var(--blue); }
+.status-chip.paid { background: var(--teal-soft); color: var(--teal); }
+.status-chip.deleted { background: var(--red-soft); color: var(--red); }
+.status-chip.online { background: var(--teal-soft); color: var(--teal); }
+.status-chip.verified { background: var(--teal-soft); color: var(--teal); }
+.status-chip.unverified { background: var(--amber-soft); color: var(--amber); }
+.status-chip.collected { background: var(--gold-soft); color: var(--gold); }
+.status-chip.admin { background: var(--gold-soft); color: var(--gold); }
+
+/* ============ BUTTONS ============ */
+.button {
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+  font-family: var(--font-body);
 }
+.button:hover { transform: translateY(-1px); }
+.button:active { transform: translateY(0); }
 
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 22px 45px rgba(0,0,0,0.16);
-}
+.button.green { background: var(--teal); color: #fff; }
+.button.blue { background: var(--blue); color: #fff; }
+.button.red { background: var(--red); color: #fff; }
+.button.orange { background: var(--gold); color: #fff; }
+.button.outline { background: var(--surface); color: var(--navy-800); border-color: var(--border); }
 
-.card h3 {
-  margin-top: 0;
-}
-
+/* ============ FORMS ============ */
 .grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -402,23 +590,30 @@ body::before {
 
 input, select {
   width: 100%;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 14px;
-  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
   color: var(--text);
-  padding: 14px 16px;
+  padding: 12px 14px;
+  font-size: 0.88rem;
+  font-family: var(--font-body);
+}
+
+input:focus, select:focus, textarea:focus, button:focus-visible, .nav-link:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
 }
 
 textarea {
   width: 100%;
   grid-column: 1 / -1;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 14px;
-  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
   color: var(--text);
-  padding: 14px 16px;
-  font-family: Inter, Arial, sans-serif;
-  font-size: 0.95rem;
+  padding: 12px 14px;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
   min-height: 80px;
   resize: vertical;
 }
@@ -427,170 +622,495 @@ textarea {
   display: block;
   margin-bottom: 8px;
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
 }
 
-textarea::placeholder {
-  color: rgba(255,255,255,0.5);
-}
-
-.button {
-  border: none;
-  border-radius: 14px;
-  padding: 14px 18px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform .18s ease, box-shadow .18s ease;
-}
-
-.button:hover { transform: translateY(-1px); }
-
-.button.green { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; }
-.button.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
-.button.red { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
-
-.card-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 14px;
-}
-
+/* ============ EMPTY STATE ============ */
 .empty-state {
-  padding: 28px;
-  margin-top: 14px;
-  border-radius: 22px;
-  background: rgba(255,255,255,0.03);
-  border: 1px dashed rgba(148,163,184,0.24);
+  padding: 34px 20px;
+  border-radius: var(--radius-md);
+  background: var(--surface-alt);
+  border: 1px dashed var(--border);
   color: var(--muted);
+  text-align: center;
+  font-size: 0.88rem;
+}
+
+/* ============ REPORTS / BARS ============ */
+.bar-list { display: grid; gap: 12px; }
+.bar-row { display: grid; grid-template-columns: 130px 1fr 70px; align-items: center; gap: 10px; }
+.bar-row .bar-label { font-size: 0.82rem; color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { height: 10px; border-radius: 999px; background: var(--surface-alt); overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 999px; background: var(--blue); }
+.bar-row .bar-value { font-size: 0.8rem; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+
+.reports-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+/* ============ ONLINE / LIVE ============ */
+.live-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 3px var(--teal-soft); flex-shrink: 0; }
+.live-item strong { display: block; font-size: 0.86rem; }
+.live-item .cell-sub { margin-top: 1px; }
+.live-item .status-chip { margin-left: auto; }
+
+/* ============ ACTION OVERLAY ============ */
+.action-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(11,30,61,0.55);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .2s ease, visibility .2s ease;
+}
+.action-overlay.active { opacity: 1; visibility: visible; }
+
+.action-popup {
+  width: min(400px, calc(100% - 40px));
+  padding: 30px 26px;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow-pop);
   text-align: center;
 }
 
-.panel-title {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  align-items: center;
+.action-popup .spinner {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  border: 4px solid var(--blue-soft);
+  border-top-color: var(--blue);
+  animation: spin 0.8s linear infinite;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.badge {
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(59,130,246,0.18);
-  color: #e0f2fe;
-  font-size: 0.9rem;
+.action-popup strong { display: block; margin-bottom: 8px; font-size: 1.02rem; color: var(--navy-900); }
+.action-popup span { color: var(--muted); font-size: 0.86rem; }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1080px) {
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .reports-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 900px) {
-  .page {
-    width: calc(100% - 24px);
-    padding: 20px 12px 32px;
-  }
-
-  .page-header {
-    gap: 14px;
-  }
-
-  .stats-grid,
-  .tabs,
-  .grid-2 {
+  .app-shell {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "topbar"
+      "main";
   }
-
-  .tabs {
-    margin-top: 22px;
+  .hamburger { display: flex; }
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 250px;
+    transform: translateX(-100%);
+    transition: transform .22s ease;
   }
-
-  .panel-title {
-    flex-direction: column;
-    align-items: flex-start;
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-scrim {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(11,30,61,0.4);
+    z-index: 39;
   }
+  .sidebar-scrim.show { display: block; }
+  .main { padding: 18px 14px 50px; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .topbar-search { max-width: none; }
 }
 
 @media (max-width: 620px) {
-  .tab {
-    padding: 14px;
-    font-size: 0.95rem;
-  }
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .admin-chip-text { display: none; }
+  .bar-row { grid-template-columns: 90px 1fr 56px; }
+}
 
-  .badge {
-    width: max-content;
-  }
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
-<div class="page">
-  <div id="actionOverlay" class="action-overlay" aria-live="polite" aria-hidden="true">
-    <div class="action-popup">
-      <div class="spinner"></div>
-      <strong id="actionTitle">Processing...</strong>
-      <span id="actionMessage">Please wait while the system updates your dashboard.</span>
-    </div>
+
+<div id="actionOverlay" class="action-overlay" aria-live="polite" aria-hidden="true">
+  <div class="action-popup">
+    <div class="spinner"></div>
+    <strong id="actionTitle">Processing...</strong>
+    <span id="actionMessage">Please wait while the system updates your dashboard.</span>
   </div>
-  <header class="page-header">
-    <div class="page-brand">
+</div>
+
+<div class="sidebar-scrim" id="sidebarScrim" onclick="toggleSidebar(false)"></div>
+
+<div class="app-shell">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
       <img src="logopo.png" alt="Kasipag Logo">
-      <div class="page-header-text">
-        <h1 class="title">Kasipag Admin Dashboard</h1>
-        <p class="subtitle">“To HELP, to CREATE and to PROVIDE”</p>
+      <div class="brand-text">
+        <strong>Kasipag</strong>
+        <span>Microfinance &amp; Collection System</span>
       </div>
     </div>
-    <div class="header-actions">
-      <button class="logout-btn" onclick="logout()">🚪 Logout</button>
-      <div class="stats-grid">
-        <div class="stat-card"><strong id="totalUsers">0</strong><span>Total users</span></div>
-        <div class="stat-card"><strong id="pending">0</strong><span>Pending approvals</span></div>
-        <div class="stat-card"><strong id="approved">0</strong><span>Approved users</span></div>
-        <div class="stat-card"><strong id="collectors">0</strong><span>Collectors</span></div>
+
+    <div class="nav-group-label">Overview</div>
+    <button class="nav-link active" data-tab="overview" onclick="openTab(this,'overview')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      Dashboard
+    </button>
+
+    <div class="nav-group-label">Lending</div>
+    <button class="nav-link" data-tab="loans" onclick="openTab(this,'loans')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h4"/></svg>
+      Borrowers &amp; Loans
+    </button>
+    <button class="nav-link" data-tab="create" onclick="openTab(this,'create')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+      Create Loan
+    </button>
+
+    <div class="nav-group-label">Collections</div>
+    <button class="nav-link" data-tab="collectorsTab" onclick="openTab(this,'collectorsTab')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.4-4 4-6 7.5-6s6.1 2 7.5 6"/></svg>
+      Collectors / Riders
+    </button>
+    <button class="nav-link" data-tab="cashier" onclick="openTab(this,'cashier')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="12" cy="12.5" r="2.6"/><path d="M7 6V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1"/></svg>
+      Cashier
+    </button>
+
+    <div class="nav-group-label">Reports</div>
+    <button class="nav-link" data-tab="reports" onclick="openTab(this,'reports')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9M11 19V4M18 19v-7"/></svg>
+      Analytics
+    </button>
+
+    <div class="nav-group-label">Administration</div>
+    <button class="nav-link" data-tab="users" onclick="openTab(this,'users')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M2.7 20c1.1-3.6 3.4-5.4 6.3-5.4s5.2 1.8 6.3 5.4"/><circle cx="17.5" cy="7.5" r="2.4"/><path d="M15.5 14.4c2.4.4 4 2 4.8 4.9"/></svg>
+      Users &amp; Accounts
+      <span class="nav-badge" id="navPendingBadge" style="display:none;">0</span>
+    </button>
+    <button class="nav-link" data-tab="online" onclick="openTab(this,'online')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/></svg>
+      Live Monitoring
+    </button>
+
+    <div class="sidebar-summary">
+      <div class="summary-item"><strong>Online now</strong><span id="onlineCount">0</span></div>
+      <div class="summary-item"><strong>Pending approvals</strong><span id="pendingCount">0</span></div>
+      <div class="summary-item"><strong>Paid loans</strong><span id="paidCount">0</span></div>
+    </div>
+  </aside>
+
+  <header class="topbar">
+    <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Toggle menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+
+    <div class="topbar-search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="globalSearch" type="text" placeholder="Search borrowers, users, collectors..." oninput="handleGlobalSearch(this.value)">
+    </div>
+
+    <div class="topbar-right">
+      <span class="topbar-date" id="topbarDate"></span>
+      <button class="icon-btn" title="Notifications" onclick="openTab(document.querySelector('[data-tab=users]'),'users')">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+        <span class="dot" id="notifDot"></span>
+      </button>
+      <div class="admin-chip">
+        <div class="admin-avatar" id="adminAvatar">A</div>
+        <div class="admin-chip-text">
+          <strong id="adminNameDisplay">Admin</strong>
+          <span>Administrator</span>
+        </div>
       </div>
+      <button class="logout-btn" onclick="logout()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+        Logout
+      </button>
     </div>
   </header>
 
-  <div class="dashboard-grid">
-    <aside class="sidebar">
-      <h2>Admin Navigation</h2>
-      <button class="nav-link active" onclick="openTab(this,'users')" data-tab="users">👤 Users</button>
-      <button class="nav-link" onclick="openTab(this,'online')" data-tab="online">🟢 Online Users</button>
-      <button class="nav-link" onclick="openTab(this,'loans')" data-tab="loans">📦 Loans</button>
-      <button class="nav-link" onclick="openTab(this,'create')" data-tab="create">➕ Create Loan</button>
+  <main class="main">
 
-      <div class="sidebar-summary">
-        <div class="summary-item"><strong>Online Users</strong><span id="onlineCount">0</span></div>
-        <div class="summary-item"><strong>Pending Users</strong><span id="pendingCount">0</span></div>
-        <div class="summary-item"><strong>Paid Loans</strong><span id="paidCount">0</span></div>
+    <!-- ===================== OVERVIEW ===================== -->
+    <section id="overview" class="section active">
+      <div class="section-head">
+        <div>
+          <h2>Control Center</h2>
+          <p>A real-time snapshot of borrowers, loans, and collections across Kasipag.</p>
+        </div>
       </div>
-    </aside>
 
-    <main class="dashboard-main">
-      <section id="users" class="section active"></section>
-      <section id="online" class="section"></section>
-      <section id="loans" class="section"></section>
-      <section id="create" class="section">
-        <div class="card">
-          <div class="panel-title">
-            <h3>Create New Loan</h3>
-            <span class="badge">Fast assign</span>
+      <div class="stats-grid">
+        <div class="stat-card" style="--accent:var(--blue); --accent-soft:var(--blue-soft);">
+          <div class="stat-top">
+            <div class="stat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M2.7 20c1.1-3.6 3.4-5.4 6.3-5.4s5.2 1.8 6.3 5.4"/><circle cx="17.5" cy="7.5" r="2.4"/><path d="M15.5 14.4c2.4.4 4 2 4.8 4.9"/></svg></div>
           </div>
-          <div class="grid-2">
-            <input id="borrowerName" placeholder="Borrower Name">
-            <input id="amount" type="number" placeholder="Amount">
-            <input id="address" placeholder="Address / Location">
+          <div class="stat-value" id="totalUsers">0</div>
+          <div class="stat-label">Total system users</div>
+        </div>
+
+        <div class="stat-card" style="--accent:var(--amber); --accent-soft:var(--amber-soft);">
+          <div class="stat-top">
+            <div class="stat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+          </div>
+          <div class="stat-value" id="pending">0</div>
+          <div class="stat-label">Pending account approvals</div>
+        </div>
+
+        <div class="stat-card" style="--accent:var(--teal); --accent-soft:var(--teal-soft);">
+          <div class="stat-top">
+            <div class="stat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg></div>
+          </div>
+          <div class="stat-value" id="approved">0</div>
+          <div class="stat-label">Approved staff accounts</div>
+        </div>
+
+        <div class="stat-card" style="--accent:var(--gold); --accent-soft:var(--gold-soft);">
+          <div class="stat-top">
+            <div class="stat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.4-4 4-6 7.5-6s6.1 2 7.5 6"/></svg></div>
+          </div>
+          <div class="stat-value" id="collectors">0</div>
+          <div class="stat-label">Active collectors / riders</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card" style="--accent:var(--navy-700); --accent-soft:var(--blue-soft);">
+          <div class="stat-top">
+            <div class="stat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h4"/></svg></div>
+          </div>
+          <div class="stat-value" id="statTotalLoans">0</div>
+          <div class="stat-label">Total loan accounts</div>
+        </div>
+
+        <div class="stat-card" style="--accent:var(--blue); --accent-soft:var(--blue-soft);">
+          <div class="stat-top">
+            <div class="stat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg></div>
+          </div>
+          <div class="stat-value" id="statActiveLoans">0</div>
+          <div class="stat-label">Active loans (with balance)</div>
+        </div>
+
+        <div class="stat-card" style="--accent:var(--gold); --accent-soft:var(--gold-soft);">
+          <div class="stat-top">
+            <div class="stat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1.4 1.3-2.5 3-2.5s3 1 3 2.2c0 3-6 1.3-6 4.3 0 1.4 1.3 2.5 3 2.5s3-1.1 3-2.5"/></svg></div>
+          </div>
+          <div class="stat-value" id="statTotalAmount">₱0</div>
+          <div class="stat-label">Total principal disbursed</div>
+        </div>
+
+        <div class="stat-card" style="--accent:var(--teal); --accent-soft:var(--teal-soft);">
+          <div class="stat-top">
+            <div class="stat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div>
+          </div>
+          <div class="stat-value" id="statTotalCollections">₱0</div>
+          <div class="stat-label">Total collected to date</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card" style="--accent:var(--amber); --accent-soft:var(--amber-soft);">
+          <div class="stat-top">
+            <div class="stat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="12" cy="12.5" r="2.6"/></svg></div>
+          </div>
+          <div class="stat-value" id="statPendingCollections">₱0</div>
+          <div class="stat-label">Pending collections (balance)</div>
+        </div>
+
+        <div class="stat-card" style="--accent:var(--teal); --accent-soft:var(--teal-soft);">
+          <div class="stat-top">
+            <div class="stat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg></div>
+          </div>
+          <div class="stat-value" id="statVerified">0</div>
+          <div class="stat-label">Verified payments</div>
+        </div>
+
+        <div class="stat-card" style="--accent:var(--red); --accent-soft:var(--red-soft);">
+          <div class="stat-top">
+            <div class="stat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></div>
+          </div>
+          <div class="stat-value" id="statUnverified">0</div>
+          <div class="stat-label">Not yet verified</div>
+        </div>
+
+        <div class="stat-card" style="--accent:var(--gold); --accent-soft:var(--gold-soft);">
+          <div class="stat-top">
+            <div class="stat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/></svg></div>
+          </div>
+          <div class="stat-value" id="onlineCountDisplay">0</div>
+          <div class="stat-label">Staff online right now</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== LOANS ===================== -->
+    <section id="loans" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Borrowers &amp; Loans</h2>
+          <p>Monitor solo and group loans, balances, and assigned collectors.</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="field grow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="loanSearch" type="text" placeholder="Search by borrower name or address..." oninput="filterLoanRows()">
+        </div>
+        <div class="field">
+          <span>Status</span>
+          <select id="loanStatusFilter" onchange="filterLoanRows()">
+            <option value="">All</option>
+            <option value="assigned">Assigned</option>
+            <option value="paid">Paid</option>
+          </select>
+        </div>
+        <div class="field">
+          <span>Type</span>
+          <select id="loanTypeFilter" onchange="filterLoanRows()">
+            <option value="">All</option>
+            <option value="solo">Solo</option>
+            <option value="group">Group</option>
+          </select>
+        </div>
+      </div>
+      <div id="loans-content"></div>
+    </section>
+
+    <!-- ===================== CREATE LOAN ===================== -->
+    <section id="create" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Create New Loan</h2>
+          <p>Register a new borrower and assign a collector.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">
+          <h3>Loan details</h3>
+          <span class="badge">Fast assign</span>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label class="input-label" for="borrowerName">Borrower name</label>
+            <input id="borrowerName" placeholder="e.g. Maria Santos">
+          </div>
+          <div>
+            <label class="input-label" for="amount">Loan amount (₱)</label>
+            <input id="amount" type="number" placeholder="e.g. 10000">
+          </div>
+          <div>
+            <label class="input-label" for="address">Address / location</label>
+            <input id="address" placeholder="Barangay, city">
+          </div>
+          <div>
+            <label class="input-label" for="collectorSelect">Assigned collector</label>
             <select id="collectorSelect"></select>
+          </div>
+          <div>
+            <label class="input-label" for="loanType">Loan type</label>
             <select id="loanType" onchange="toggleMemberNames()">
               <option value="solo">Solo Loan</option>
               <option value="group">Group Loan</option>
             </select>
-            <div id="memberNamesContainer" style="display: none;">
-              <label class="input-label" for="memberNames">Add member names</label>
-              <textarea id="memberNames" placeholder="Enter member names separated by commas&#10;e.g. John Doe, Jane Smith, Bob Johnson"></textarea>
-            </div>
           </div>
-          <button class="button blue" style="margin-top:18px;" onclick="createLoan()">Create & Assign</button>
+          <div id="memberNamesContainer" style="display: none; grid-column: 1 / -1;">
+            <label class="input-label" for="memberNames">Group member names</label>
+            <textarea id="memberNames" placeholder="Enter member names separated by commas&#10;e.g. John Doe, Jane Smith, Bob Johnson"></textarea>
+          </div>
         </div>
-      </section>
-    </main>
-  </div>
+        <button class="button blue" style="margin-top:18px;" onclick="createLoan()">Create &amp; assign loan</button>
+      </div>
+    </section>
+
+    <!-- ===================== COLLECTORS ===================== -->
+    <section id="collectorsTab" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Collectors &amp; Riders</h2>
+          <p>Track who is carrying the most pending collections in the field.</p>
+        </div>
+      </div>
+      <div id="collectors-content"></div>
+    </section>
+
+    <!-- ===================== CASHIER ===================== -->
+    <section id="cashier" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Cashier Monitoring</h2>
+          <p>Follow money as it moves from collector to cashier to verification.</p>
+        </div>
+      </div>
+      <div class="panel" style="margin-bottom:22px;">
+        <div class="panel-title"><h3>Collection workflow</h3></div>
+        <div id="workflow-strip"></div>
+      </div>
+      <div id="cashier-content"></div>
+    </section>
+
+    <!-- ===================== REPORTS ===================== -->
+    <section id="reports" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Reports &amp; Analytics</h2>
+          <p>Live figures computed from current Firestore data — no placeholder numbers.</p>
+        </div>
+      </div>
+      <div class="reports-grid">
+        <div class="panel">
+          <div class="panel-title"><h3>Loan status breakdown</h3></div>
+          <div class="bar-list" id="report-status"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title"><h3>Payment verification</h3></div>
+          <div class="bar-list" id="report-verification"></div>
+        </div>
+        <div class="panel" style="grid-column: 1 / -1;">
+          <div class="panel-title"><h3>Collections per collector</h3></div>
+          <div class="bar-list" id="report-collectors"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== USERS ===================== -->
+    <section id="users" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Users &amp; Accounts</h2>
+          <p>Approve staff, manage roles, and review the account bin.</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="field grow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="userSearch" type="text" placeholder="Search by name or email..." oninput="filterUserRows()">
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== ONLINE ===================== -->
+    <section id="online" class="section"></section>
+
+  </main>
+</div>
 
 <script type="module">
 import { db, auth } from "./firebase.js";
@@ -611,6 +1131,7 @@ import { onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www
 let adminId = null;
 let currentUsers = [];
 let deletedUsers = [];
+let currentLoans = [];
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -628,6 +1149,10 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
+  const displayName = localStorage.getItem("assignedName") || userDoc.data().assignedName || userDoc.data().email || "Admin";
+  document.getElementById("adminNameDisplay").textContent = displayName;
+  document.getElementById("adminAvatar").textContent = (displayName || "A").trim().charAt(0).toUpperCase();
+
   loadUsers();
   loadTrashUsers();
   loadOnlineUsers();
@@ -635,13 +1160,63 @@ onAuthStateChanged(auth, async (user) => {
   loadCollectors();
 });
 
+const topbarDateEl = document.getElementById("topbarDate");
+if (topbarDateEl) {
+  topbarDateEl.textContent = new Date().toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  topbarDateEl.style.display = "block";
+}
+
 window.openTab = (tabElement, tabId) => {
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-  document.querySelectorAll(".tab, .nav-link").forEach(t => t.classList.remove("active"));
-  document.getElementById(tabId).classList.add("active");
+  document.querySelectorAll(".nav-link").forEach(t => t.classList.remove("active"));
+  const target = document.getElementById(tabId);
+  if (target) target.classList.add("active");
   if (tabElement) tabElement.classList.add("active");
   const sidebarLink = document.querySelector(`.nav-link[data-tab="${tabId}"]`);
   if (sidebarLink) sidebarLink.classList.add("active");
+  window.toggleSidebar(false);
+};
+
+window.toggleSidebar = (force) => {
+  const sidebar = document.getElementById("sidebar");
+  const scrim = document.getElementById("sidebarScrim");
+  if (!sidebar || !scrim) return;
+  const shouldOpen = typeof force === "boolean" ? force : !sidebar.classList.contains("open");
+  sidebar.classList.toggle("open", shouldOpen);
+  scrim.classList.toggle("show", shouldOpen);
+};
+
+window.handleGlobalSearch = (value) => {
+  const q = value.trim().toLowerCase();
+  if (!q) return;
+  const nav = document.querySelector('[data-tab="loans"]');
+  window.openTab(nav, "loans");
+  const loanSearch = document.getElementById("loanSearch");
+  if (loanSearch) {
+    loanSearch.value = value;
+    filterLoanRowsInternal();
+  }
+};
+
+window.filterLoanRows = () => filterLoanRowsInternal();
+
+function filterLoanRowsInternal() {
+  const q = (document.getElementById("loanSearch")?.value || "").trim().toLowerCase();
+  const status = document.getElementById("loanStatusFilter")?.value || "";
+  const type = document.getElementById("loanTypeFilter")?.value || "";
+  document.querySelectorAll("#loans-content tr[data-loan-row]").forEach(row => {
+    const matchesText = !q || row.dataset.search.includes(q);
+    const matchesStatus = !status || row.dataset.status === status;
+    const matchesType = !type || row.dataset.type === type;
+    row.style.display = (matchesText && matchesStatus && matchesType) ? "" : "none";
+  });
+}
+
+window.filterUserRows = () => {
+  const q = (document.getElementById("userSearch")?.value || "").trim().toLowerCase();
+  document.querySelectorAll("#users tr[data-user-row]").forEach(row => {
+    row.style.display = (!q || row.dataset.search.includes(q)) ? "" : "none";
+  });
 };
 
 // 🔥 SET OFFLINE WHEN LEAVING PAGE
@@ -656,32 +1231,53 @@ window.addEventListener('beforeunload', async () => {
   }
 });
 
+function money(n) {
+  const val = Number(n) || 0;
+  return "₱" + val.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
+function fmtDate(ts) {
+  if (!ts) return "";
+  try {
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleString();
+  } catch (e) {
+    return "";
+  }
+}
+
+const ICONS = {
+  user: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.4-4 4-6 7.5-6s6.1 2 7.5 6"/></svg>`,
+  bag: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>`
+};
+
 function renderOnlineUsers(onlineUsers, parent) {
   const box = document.createElement("div");
-  box.className = "card";
-  box.innerHTML = `<h3>🟢 Online Users (${onlineUsers.length})</h3>`;
+  box.className = "panel";
+  box.innerHTML = `<div class="panel-title"><h3>Online now</h3><span class="badge">${onlineUsers.length} active</span></div>`;
+  const list = document.createElement("div");
 
   onlineUsers.forEach(u => {
     const item = document.createElement("div");
-    item.className = "item-card";
+    item.className = "live-item";
     item.innerHTML = `
-      <div class="item-row">
+      <span class="live-dot"></span>
+      <div>
         <strong>${u.name || u.email}</strong>
-        <span class="status-chip online">🟢 ${u.role}</span>
+        <div class="cell-sub">${u.email} · Last seen ${fmtDate(u.lastSeen) || "just now"}</div>
       </div>
-      <div class="item-meta">${u.email}</div>
-      <div class="item-meta">Last seen: ${u.lastSeen ? new Date(u.lastSeen.toDate()).toLocaleString() : 'Now'}</div>
+      <span class="status-chip online">${u.role}</span>
     `;
-    box.appendChild(item);
+    list.appendChild(item);
   });
-
+  box.appendChild(list);
   parent.appendChild(box);
 }
 
 function renderFolder(title, list, parent) {
   const box = document.createElement("div");
-  box.className = "card";
-  box.innerHTML = `<h3>${title} (${list.length})</h3>`;
+  box.className = "panel";
+  box.innerHTML = `<div class="panel-title"><h3>${title}</h3><span class="badge muted">${list.length}</span></div>`;
 
   if (!list.length) {
     box.innerHTML += `<div class="empty-state">No ${title.toLowerCase()} found.</div>`;
@@ -689,37 +1285,49 @@ function renderFolder(title, list, parent) {
     return;
   }
 
+  const wrap = document.createElement("div");
+  wrap.className = "table-scroll";
+  const table = document.createElement("table");
+  table.className = "data-table";
+  table.innerHTML = `
+    <thead><tr>
+      <th>Name / Email</th><th>Role</th><th>Assigned name</th><th>Status</th><th>Actions</th>
+    </tr></thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
+
   list.forEach(u => {
-    const item = document.createElement("div");
-    item.className = "item-card";
-    item.innerHTML = `
-      <div class="item-row">
-        <div>
-          <strong>${u.name || "No Name"}</strong>
-          <div class="item-meta">${u.email}</div>
+    const tr = document.createElement("tr");
+    tr.dataset.userRow = "1";
+    tr.dataset.search = `${(u.name || "").toLowerCase()} ${(u.email || "").toLowerCase()}`;
+    tr.innerHTML = `
+      <td><div class="cell-primary">${u.name || "No Name"}</div><div class="cell-sub">${u.email}</div></td>
+      <td><span class="status-chip ${u.role === 'admin' ? 'admin' : ''}">${u.role}</span></td>
+      <td>${u.assignedName || "—"}</td>
+      <td><span class="status-chip ${u.status}">${u.status}</span></td>
+      <td>
+        <div class="row-actions">
+          <button class="button green" onclick="approve('${u.id}','${u.role}')">Approve</button>
+          <button class="button red" onclick="reject('${u.id}')">Reject</button>
+          <button class="button outline" onclick="promptUpdateEmail('${u.id}')">Edit email</button>
+          <button class="button outline" onclick="sendPasswordReset('${u.id}')">Reset password</button>
+          <button class="button red" onclick="deleteUser('${u.id}')">Delete</button>
         </div>
-        <span class="status-chip ${u.status}">${u.status}</span>
-      </div>
-      <div class="item-row">
-        <div class="item-meta">Role: <strong>${u.role}</strong> | Assigned: <strong>${u.assignedName || '-'}</strong></div>
-      </div>
-      <div class="card-actions">
-        <button class="button green" onclick="approve('${u.id}','${u.role}')">Approve</button>
-        <button class="button red" onclick="reject('${u.id}')">Reject</button>
-        <button class="button blue" onclick="promptUpdateEmail('${u.id}')">Update Email</button>
-        <button class="button orange" onclick="sendPasswordReset('${u.id}')">Reset Password</button>
-        <button class="button red" onclick="deleteUser('${u.id}')">Delete</button>
-      </div>
+      </td>
     `;
-    box.appendChild(item);
+    tbody.appendChild(tr);
   });
+
+  wrap.appendChild(table);
+  box.appendChild(wrap);
   parent.appendChild(box);
 }
 
 function renderLoanFolder(title, list, parent) {
   const box = document.createElement("div");
-  box.className = "card";
-  box.innerHTML = `<h3>${title} (${list.length})</h3>`;
+  box.className = "panel";
+  box.innerHTML = `<div class="panel-title"><h3>${title}</h3><span class="badge muted">${list.length}</span></div>`;
 
   if (!list.length) {
     box.innerHTML += `<div class="empty-state">No loans available.</div>`;
@@ -727,36 +1335,101 @@ function renderLoanFolder(title, list, parent) {
     return;
   }
 
-  list.forEach(l => {
-    const confirmedAtText = l.confirmedAt
-      ? (l.confirmedAt.toDate ? new Date(l.confirmedAt.toDate()).toLocaleString() : new Date(l.confirmedAt).toLocaleString())
-      : "";
-    const lastPaymentAtText = l.lastPaymentAt
-      ? (l.lastPaymentAt.toDate ? new Date(l.lastPaymentAt.toDate()).toLocaleString() : new Date(l.lastPaymentAt).toLocaleString())
-      : "";
-    const paymentDateText = l.balance === 0
-      ? confirmedAtText ? `Paid at: ${confirmedAtText}` : ""
-      : lastPaymentAtText ? `Last payment: ${lastPaymentAtText}` : "";
+  const wrap = document.createElement("div");
+  wrap.className = "table-scroll";
+  const table = document.createElement("table");
+  table.className = "data-table";
+  table.innerHTML = `
+    <thead><tr>
+      <th>Borrower</th><th>Type</th><th class="num">Amount</th><th class="num">Balance</th><th>Status</th><th>Collector</th><th>Actions</th>
+    </tr></thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
 
-    const item = document.createElement("div");
-    item.className = "item-card";
-    item.innerHTML = `
-      <div class="item-row">
-        <strong>👤 ${l.borrowerName}</strong>
-        <span class="status-chip ${l.balance === 0 ? 'paid' : l.status}">${l.balance === 0 ? 'PAID' : l.status.toUpperCase()}</span>
-      </div>
-      <div class="item-meta">Remaining Balance: ₱${l.balance}${paymentDateText ? ` | ${paymentDateText}` : ''}</div>
-      <div class="item-meta">Collector: <strong>${l.assignedCollectorName || '-'}</strong> | Address: <strong>${l.address || 'N/A'}</strong></div>
-      <div class="item-meta">Type: <strong>${l.loanType || 'solo'}</strong> ${l.memberNames && l.memberNames.length > 0 ? `| Members: <strong>${l.memberNames.join(', ')}</strong>` : ''}</div>
-      <div class="card-actions">
-        ${l.balance > 0 ? `<button class="button orange" onclick="assignCollector('${l.id}')">${l.assignedCollectorId ? '🔄 Reassign Collector' : 'Assign Collector'}</button>` : ''}
-        <button class="button blue" onclick="editLoanBalance('${l.id}', ${l.balance})">✏️ Edit Balance</button>
-        ${l.balance > 0 ? `<button class="button green" onclick="markPaid('${l.id}')">Mark Paid</button>` : ''}
-        <button class="button red" onclick="deleteLoan('${l.id}')">Delete</button>
-      </div>
+  list.forEach(l => {
+    const confirmedAtText = fmtDate(l.confirmedAt);
+    const lastPaymentAtText = fmtDate(l.lastPaymentAt);
+    const paymentDateText = l.balance === 0
+      ? (confirmedAtText ? `Paid: ${confirmedAtText}` : "")
+      : (lastPaymentAtText ? `Last payment: ${lastPaymentAtText}` : "");
+    const isGroup = l.loanType === "group" && l.memberNames && l.memberNames.length > 0;
+    const statusKey = l.balance === 0 ? "paid" : l.status;
+
+    const tr = document.createElement("tr");
+    tr.dataset.loanRow = "1";
+    tr.dataset.status = l.status || "";
+    tr.dataset.type = l.loanType || "solo";
+    tr.dataset.search = `${(l.borrowerName || "").toLowerCase()} ${(l.address || "").toLowerCase()}`;
+    tr.innerHTML = `
+      <td>
+        <div class="cell-primary">${l.borrowerName}</div>
+        <div class="cell-sub">${l.address || "No address on file"}</div>
+      </td>
+      <td>${isGroup ? `<span class="status-chip collected" title="${l.memberNames.join(', ')}">Group · ${l.memberNames.length}</span>` : "Solo"}</td>
+      <td class="num amount">${money(l.amount)}</td>
+      <td class="num amount">${money(l.balance)}${paymentDateText ? `<div class="cell-sub">${paymentDateText}</div>` : ""}</td>
+      <td><span class="status-chip ${l.balance === 0 ? 'paid' : (l.status || 'assigned')}">${l.balance === 0 ? 'PAID' : (l.status || '').toUpperCase()}</span></td>
+      <td>${l.assignedCollectorName || "Unassigned"}</td>
+      <td>
+        <div class="row-actions">
+          ${l.balance > 0 ? `<button class="button orange" onclick="assignCollector('${l.id}')">${l.assignedCollectorId ? 'Reassign' : 'Assign collector'}</button>` : ''}
+          <button class="button outline" onclick="editLoanBalance('${l.id}', ${l.balance})">Edit balance</button>
+          ${l.balance > 0 ? `<button class="button green" onclick="markPaid('${l.id}')">Mark paid</button>` : ''}
+          <button class="button red" onclick="deleteLoan('${l.id}')">Delete</button>
+        </div>
+      </td>
     `;
-    box.appendChild(item);
+    tbody.appendChild(tr);
   });
+
+  wrap.appendChild(table);
+  box.appendChild(wrap);
+  parent.appendChild(box);
+  filterLoanRowsInternal();
+}
+
+function renderDeletedUsers(title, list, parent) {
+  const box = document.createElement("div");
+  box.className = "panel";
+  box.innerHTML = `<div class="panel-title"><h3>${title}</h3><span class="badge muted">${list.length}</span></div>`;
+
+  if (!list.length) {
+    box.innerHTML += `<div class="empty-state">No deleted users in bin.</div>`;
+    parent.appendChild(box);
+    return;
+  }
+
+  const wrap = document.createElement("div");
+  wrap.className = "table-scroll";
+  const table = document.createElement("table");
+  table.className = "data-table";
+  table.innerHTML = `
+    <thead><tr><th>Name / Email</th><th>Role</th><th>Assigned name</th><th>Actions</th></tr></thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
+
+  list.forEach(u => {
+    const tr = document.createElement("tr");
+    tr.dataset.userRow = "1";
+    tr.dataset.search = `${(u.name || "").toLowerCase()} ${(u.email || "").toLowerCase()}`;
+    tr.innerHTML = `
+      <td><div class="cell-primary">${u.name || "No Name"}</div><div class="cell-sub">${u.email}</div></td>
+      <td>${u.role || "unknown"}</td>
+      <td>${u.assignedName || "—"}</td>
+      <td>
+        <div class="row-actions">
+          <button class="button green" onclick="recoverUser('${u.id}')">Recover</button>
+          <button class="button red" onclick="deleteUserPermanently('${u.id}')">Delete permanently</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  wrap.appendChild(table);
+  box.appendChild(wrap);
   parent.appendChild(box);
 }
 
@@ -764,54 +1437,36 @@ function loadOnlineUsers() {
   onSnapshot(collection(db, "users"), (snap) => {
     const onlineDiv = document.getElementById("online");
     if (!onlineDiv) return;
-    onlineDiv.innerHTML = "<h2>🟢 Online Users</h2>";
+    onlineDiv.innerHTML = "";
 
     const onlineUsers = [];
     snap.forEach(d => {
       const u = d.data();
-      console.log(`User: ${u.email}, Online: ${u.online}, Deleted: ${u.deleted}`);
       if (u.online && !u.deleted) {
         onlineUsers.push({ id: d.id, ...u });
       }
     });
 
-    console.log("Total online users detected:", onlineUsers.length);
-    
-    // Update sidebar count
     document.getElementById("onlineCount").textContent = onlineUsers.length;
+    const onlineDisplay = document.getElementById("onlineCountDisplay");
+    if (onlineDisplay) onlineDisplay.textContent = onlineUsers.length;
 
     if (onlineUsers.length === 0) {
-      onlineDiv.innerHTML += `<div class="empty-state">No users online right now.</div>`;
+      onlineDiv.innerHTML = `<div class="section-head"><div><h2>Live Monitoring</h2><p>Staff currently signed in across the system.</p></div></div><div class="empty-state">No users online right now.</div>`;
       return;
     }
 
-    // Group by role
+    onlineDiv.innerHTML = `<div class="section-head"><div><h2>Live Monitoring</h2><p>Staff currently signed in across the system.</p></div></div>`;
+
     const roles = { admin: [], cashier: [], collector: [] };
     onlineUsers.forEach(u => {
       if (roles[u.role]) roles[u.role].push(u);
     });
 
-    const roleLabels = { admin: "👑 Admin", cashier: "💰 Cashier", collector: "🚚 Collector" };
+    const roleLabels = { admin: "Admin", cashier: "Cashier", collector: "Collector / Rider" };
     Object.keys(roles).forEach(role => {
       if (roles[role].length > 0) {
-        const box = document.createElement("div");
-        box.className = "card";
-        box.innerHTML = `<h3>${roleLabels[role]} (${roles[role].length})</h3>`;
-        
-        roles[role].forEach(u => {
-          const item = document.createElement("div");
-          item.className = "item-card";
-          item.innerHTML = `
-            <div class="item-row">
-              <strong>${u.name || u.email}</strong>
-              <span class="status-chip online">🟢 Online</span>
-            </div>
-            <div class="item-meta">${u.email}</div>
-            <div class="item-meta">Last seen: ${u.lastSeen ? new Date(u.lastSeen.toDate()).toLocaleString() : 'Now'}</div>
-          `;
-          box.appendChild(item);
-        });
-        onlineDiv.appendChild(box);
+        renderOnlineUsers(roles[role], onlineDiv);
       }
     });
   });
@@ -836,6 +1491,8 @@ function loadUsers() {
     });
 
     refreshUsersUI(null, currentUsers.length);
+    renderCollectorsTab();
+    renderCashierTab();
   });
 }
 
@@ -847,7 +1504,8 @@ function loadTrashUsers() {
 function refreshUsersUI(folders = null, totalCount = null) {
   const usersDiv = document.getElementById("users");
   if (!usersDiv) return;
-  usersDiv.innerHTML = "";
+
+  usersDiv.querySelectorAll(".panel").forEach(p => p.remove());
 
   if (!folders) {
     folders = { admin: [], cashier: [], collector: [], pending: [] };
@@ -857,21 +1515,18 @@ function refreshUsersUI(folders = null, totalCount = null) {
     });
   }
 
-  // 🟢 Display online users at the top
   const onlineUsers = currentUsers.filter(u => u.online && !u.deleted);
-  if (onlineUsers.length > 0) {
-    renderOnlineUsers(onlineUsers, usersDiv);
-  }
 
-  renderFolder("🟡 Pending Users", folders.pending, usersDiv);
-  renderFolder("💰 Cashiers", folders.cashier, usersDiv);
-  renderFolder("🚚 Collectors", folders.collector, usersDiv);
-  renderFolder("👑 Admin", folders.admin, usersDiv);
-  renderDeletedUsers("🗑️ Deleted Users", deletedUsers, usersDiv);
+  renderFolder("Pending approvals", folders.pending, usersDiv);
+  renderFolder("Cashiers", folders.cashier, usersDiv);
+  renderFolder("Collectors / riders", folders.collector, usersDiv);
+  renderFolder("Admins", folders.admin, usersDiv);
+  renderDeletedUsers("Deleted accounts (bin)", deletedUsers, usersDiv);
+  filterUserRows();
 
   const total = totalCount ?? currentUsers.length;
   const approved = folders.cashier.length + folders.collector.length + folders.admin.length;
-  const online = currentUsers.filter(u => u.online && !u.deleted).length;
+  const online = onlineUsers.length;
 
   document.getElementById("totalUsers").textContent = total;
   document.getElementById("pending").textContent = folders.pending.length;
@@ -879,61 +1534,254 @@ function refreshUsersUI(folders = null, totalCount = null) {
   document.getElementById("approved").textContent = approved;
   document.getElementById("onlineCount").textContent = online;
   document.getElementById("collectors").textContent = folders.collector.length;
-}
 
-function renderDeletedUsers(title, list, parent) {
-  const box = document.createElement("div");
-  box.className = "card";
-  box.innerHTML = `<h3>${title} (${list.length})</h3>`;
-
-  if (!list.length) {
-    box.innerHTML += `<div class="empty-state">No deleted users in bin.</div>`;
-    parent.appendChild(box);
-    return;
+  const navBadge = document.getElementById("navPendingBadge");
+  const notifDot = document.getElementById("notifDot");
+  if (navBadge) {
+    navBadge.textContent = folders.pending.length;
+    navBadge.style.display = folders.pending.length > 0 ? "inline-block" : "none";
   }
-
-  list.forEach(u => {
-    const item = document.createElement("div");
-    item.className = "item-card";
-    item.innerHTML = `
-      <div class="item-row">
-        <strong>${u.name || "No Name"}</strong>
-        <span class="status-chip deleted">Deleted</span>
-      </div>
-      <div class="item-meta">${u.email}</div>
-      <div class="item-meta">Role: <strong>${u.role || "unknown"}</strong> | Assigned: <strong>${u.assignedName || '-'}</strong></div>
-      <div class="card-actions">
-        <button class="button green" onclick="recoverUser('${u.id}')">Recover</button>
-        <button class="button red" onclick="deleteUserPermanently('${u.id}')">Delete Permanently</button>
-      </div>
-    `;
-    box.appendChild(item);
-  });
-
-  parent.appendChild(box);
+  if (notifDot) notifDot.classList.toggle("show", folders.pending.length > 0);
 }
 
 function loadLoans() {
   onSnapshot(collection(db, "loans"), (snap) => {
-    const loansDiv = document.getElementById("loans");
-    loansDiv.innerHTML = "";
+    const loansContent = document.getElementById("loans-content");
+    if (!loansContent) return;
+    loansContent.innerHTML = "";
     const active = [];
     const paid = [];
+    currentLoans = [];
 
     snap.forEach(d => {
-      const l = d.data();
-      if (l.deleted) return; // Skip deleted loans
+      const l = { id: d.id, ...d.data() };
+      if (l.deleted) return;
+      currentLoans.push(l);
       if (l.status === "paid" || l.balance === 0) {
-        paid.push({ id: d.id, ...l });
+        paid.push(l);
       } else {
-        active.push({ id: d.id, ...l });
+        active.push(l);
       }
     });
 
-    renderLoanFolder("📦 Active Loans (Need Collection)", active, loansDiv);
-    renderLoanFolder("✅ Paid Loans (Balance = 0)", paid, loansDiv);
+    renderLoanFolder("Active loans (need collection)", active, loansContent);
+    renderLoanFolder("Paid loans (balance = 0)", paid, loansContent);
     document.getElementById("paidCount").textContent = paid.length;
+
+    updateOverviewStats(active, paid);
+    renderReports(active, paid);
+    renderCollectorsTab();
+    renderCashierTab();
   });
+}
+
+function updateOverviewStats(active, paid) {
+  const totalLoans = currentLoans.length;
+  const totalAmount = currentLoans.reduce((sum, l) => sum + (Number(l.amount) || 0), 0);
+  const totalCollected = currentLoans.reduce((sum, l) => sum + ((Number(l.amount) || 0) - (Number(l.balance) || 0)), 0);
+  const pendingCollections = active.reduce((sum, l) => sum + (Number(l.balance) || 0), 0);
+  const verified = paid.filter(l => l.confirmedAt).length;
+  const unverified = paid.filter(l => !l.confirmedAt).length;
+
+  setText("statTotalLoans", totalLoans);
+  setText("statActiveLoans", active.length);
+  setText("statTotalAmount", money(totalAmount));
+  setText("statTotalCollections", money(totalCollected));
+  setText("statPendingCollections", money(pendingCollections));
+  setText("statVerified", verified);
+  setText("statUnverified", unverified);
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function renderReports(active, paid) {
+  const statusBox = document.getElementById("report-status");
+  const verifyBox = document.getElementById("report-verification");
+  const collectorBox = document.getElementById("report-collectors");
+  if (!statusBox || !verifyBox || !collectorBox) return;
+
+  const total = Math.max(currentLoans.length, 1);
+  statusBox.innerHTML = barRow("Active", active.length, total, "var(--blue)") +
+                         barRow("Paid", paid.length, total, "var(--teal)");
+
+  const verified = paid.filter(l => l.confirmedAt).length;
+  const unverified = paid.length - verified;
+  const paidTotal = Math.max(paid.length, 1);
+  verifyBox.innerHTML = barRow("Verified", verified, paidTotal, "var(--teal)") +
+                         barRow("Unverified", unverified, paidTotal, "var(--amber)");
+
+  const byCollector = {};
+  currentLoans.forEach(l => {
+    const name = l.assignedCollectorName || "Unassigned";
+    const collected = (Number(l.amount) || 0) - (Number(l.balance) || 0);
+    byCollector[name] = (byCollector[name] || 0) + collected;
+  });
+  const maxCollected = Math.max(...Object.values(byCollector), 1);
+  const entries = Object.entries(byCollector).sort((a, b) => b[1] - a[1]);
+
+  if (!entries.length) {
+    collectorBox.innerHTML = `<div class="empty-state">No collection data yet.</div>`;
+  } else {
+    collectorBox.innerHTML = entries.map(([name, amt]) =>
+      barRow(name, amt, maxCollected, "var(--gold)", money(amt))
+    ).join("");
+  }
+}
+
+function barRow(label, value, max, color, valueLabel) {
+  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
+  return `
+    <div class="bar-row">
+      <div class="bar-label">${label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${color};"></div></div>
+      <div class="bar-value">${valueLabel !== undefined ? valueLabel : value}</div>
+    </div>
+  `;
+}
+
+function renderCollectorsTab() {
+  const box = document.getElementById("collectors-content");
+  if (!box) return;
+  box.innerHTML = "";
+
+  const collectorUsers = currentUsers.filter(u => u.role === "collector" && !u.deleted);
+  const byId = {};
+  collectorUsers.forEach(u => {
+    byId[u.id] = {
+      name: u.assignedName || u.name || u.email,
+      online: !!u.online,
+      assigned: 0, collected: 0, pending: 0, verified: 0, unverified: 0
+    };
+  });
+
+  currentLoans.forEach(l => {
+    if (!l.assignedCollectorId) return;
+    if (!byId[l.assignedCollectorId]) {
+      byId[l.assignedCollectorId] = { name: l.assignedCollectorName || "Unknown", online: false, assigned: 0, collected: 0, pending: 0, verified: 0, unverified: 0 };
+    }
+    const c = byId[l.assignedCollectorId];
+    c.assigned += 1;
+    c.collected += (Number(l.amount) || 0) - (Number(l.balance) || 0);
+    if (l.balance > 0) c.pending += Number(l.balance) || 0;
+    if (l.balance === 0) {
+      if (l.confirmedAt) c.verified += 1; else c.unverified += 1;
+    }
+  });
+
+  const rows = Object.values(byId).sort((a, b) => b.pending - a.pending);
+
+  const panel = document.createElement("div");
+  panel.className = "panel";
+  panel.innerHTML = `<div class="panel-title"><h3>Field collector performance</h3><span class="badge muted">${rows.length}</span></div>`;
+
+  if (!rows.length) {
+    panel.innerHTML += `<div class="empty-state">No approved collectors yet.</div>`;
+    box.appendChild(panel);
+    return;
+  }
+
+  const wrap = document.createElement("div");
+  wrap.className = "table-scroll";
+  const table = document.createElement("table");
+  table.className = "data-table";
+  table.innerHTML = `
+    <thead><tr>
+      <th>Collector</th><th class="num">Assigned loans</th><th class="num">Collected</th><th class="num">Pending balance</th><th class="num">Verified</th><th class="num">Unverified</th><th>Status</th>
+    </tr></thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
+  rows.forEach(c => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="cell-primary">${c.name}</td>
+      <td class="num">${c.assigned}</td>
+      <td class="num amount">${money(c.collected)}</td>
+      <td class="num amount">${money(c.pending)}</td>
+      <td class="num">${c.verified}</td>
+      <td class="num">${c.unverified}</td>
+      <td><span class="status-chip ${c.online ? 'online' : 'rejected'}">${c.online ? 'Online' : 'Offline'}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  wrap.appendChild(table);
+  panel.appendChild(wrap);
+  box.appendChild(panel);
+}
+
+function renderCashierTab() {
+  const box = document.getElementById("cashier-content");
+  const workflowBox = document.getElementById("workflow-strip");
+  if (!box) return;
+  box.innerHTML = "";
+
+  const stages = [
+    { label: "New / Assigned", count: currentLoans.filter(l => l.status === "assigned" && l.balance > 0).length, color: "var(--blue)" },
+    { label: "Collected (awaiting cashier)", count: currentLoans.filter(l => l.collectedAt && !l.confirmedAt && l.balance > 0).length, color: "var(--gold)" },
+    { label: "Paid – verified", count: currentLoans.filter(l => l.balance === 0 && l.confirmedAt).length, color: "var(--teal)" },
+    { label: "Paid – not verified", count: currentLoans.filter(l => l.balance === 0 && !l.confirmedAt).length, color: "var(--amber)" }
+  ];
+
+  if (workflowBox) {
+    workflowBox.innerHTML = `<div class="bar-list">${stages.map(s => barRow(s.label, s.count, Math.max(currentLoans.length, 1), s.color)).join("")}</div>`;
+  }
+
+  const cashierUsers = currentUsers.filter(u => u.role === "cashier" && !u.deleted);
+  const byId = {};
+  cashierUsers.forEach(u => {
+    byId[u.id] = { name: u.assignedName || u.name || u.email, online: !!u.online, awaiting: 0, verified: 0, unverified: 0 };
+  });
+
+  currentLoans.forEach(l => {
+    const key = l.assignedCashierId || null;
+    if (key && !byId[key]) {
+      byId[key] = { name: l.assignedCashierName || "Unknown", online: false, awaiting: 0, verified: 0, unverified: 0 };
+    }
+    if (key) {
+      const c = byId[key];
+      if (l.balance > 0 && l.collectedAt && !l.confirmedAt) c.awaiting += 1;
+      if (l.balance === 0 && l.confirmedAt) c.verified += 1;
+      if (l.balance === 0 && !l.confirmedAt) c.unverified += 1;
+    }
+  });
+
+  const rows = Object.values(byId);
+  const panel = document.createElement("div");
+  panel.className = "panel";
+  panel.innerHTML = `<div class="panel-title"><h3>Cashier confirmation queue</h3><span class="badge muted">${rows.length}</span></div>`;
+
+  if (!rows.length) {
+    panel.innerHTML += `<div class="empty-state">No cashier accounts on record, or no loans are linked to a cashier yet.</div>`;
+    box.appendChild(panel);
+    return;
+  }
+
+  const wrap = document.createElement("div");
+  wrap.className = "table-scroll";
+  const table = document.createElement("table");
+  table.className = "data-table";
+  table.innerHTML = `
+    <thead><tr><th>Cashier</th><th class="num">Awaiting confirmation</th><th class="num">Verified</th><th class="num">Not verified</th><th>Status</th></tr></thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
+  rows.forEach(c => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="cell-primary">${c.name}</td>
+      <td class="num">${c.awaiting}</td>
+      <td class="num">${c.verified}</td>
+      <td class="num">${c.unverified}</td>
+      <td><span class="status-chip ${c.online ? 'online' : 'rejected'}">${c.online ? 'Online' : 'Offline'}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  wrap.appendChild(table);
+  panel.appendChild(wrap);
+  box.appendChild(panel);
 }
 
 function loadCollectors() {
@@ -942,7 +1790,7 @@ function loadCollectors() {
     console.error("collectorSelect element not found");
     return;
   }
-  
+
   onSnapshot(collection(db, "users"), (snap) => {
     select.innerHTML = '<option value="">-- Select a Collector --</option>';
     let collectorCount = 0;
@@ -1112,7 +1960,7 @@ window.deleteLoan = async (id) => {
 window.editLoanBalance = async (loanId, currentBalance) => {
   const newBalance = window.prompt(`Edit loan balance (current: ₱${currentBalance}):`, currentBalance);
   if (newBalance === null) return;
-  
+
   const parsedBalance = Number(newBalance.trim());
   if (isNaN(parsedBalance) || parsedBalance < 0) {
     alert("Please enter a valid balance amount.");
@@ -1166,7 +2014,7 @@ window.createLoan = async () => {
     return;
   }
 
-  const memberNames = loanType === "group" 
+  const memberNames = loanType === "group"
     ? memberNamesInput.split(",").map(name => name.trim()).filter(name => name)
     : [];
 
@@ -1223,7 +2071,7 @@ window.assignCollector = async (loanId) => {
     alert("No collectors available");
     return;
   }
-  
+
   // If only one collector, assign directly
   let selected = collectors[0];
   if (collectors.length > 1) {
@@ -1235,11 +2083,11 @@ window.assignCollector = async (loanId) => {
     }
     selected = collectors[parseInt(choice) - 1];
   }
-  
+
   try {
     const loanDoc = await getDoc(doc(db, "loans", loanId));
     const currentData = loanDoc.data();
-    
+
     await updateDoc(doc(db, "loans", loanId), {
       assignedCollectorId: selected.id,
       assignedCollectorName: selected.name,
