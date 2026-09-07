@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasipag Admin Dashboard</title>
+
+<style>
+:root {
+  color-scheme: dark;
+  font-family: Inter, Arial, sans-serif;
+  --bg: #050b16;
+  --panel: rgba(15,23,42,0.92);
+  --panel-soft: rgba(15,23,42,0.76);
+  --border: rgba(148,163,184,0.14);
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --green: #22c55e;
+  --blue: #3b82f6;
+  --red: #ef4444;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top right, rgba(59,130,246,0.14), transparent 18%),
+              radial-gradient(circle at bottom left, rgba(34,197,94,0.16), transparent 22%),
+              linear-gradient(180deg, #050b16 0%, #06101a 100%);
+  color: var(--text);
+  overflow-x: hidden;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(59,130,246,0.08), transparent 18%),
+              radial-gradient(circle at 80% 80%, rgba(34,197,94,0.09), transparent 16%);
+  pointer-events: none;
+}
+
+.page {
+  width: min(1200px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 40px;
+  opacity: 0;
+  transform: translateY(16px);
+  animation: pagePop 0.7s ease forwards;
+}
+
+.action-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7,11,18,0.74);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.24s ease, visibility 0.24s ease;
+}
+
+.action-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.action-popup {
+  width: min(420px, calc(100% - 40px));
+  padding: 28px 26px;
+  border-radius: 28px;
+  background: rgba(15,23,42,0.96);
+  border: 1px solid rgba(148,163,184,0.16);
+  box-shadow: 0 34px 90px rgba(0,0,0,0.35);
+  text-align: center;
+  animation: popIn 0.28s ease both;
+}
+
+.action-popup .spinner {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  border: 5px solid rgba(255,255,255,0.14);
+  border-top-color: #22c55e;
+  animation: spin 0.85s linear infinite;
+}
+
+.action-popup strong {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.action-popup span {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.section {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.section.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pagePop {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-header {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.page-header .title {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 2.6rem);
+}
+
+.page-header .subtitle {
+  margin: 0;
+  color: var(--muted);
+}
+
+.page-brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.page-brand img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+}
+
+.page-header-text {
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .page-brand {
+    gap: 14px;
+  }
+
+  .page-brand img {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+@media (max-width: 560px) {
+  .page-brand {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .logout-btn {
+    width: 100%;
+    align-self: stretch;
+  }
+}
+
+.header-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.logout-btn {
+  align-self: flex-end;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.logout-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 22px;
+  transition: transform 0.26s ease, box-shadow 0.26s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 45px rgba(0,0,0,0.18);
+}
+
+.stat-card strong {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.stat-card span {
+  color: var(--muted);
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+    margin-top: 24px;
+  }
+
+  .sidebar {
+    background: rgba(15,23,42,0.96);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 24px;
+    position: sticky;
+    top: 24px;
+    min-height: 320px;
+  }
+
+  .sidebar h2 {
+    margin: 0 0 20px;
+    font-size: 1.1rem;
+    letter-spacing: 0.02em;
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    border: 1px solid rgba(148,163,184,0.12);
+    background: transparent;
+    color: var(--text);
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: background .2s ease, border-color .2s ease;
+  }
+
+  .nav-link.active {
+    background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(34,197,94,0.14));
+    border-color: rgba(59,130,246,0.55);
+  }
+
+  .nav-link:hover {
+    border-color: rgba(59,130,246,0.35);
+  }
+
+  .sidebar-summary {
+    margin-top: 28px;
+    display: grid;
+    gap: 12px;
+  }
+
+  .summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(148,163,184,0.16);
+  }
+
+  .summary-item strong {
+    font-size: 0.98rem;
+    color: var(--text);
+  }
+
+  .summary-item span {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .dashboard-main {
+    display: grid;
+    gap: 22px;
+  }
+
+  .tabs {
+    display: none;
+  }
+
+  .section {
+    display: none;
+  }
+
+  .section.active {
+    display: block;
+  }
+
+.item-card,
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 22px;
+  margin-bottom: 18px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.item-card:hover,
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 45px rgba(0,0,0,0.16);
+  border-color: rgba(59,130,246,0.3);
+}
+
+.item-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.item-row strong {
+  font-size: 1rem;
+}
+
+.item-meta {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-chip.pending { background: rgba(245,158,11,0.16); color: #f59e0b; }
+.status-chip.approved { background: rgba(34,197,94,0.18); color: #22c55e; }
+.status-chip.rejected { background: rgba(239,68,68,0.16); color: #f87171; }
+.status-chip.assigned { background: rgba(59,130,246,0.16); color: #3b82f6; }
+.status-chip.paid { background: rgba(34,197,94,0.16); color: #22c55e; }
+.status-chip.deleted { background: rgba(209,50,53,0.16); color: #ef4444; }
+.status-chip.online { background: rgba(16,185,129,0.16); color: #10b981; }
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 45px rgba(0,0,0,0.16);
+}
+
+.card h3 {
+  margin-top: 0;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+input, select {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  padding: 14px 16px;
+}
+
+textarea {
+  width: 100%;
+  grid-column: 1 / -1;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+  padding: 14px 16px;
+  font-family: Inter, Arial, sans-serif;
+  font-size: 0.95rem;
+  min-height: 80px;
+  resize: vertical;
+}
+
+.input-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+textarea::placeholder {
+  color: rgba(255,255,255,0.5);
+}
+
+.button {
+  border: none;
+  border-radius: 14px;
+  padding: 14px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.button:hover { transform: translateY(-1px); }
+
+.button.green { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; }
+.button.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
+.button.red { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.empty-state {
+  padding: 28px;
+  margin-top: 14px;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.03);
+  border: 1px dashed rgba(148,163,184,0.24);
+  color: var(--muted);
+  text-align: center;
+}
+
+.panel-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+}
+
+.badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(59,130,246,0.18);
+  color: #e0f2fe;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .page {
+    width: calc(100% - 24px);
+    padding: 20px 12px 32px;
+  }
+
+  .page-header {
+    gap: 14px;
+  }
+
+  .stats-grid,
+  .tabs,
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .tabs {
+    margin-top: 22px;
+  }
+
+  .panel-title {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 620px) {
+  .tab {
+    padding: 14px;
+    font-size: 0.95rem;
+  }
+
+  .badge {
+    width: max-content;
+  }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div id="actionOverlay" class="action-overlay" aria-live="polite" aria-hidden="true">
+    <div class="action-popup">
+      <div class="spinner"></div>
+      <strong id="actionTitle">Processing...</strong>
+      <span id="actionMessage">Please wait while the system updates your dashboard.</span>
+    </div>
+  </div>
+  <header class="page-header">
+    <div class="page-brand">
+      <img src="logopo.png" alt="Kasipag Logo">
+      <div class="page-header-text">
+        <h1 class="title">Kasipag Admin Dashboard</h1>
+        <p class="subtitle">“To HELP, to CREATE and to PROVIDE”</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+      <div class="stats-grid">
+        <div class="stat-card"><strong id="totalUsers">0</strong><span>Total users</span></div>
+        <div class="stat-card"><strong id="pending">0</strong><span>Pending approvals</span></div>
+        <div class="stat-card"><strong id="approved">0</strong><span>Approved users</span></div>
+        <div class="stat-card"><strong id="collectors">0</strong><span>Collectors</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="dashboard-grid">
+    <aside class="sidebar">
+      <h2>Admin Navigation</h2>
+      <button class="nav-link active" onclick="openTab(this,'users')" data-tab="users">👤 Users</button>
+      <button class="nav-link" onclick="openTab(this,'online')" data-tab="online">🟢 Online Users</button>
+      <button class="nav-link" onclick="openTab(this,'loans')" data-tab="loans">📦 Loans</button>
+      <button class="nav-link" onclick="openTab(this,'create')" data-tab="create">➕ Create Loan</button>
+
+      <div class="sidebar-summary">
+        <div class="summary-item"><strong>Online Users</strong><span id="onlineCount">0</span></div>
+        <div class="summary-item"><strong>Pending Users</strong><span id="pendingCount">0</span></div>
+        <div class="summary-item"><strong>Paid Loans</strong><span id="paidCount">0</span></div>
+      </div>
+    </aside>
+
+    <main class="dashboard-main">
+      <section id="users" class="section active"></section>
+      <section id="online" class="section"></section>
+      <section id="loans" class="section"></section>
+      <section id="create" class="section">
+        <div class="card">
+          <div class="panel-title">
+            <h3>Create New Loan</h3>
+            <span class="badge">Fast assign</span>
+          </div>
+          <div class="grid-2">
+            <input id="borrowerName" placeholder="Borrower Name">
+            <input id="amount" type="number" placeholder="Amount">
+            <input id="address" placeholder="Address / Location">
+            <select id="collectorSelect"></select>
+            <select id="loanType" onchange="toggleMemberNames()">
+              <option value="solo">Solo Loan</option>
+              <option value="group">Group Loan</option>
+            </select>
+            <div id="memberNamesContainer" style="display: none;">
+              <label class="input-label" for="memberNames">Add member names</label>
+              <textarea id="memberNames" placeholder="Enter member names separated by commas&#10;e.g. John Doe, Jane Smith, Bob Johnson"></textarea>
+            </div>
+          </div>
+          <button class="button blue" style="margin-top:18px;" onclick="createLoan()">Create & Assign</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+<script type="module">
+import { db, auth } from "./firebase.js";
+import {
+  collection,
+  onSnapshot,
+  doc,
+  getDoc,
+  updateDoc,
+  setDoc,
+  deleteDoc,
+  addDoc,
+  getDocs,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+let adminId = null;
+let currentUsers = [];
+let deletedUsers = [];
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  adminId = user.uid;
+  const userDoc = await getDoc(doc(db, "users", user.uid));
+  const isAdmin = userDoc.exists() && userDoc.data().role === "admin";
+
+  if (!isAdmin) {
+    alert("Admin access only!");
+    window.location.href = "login.html";
+    return;
+  }
+
+  loadUsers();
+  loadTrashUsers();
+  loadOnlineUsers();
+  loadLoans();
+  loadCollectors();
+});
+
+window.openTab = (tabElement, tabId) => {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".tab, .nav-link").forEach(t => t.classList.remove("active"));
+  document.getElementById(tabId).classList.add("active");
+  if (tabElement) tabElement.classList.add("active");
+  const sidebarLink = document.querySelector(`.nav-link[data-tab="${tabId}"]`);
+  if (sidebarLink) sidebarLink.classList.add("active");
+};
+
+// 🔥 SET OFFLINE WHEN LEAVING PAGE
+window.addEventListener('beforeunload', async () => {
+  const uid = localStorage.getItem("uid");
+  if (uid) {
+    await updateDoc(doc(db, "users", uid), {
+      online: false,
+      lastSeen: serverTimestamp()
+    });
+    console.log("✅ Set offline (page close) for user:", uid);
+  }
+});
+
+function renderOnlineUsers(onlineUsers, parent) {
+  const box = document.createElement("div");
+  box.className = "card";
+  box.innerHTML = `<h3>🟢 Online Users (${onlineUsers.length})</h3>`;
+
+  onlineUsers.forEach(u => {
+    const item = document.createElement("div");
+    item.className = "item-card";
+    item.innerHTML = `
+      <div class="item-row">
+        <strong>${u.name || u.email}</strong>
+        <span class="status-chip online">🟢 ${u.role}</span>
+      </div>
+      <div class="item-meta">${u.email}</div>
+      <div class="item-meta">Last seen: ${u.lastSeen ? new Date(u.lastSeen.toDate()).toLocaleString() : 'Now'}</div>
+    `;
+    box.appendChild(item);
+  });
+
+  parent.appendChild(box);
+}
+
+function renderFolder(title, list, parent) {
+  const box = document.createElement("div");
+  box.className = "card";
+  box.innerHTML = `<h3>${title} (${list.length})</h3>`;
+
+  if (!list.length) {
+    box.innerHTML += `<div class="empty-state">No ${title.toLowerCase()} found.</div>`;
+    parent.appendChild(box);
+    return;
+  }
+
+  list.forEach(u => {
+    const item = document.createElement("div");
+    item.className = "item-card";
+    item.innerHTML = `
+      <div class="item-row">
+        <div>
+          <strong>${u.name || "No Name"}</strong>
+          <div class="item-meta">${u.email}</div>
+        </div>
+        <span class="status-chip ${u.status}">${u.status}</span>
+      </div>
+      <div class="item-row">
+        <div class="item-meta">Role: <strong>${u.role}</strong> | Assigned: <strong>${u.assignedName || '-'}</strong></div>
+      </div>
+      <div class="card-actions">
+        <button class="button green" onclick="approve('${u.id}','${u.role}')">Approve</button>
+        <button class="button red" onclick="reject('${u.id}')">Reject</button>
+        <button class="button blue" onclick="promptUpdateEmail('${u.id}')">Update Email</button>
+        <button class="button orange" onclick="sendPasswordReset('${u.id}')">Reset Password</button>
+        <button class="button red" onclick="deleteUser('${u.id}')">Delete</button>
+      </div>
+    `;
+    box.appendChild(item);
+  });
+  parent.appendChild(box);
+}
+
+function renderLoanFolder(title, list, parent) {
+  const box = document.createElement("div");
+  box.className = "card";
+  box.innerHTML = `<h3>${title} (${list.length})</h3>`;
+
+  if (!list.length) {
+    box.innerHTML += `<div class="empty-state">No loans available.</div>`;
+    parent.appendChild(box);
+    return;
+  }
+
+  list.forEach(l => {
+    const confirmedAtText = l.confirmedAt
+      ? (l.confirmedAt.toDate ? new Date(l.confirmedAt.toDate()).toLocaleString() : new Date(l.confirmedAt).toLocaleString())
+      : "";
+    const lastPaymentAtText = l.lastPaymentAt
+      ? (l.lastPaymentAt.toDate ? new Date(l.lastPaymentAt.toDate()).toLocaleString() : new Date(l.lastPaymentAt).toLocaleString())
+      : "";
+    const paymentDateText = l.balance === 0
+      ? confirmedAtText ? `Paid at: ${confirmedAtText}` : ""
+      : lastPaymentAtText ? `Last payment: ${lastPaymentAtText}` : "";
+
+    const item = document.createElement("div");
+    item.className = "item-card";
+    item.innerHTML = `
+      <div class="item-row">
+        <strong>👤 ${l.borrowerName}</strong>
+        <span class="status-chip ${l.balance === 0 ? 'paid' : l.status}">${l.balance === 0 ? 'PAID' : l.status.toUpperCase()}</span>
+      </div>
+      <div class="item-meta">Remaining Balance: ₱${l.balance}${paymentDateText ? ` | ${paymentDateText}` : ''}</div>
+      <div class="item-meta">Collector: <strong>${l.assignedCollectorName || '-'}</strong> | Address: <strong>${l.address || 'N/A'}</strong></div>
+      <div class="item-meta">Type: <strong>${l.loanType || 'solo'}</strong> ${l.memberNames && l.memberNames.length > 0 ? `| Members: <strong>${l.memberNames.join(', ')}</strong>` : ''}</div>
+      <div class="card-actions">
+        ${l.balance > 0 ? `<button class="button orange" onclick="assignCollector('${l.id}')">${l.assignedCollectorId ? '🔄 Reassign Collector' : 'Assign Collector'}</button>` : ''}
+        <button class="button blue" onclick="editLoanBalance('${l.id}', ${l.balance})">✏️ Edit Balance</button>
+        ${l.balance > 0 ? `<button class="button green" onclick="markPaid('${l.id}')">Mark Paid</button>` : ''}
+        <button class="button red" onclick="deleteLoan('${l.id}')">Delete</button>
+      </div>
+    `;
+    box.appendChild(item);
+  });
+  parent.appendChild(box);
+}
+
+function loadOnlineUsers() {
+  onSnapshot(collection(db, "users"), (snap) => {
+    const onlineDiv = document.getElementById("online");
+    if (!onlineDiv) return;
+    onlineDiv.innerHTML = "<h2>🟢 Online Users</h2>";
+
+    const onlineUsers = [];
+    snap.forEach(d => {
+      const u = d.data();
+      console.log(`User: ${u.email}, Online: ${u.online}, Deleted: ${u.deleted}`);
+      if (u.online && !u.deleted) {
+        onlineUsers.push({ id: d.id, ...u });
+      }
+    });
+
+    console.log("Total online users detected:", onlineUsers.length);
+    
+    // Update sidebar count
+    document.getElementById("onlineCount").textContent = onlineUsers.length;
+
+    if (onlineUsers.length === 0) {
+      onlineDiv.innerHTML += `<div class="empty-state">No users online right now.</div>`;
+      return;
+    }
+
+    // Group by role
+    const roles = { admin: [], cashier: [], collector: [] };
+    onlineUsers.forEach(u => {
+      if (roles[u.role]) roles[u.role].push(u);
+    });
+
+    const roleLabels = { admin: "👑 Admin", cashier: "💰 Cashier", collector: "🚚 Collector" };
+    Object.keys(roles).forEach(role => {
+      if (roles[role].length > 0) {
+        const box = document.createElement("div");
+        box.className = "card";
+        box.innerHTML = `<h3>${roleLabels[role]} (${roles[role].length})</h3>`;
+        
+        roles[role].forEach(u => {
+          const item = document.createElement("div");
+          item.className = "item-card";
+          item.innerHTML = `
+            <div class="item-row">
+              <strong>${u.name || u.email}</strong>
+              <span class="status-chip online">🟢 Online</span>
+            </div>
+            <div class="item-meta">${u.email}</div>
+            <div class="item-meta">Last seen: ${u.lastSeen ? new Date(u.lastSeen.toDate()).toLocaleString() : 'Now'}</div>
+          `;
+          box.appendChild(item);
+        });
+        onlineDiv.appendChild(box);
+      }
+    });
+  });
+}
+
+function loadUsers() {
+  onSnapshot(collection(db, "users"), (snap) => {
+    currentUsers = [];
+    deletedUsers = [];
+
+    snap.forEach(d => {
+      const u = d.data();
+      const user = { id: d.id, ...u };
+      if (u.deletedPermanent) {
+        return;
+      }
+      if (u.deleted) {
+        deletedUsers.push(user);
+        return;
+      }
+      currentUsers.push(user);
+    });
+
+    refreshUsersUI(null, currentUsers.length);
+  });
+}
+
+function loadTrashUsers() {
+  deletedUsers = currentUsers.filter(u => u.deleted && !u.deletedPermanent);
+  refreshUsersUI();
+}
+
+function refreshUsersUI(folders = null, totalCount = null) {
+  const usersDiv = document.getElementById("users");
+  if (!usersDiv) return;
+  usersDiv.innerHTML = "";
+
+  if (!folders) {
+    folders = { admin: [], cashier: [], collector: [], pending: [] };
+    currentUsers.forEach(u => {
+      if (u.status === "pending") folders.pending.push(u);
+      else folders[u.role]?.push(u);
+    });
+  }
+
+  // 🟢 Display online users at the top
+  const onlineUsers = currentUsers.filter(u => u.online && !u.deleted);
+  if (onlineUsers.length > 0) {
+    renderOnlineUsers(onlineUsers, usersDiv);
+  }
+
+  renderFolder("🟡 Pending Users", folders.pending, usersDiv);
+  renderFolder("💰 Cashiers", folders.cashier, usersDiv);
+  renderFolder("🚚 Collectors", folders.collector, usersDiv);
+  renderFolder("👑 Admin", folders.admin, usersDiv);
+  renderDeletedUsers("🗑️ Deleted Users", deletedUsers, usersDiv);
+
+  const total = totalCount ?? currentUsers.length;
+  const approved = folders.cashier.length + folders.collector.length + folders.admin.length;
+  const online = currentUsers.filter(u => u.online && !u.deleted).length;
+
+  document.getElementById("totalUsers").textContent = total;
+  document.getElementById("pending").textContent = folders.pending.length;
+  document.getElementById("pendingCount").textContent = folders.pending.length;
+  document.getElementById("approved").textContent = approved;
+  document.getElementById("onlineCount").textContent = online;
+  document.getElementById("collectors").textContent = folders.collector.length;
+}
+
+function renderDeletedUsers(title, list, parent) {
+  const box = document.createElement("div");
+  box.className = "card";
+  box.innerHTML = `<h3>${title} (${list.length})</h3>`;
+
+  if (!list.length) {
+    box.innerHTML += `<div class="empty-state">No deleted users in bin.</div>`;
+    parent.appendChild(box);
+    return;
+  }
+
+  list.forEach(u => {
+    const item = document.createElement("div");
+    item.className = "item-card";
+    item.innerHTML = `
+      <div class="item-row">
+        <strong>${u.name || "No Name"}</strong>
+        <span class="status-chip deleted">Deleted</span>
+      </div>
+      <div class="item-meta">${u.email}</div>
+      <div class="item-meta">Role: <strong>${u.role || "unknown"}</strong> | Assigned: <strong>${u.assignedName || '-'}</strong></div>
+      <div class="card-actions">
+        <button class="button green" onclick="recoverUser('${u.id}')">Recover</button>
+        <button class="button red" onclick="deleteUserPermanently('${u.id}')">Delete Permanently</button>
+      </div>
+    `;
+    box.appendChild(item);
+  });
+
+  parent.appendChild(box);
+}
+
+function loadLoans() {
+  onSnapshot(collection(db, "loans"), (snap) => {
+    const loansDiv = document.getElementById("loans");
+    loansDiv.innerHTML = "";
+    const active = [];
+    const paid = [];
+
+    snap.forEach(d => {
+      const l = d.data();
+      if (l.deleted) return; // Skip deleted loans
+      if (l.status === "paid" || l.balance === 0) {
+        paid.push({ id: d.id, ...l });
+      } else {
+        active.push({ id: d.id, ...l });
+      }
+    });
+
+    renderLoanFolder("📦 Active Loans (Need Collection)", active, loansDiv);
+    renderLoanFolder("✅ Paid Loans (Balance = 0)", paid, loansDiv);
+    document.getElementById("paidCount").textContent = paid.length;
+  });
+}
+
+function loadCollectors() {
+  const select = document.getElementById("collectorSelect");
+  if (!select) {
+    console.error("collectorSelect element not found");
+    return;
+  }
+  
+  onSnapshot(collection(db, "users"), (snap) => {
+    select.innerHTML = '<option value="">-- Select a Collector --</option>';
+    let collectorCount = 0;
+    snap.forEach(d => {
+      const u = d.data();
+      if (u.role === "collector" && u.status === "approved" && !u.deleted) {
+        const option = document.createElement("option");
+        option.value = d.id;
+        option.textContent = `${u.assignedName} (${u.name})`;
+        select.appendChild(option);
+        collectorCount++;
+      }
+    });
+    console.log("Loaded", collectorCount, "collectors into dropdown");
+  });
+}
+
+const actionOverlay = document.getElementById("actionOverlay");
+const actionTitle = document.getElementById("actionTitle");
+const actionMessage = document.getElementById("actionMessage");
+const ADMIN_APPROVAL_PASSWORD = "KASIPAG-ADMIN-2026";
+
+function setActionState(title, message, visible = true) {
+  actionTitle.textContent = title;
+  actionMessage.textContent = message;
+  actionOverlay.classList.toggle("active", visible);
+  actionOverlay.setAttribute("aria-hidden", String(!visible));
+}
+
+async function runAction(title, message, task) {
+  setActionState(title, message, true);
+  try {
+    await task();
+  } catch (err) {
+    alert(err.message || "Unable to complete the operation.");
+  } finally {
+    setActionState("", "", false);
+  }
+}
+
+window.approve = async (id, role) => {
+  const confirmMessage = role === "admin"
+    ? "This will approve the account as an admin. Continue?"
+    : "Approve this account for login?";
+
+  const confirmed = window.confirm(confirmMessage);
+  if (!confirmed) return;
+
+  if (role === "admin") {
+    const enteredPassword = window.prompt("Enter the admin password to approve this admin account:");
+    if (enteredPassword !== ADMIN_APPROVAL_PASSWORD) {
+      alert("Incorrect admin password. Approval cancelled.");
+      return;
+    }
+  }
+
+  await runAction("Approving user...", "Assigning a secure role tag and preparing login.", async () => {
+    const snap = await getDocs(collection(db, "users"));
+    const numbers = [];
+
+    snap.forEach(d => {
+      const u = d.data();
+      if (u.role === role && u.status === "approved" && typeof u.assignedName === "string") {
+        const match = u.assignedName.match(new RegExp(`^${role}(\\d+)$`));
+        if (match) numbers.push(Number(match[1]));
+      }
+    });
+
+    const nextNumber = numbers.length ? Math.max(...numbers) + 1 : 1;
+    const name = `${role}${nextNumber}`;
+
+    await updateDoc(doc(db, "users", id), {
+      status: "approved",
+      assignedName: name
+    });
+
+    alert(`Account approved! The user can now log in as ${name}.`);
+  });
+};
+
+window.reject = async (id) => {
+  await runAction("Rejecting user...", "Updating account status and removing access.", async () => {
+    await updateDoc(doc(db, "users", id), { status: "rejected" });
+  });
+};
+
+window.promptUpdateEmail = async (id) => {
+  const newEmail = window.prompt("Enter the user's new email address:");
+  if (!newEmail) return;
+  if (!newEmail.includes("@")) {
+    alert("Please enter a valid email address.");
+    return;
+  }
+
+  await runAction("Updating email...", "Saving the new email address to the user profile.", async () => {
+    await updateDoc(doc(db, "users", id), { email: newEmail.trim() });
+    alert("User email updated successfully.");
+  });
+};
+
+window.sendPasswordReset = async (id) => {
+  await runAction("Sending password reset...", "Dispatching a reset link to the user's registered email.", async () => {
+    const userSnap = await getDoc(doc(db, "users", id));
+    if (!userSnap.exists()) throw new Error("User not found.");
+    const userData = userSnap.data();
+    const email = userData.email;
+    if (!email) throw new Error("User has no email on record.");
+    await sendPasswordResetEmail(auth, email);
+    alert(`Password reset email sent to ${email}.`);
+  });
+};
+
+window.deleteUser = async (id) => {
+  await runAction("Deleting user...", "Moving this account to bin so it can be recovered later.", async () => {
+    const userRef = doc(db, "users", id);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) throw new Error("User not found.");
+    await updateDoc(userRef, {
+      deleted: true,
+      deletedAt: serverTimestamp(),
+      deletedBy: adminId
+    });
+  });
+};
+
+window.recoverUser = async (id) => {
+  await runAction("Recovering user...", "Restoring the deleted account from bin.", async () => {
+    const userRef = doc(db, "users", id);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) throw new Error("Deleted record not found.");
+    await updateDoc(userRef, {
+      deleted: false,
+      deletedAt: null,
+      deletedBy: null
+    });
+  });
+};
+
+window.deleteUserPermanently = async (id) => {
+  await runAction("Deleting permanently...", "Removing this deleted user forever.", async () => {
+    const userRef = doc(db, "users", id);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) throw new Error("User record not found.");
+
+    try {
+      await deleteDoc(userRef);
+    } catch (error) {
+      if (error.code === "permission-denied" || /permission/i.test(error.message)) {
+        await updateDoc(userRef, {
+          deletedPermanent: true,
+          deletedAt: serverTimestamp(),
+          deletedBy: adminId
+        });
+      } else {
+        throw error;
+      }
+    }
+  });
+};
+
+window.deleteLoan = async (id) => {
+  await runAction("Deleting loan...", "Removing this loan from the system.", async () => {
+    await deleteDoc(doc(db, "loans", id));
+  });
+};
+
+window.editLoanBalance = async (loanId, currentBalance) => {
+  const newBalance = window.prompt(`Edit loan balance (current: ₱${currentBalance}):`, currentBalance);
+  if (newBalance === null) return;
+  
+  const parsedBalance = Number(newBalance.trim());
+  if (isNaN(parsedBalance) || parsedBalance < 0) {
+    alert("Please enter a valid balance amount.");
+    return;
+  }
+
+  await runAction("Updating balance...", "Saving the corrected loan balance.", async () => {
+    await updateDoc(doc(db, "loans", loanId), {
+      balance: parsedBalance,
+      balanceEditedBy: adminId,
+      balanceEditedAt: serverTimestamp()
+    });
+    alert(`Balance updated to ₱${parsedBalance}. This change is visible realtime across collector and cashier pages.`);
+  });
+};
+
+window.markPaid = async (id) => {
+  await runAction("Marking loan paid...", "Recording payment and updating balances.", async () => {
+    await updateDoc(doc(db, "loans", id), { status: "paid", balance: 0 });
+  });
+};
+
+window.toggleMemberNames = () => {
+  const loanType = document.getElementById("loanType").value;
+  const memberNamesContainer = document.getElementById("memberNamesContainer");
+  if (loanType === "group") {
+    memberNamesContainer.style.display = "block";
+  } else {
+    memberNamesContainer.style.display = "none";
+    document.getElementById("memberNames").value = "";
+  }
+};
+
+window.createLoan = async () => {
+  const borrowerName = document.getElementById("borrowerName").value.trim();
+  const amount = Number(document.getElementById("amount").value.trim());
+  const address = document.getElementById("address").value.trim();
+  const collectorId = document.getElementById("collectorSelect").value;
+  const loanType = document.getElementById("loanType").value;
+  const memberNamesInput = document.getElementById("memberNames").value.trim();
+
+  console.log("Creating loan with collectorId:", collectorId, "borrowerName:", borrowerName, "amount:", amount);
+
+  if (!borrowerName || !amount || !address || !collectorId) {
+    alert("Fill all fields before creating the loan.");
+    return;
+  }
+
+  if (loanType === "group" && !memberNamesInput) {
+    alert("For group loans, please add at least one member name.");
+    return;
+  }
+
+  const memberNames = loanType === "group" 
+    ? memberNamesInput.split(",").map(name => name.trim()).filter(name => name)
+    : [];
+
+  const borrowerDisplayName = loanType === "group" && memberNames.length > 0
+    ? `${borrowerName} (Members: ${memberNames.join(", ")})`
+    : borrowerName;
+
+  await runAction("Creating loan...", "Assigning the loan and saving borrower details.", async () => {
+    const usersSnap = await getDocs(collection(db, "users"));
+    let collectorName = "";
+    usersSnap.forEach(d => {
+      if (d.id === collectorId) collectorName = d.data().assignedName || d.data().name;
+    });
+
+    await addDoc(collection(db, "loans"), {
+      borrowerName: borrowerDisplayName,
+      amount,
+      balance: amount,
+      address,
+      loanType,
+      memberNames: memberNames.length > 0 ? memberNames : null,
+      status: "assigned",
+      assignedCollectorId: collectorId,
+      assignedCollectorName: collectorName,
+      createdAt: serverTimestamp()
+    });
+
+    console.log("Loan created with assignedCollectorId:", collectorId, "status: assigned", "balance:", amount, "collectorName:", collectorName);
+
+    document.getElementById("borrowerName").value = "";
+    document.getElementById("amount").value = "";
+    document.getElementById("address").value = "";
+    document.getElementById("collectorSelect").selectedIndex = 0;
+    document.getElementById("loanType").selectedIndex = 0;
+    document.getElementById("memberNames").value = "";
+    document.getElementById("memberNamesContainer").style.display = "none";
+    alert("Loan created and assigned successfully.");
+  });
+};
+
+window.assignCollector = async (loanId) => {
+  const usersSnap = await getDocs(collection(db, "users"));
+  let collectors = [];
+  usersSnap.forEach(d => {
+    const u = d.data();
+    if (u.role === "collector" && u.status === "approved" && !u.deleted) {
+      collectors.push({
+        id: d.id,
+        name: u.assignedName || u.name
+      });
+    }
+  });
+  if (collectors.length === 0) {
+    alert("No collectors available");
+    return;
+  }
+  
+  // If only one collector, assign directly
+  let selected = collectors[0];
+  if (collectors.length > 1) {
+    const collectorList = collectors.map((c, i) => `${i + 1}. ${c.name}`).join("\n");
+    const choice = prompt(`Select a collector:\n${collectorList}\n\nEnter number (1-${collectors.length}):`, "1");
+    if (!choice || isNaN(choice) || choice < 1 || choice > collectors.length) {
+      alert("Assignment cancelled.");
+      return;
+    }
+    selected = collectors[parseInt(choice) - 1];
+  }
+  
+  try {
+    const loanDoc = await getDoc(doc(db, "loans", loanId));
+    const currentData = loanDoc.data();
+    
+    await updateDoc(doc(db, "loans", loanId), {
+      assignedCollectorId: selected.id,
+      assignedCollectorName: selected.name,
+      status: "assigned",
+      assignedCashierId: null,
+      assignedCashierName: "",
+      collectedAt: null,
+      confirmedAt: null,
+      confirmedById: null
+      // Keep current balance - don't reset it
+    });
+    alert(`Reassigned to ${selected.name}. Current balance: ₱${currentData.balance}`);
+  } catch (error) {
+    console.error("Assignment error:", error);
+    alert("Error assigning loan: " + error.message);
+  }
+};
+
+// 🔥 SET OFFLINE ON PAGE UNLOAD
+window.addEventListener('beforeunload', async () => {
+  const uid = localStorage.getItem("uid");
+  if (uid) {
+    await updateDoc(doc(db, "users", uid), {
+      online: false,
+      lastSeen: serverTimestamp()
+    });
+  }
+});
+
+window.logout = async () => {
+  const uid = localStorage.getItem("uid");
+  if (uid) {
+    try {
+      await updateDoc(doc(db, "users", uid), {
+        online: false,
+        lastSeen: serverTimestamp()
+      });
+    } catch (err) {
+      console.warn("Logout status update failed:", err);
+    }
+  }
+
+  localStorage.removeItem("uid");
+  localStorage.removeItem("role");
+  localStorage.removeItem("assignedName");
+  localStorage.removeItem("email");
+  localStorage.removeItem("selectedRole");
+
+  try {
+    await signOut(auth);
+  } catch (err) {
+    console.warn("Sign out failed:", err);
+  }
+
+  window.location.href = "role-selector.html";
+};
+</script>
+</body>
+</html>
