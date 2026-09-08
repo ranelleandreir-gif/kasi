@@ -85,13 +85,18 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-o
 }
 .nav-link:hover{background:rgba(255,255,255,.07);color:#fff;transform:translateX(2px)}
 .nav-link.active{
-  background:linear-gradient(135deg,rgba(47,111,237,.92),rgba(47,111,237,.55));
-  color:#fff;box-shadow:0 7px 18px rgba(47,111,237,.28)
+  background:linear-gradient(135deg,#2f6fed 0%,#1856cf 100%);
+  color:#fff;
+  border-color:rgba(160,195,255,.9);
+  box-shadow:inset 4px 0 0 #fff,0 10px 26px rgba(47,111,237,.45);
+  font-weight:800;
+  transform:translateX(2px)
 }
 .nav-link svg{flex-shrink:0;opacity:.9}
 .nav-link .nav-label{flex:1;min-width:0}
 .nav-count{margin-left:auto;min-width:22px;height:22px;padding:0 6px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.09);color:#dbe4f7;font-size:.68rem;font-weight:800}
 .nav-link.active .nav-count{background:rgba(255,255,255,.18);color:#fff}
+.nav-link.active .nav-hint{background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.3)}
 
 .nav-action{
   position:relative;
@@ -115,9 +120,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-o
 }
 .nav-action:active{transform:translateX(2px) scale(.985)}
 .nav-action.active{
-  background:linear-gradient(135deg,rgba(47,111,237,.98),rgba(47,111,237,.62));
-  border-color:rgba(125,168,255,.55);
-  box-shadow:inset 4px 0 0 #fff,0 9px 22px rgba(47,111,237,.3);
+  background:linear-gradient(135deg,#2f6fed 0%,#1856cf 100%);
+  border-color:rgba(160,195,255,.9);
+  box-shadow:inset 4px 0 0 #fff,0 10px 26px rgba(47,111,237,.45);
 }
 .nav-action.active::after{content:"✓";color:#fff;font-size:.85rem;font-weight:900}
 .nav-hint{
@@ -491,6 +496,32 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
     </div>
   </main>
 </div>
+<script>
+/* Navigation fallback: works even if the Firebase module is still loading. */
+window.showCashierTab = function(tab){
+  const sections = {
+    collected: document.getElementById('collectedSection'),
+    payments: document.getElementById('paymentSection'),
+    deleted: document.getElementById('deletedPaymentsSection'),
+    deletedLoans: document.getElementById('deletedLoansSection'),
+    balance: document.getElementById('balanceSection')
+  };
+  const buttons = {
+    collected: document.getElementById('collectedTabBtn'),
+    payments: document.getElementById('paymentsTabBtn'),
+    deleted: document.getElementById('deletedPaymentsTabBtn'),
+    deletedLoans: document.getElementById('deletedLoansTabBtn'),
+    balance: document.getElementById('balanceTabBtn')
+  };
+  Object.values(sections).forEach(el => el && el.classList.add('hidden'));
+  Object.values(buttons).forEach(el => el && el.classList.remove('active'));
+  const section = sections[tab] || sections.collected;
+  const button = buttons[tab] || buttons.collected;
+  section && section.classList.remove('hidden');
+  button && button.classList.add('active');
+  if(tab === 'balance' && typeof window.showBalancePanel === 'function') window.showBalancePanel('active');
+};
+</script>
 <script type="module">
 import { db, auth } from "./firebase.js";
 import {
@@ -563,12 +594,20 @@ window.showCashierTab = (tab) => {
   }
 };
 
-// Ensure the cashier navigation remains clickable even when the page is embedded or styled by another rule.
-document.getElementById('collectedTabBtn')?.addEventListener('click', () => window.showCashierTab('collected'));
-document.getElementById('paymentsTabBtn')?.addEventListener('click', () => window.showCashierTab('payments'));
-document.getElementById('deletedPaymentsTabBtn')?.addEventListener('click', () => window.showCashierTab('deleted'));
-document.getElementById('deletedLoansTabBtn')?.addEventListener('click', () => window.showCashierTab('deletedLoans'));
-document.getElementById('balanceTabBtn')?.addEventListener('click', () => window.showCashierTab('balance'));
+// Keep the existing tab logic intact while ensuring navigation buttons work reliably.
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("#collectedTabBtn, #paymentsTabBtn, #deletedPaymentsTabBtn, #deletedLoansTabBtn, #balanceTabBtn");
+  if (!button) return;
+  const tabMap = {
+    collectedTabBtn: "collected",
+    paymentsTabBtn: "payments",
+    deletedPaymentsTabBtn: "deleted",
+    deletedLoansTabBtn: "deletedLoans",
+    balanceTabBtn: "balance"
+  };
+  const tab = tabMap[button.id];
+  if (tab) window.showCashierTab(tab);
+});
 
 window.showBalancePanel = (panel) => {
   activeBorrowerBalances.classList.add("hidden");
@@ -656,7 +695,7 @@ function loadLoans() {
     document.getElementById("sidePending").innerText = pendingCount;
 
     if (count === 0) {
-      loansList.innerHTML = `<div class="empty-state">No collected loans available for confirmation.</div>`;
+      loansList.innerHTML = `<div class="empty-state">No records found — no collected loans available for confirmation.</div>`;
     }
   });
 }
@@ -752,7 +791,7 @@ function loadPayments() {
     document.getElementById("sidePayments").innerText = count;
 
     if (count === 0) {
-      paymentsList.innerHTML = `<div class="empty-state">No payment history yet.</div>`;
+      paymentsList.innerHTML = `<div class="empty-state">No records found — no payment history yet.</div>`;
     }
   });
 }
@@ -776,7 +815,7 @@ function renderDeletedPayments() {
   if (!deletedPaymentsList) return;
   deletedPaymentsList.innerHTML = "";
   if (!deletedPayments.length) {
-    deletedPaymentsList.innerHTML = `<div class="empty-state">No deleted payments in bin.</div>`;
+    deletedPaymentsList.innerHTML = `<div class="empty-state">No records found — no deleted payments in bin.</div>`;
     return;
   }
 
@@ -905,10 +944,10 @@ function loadBorrowerBalances() {
     document.getElementById("sideBalance").innerText = activeCount;
 
     if (activeCount === 0) {
-      activeBorrowerBalances.innerHTML = `<div class="empty-state">No active borrower balances.</div>`;
+      activeBorrowerBalances.innerHTML = `<div class="empty-state">No records found — no active borrower balances.</div>`;
     }
     if (deletedCount === 0) {
-      deletedBorrowerBalances.innerHTML = `<div class="empty-state">No deleted borrower balances.</div>`;
+      deletedBorrowerBalances.innerHTML = `<div class="empty-state">No records found — no deleted borrower balances.</div>`;
     }
   });
 }
@@ -934,7 +973,7 @@ function renderDeletedLoans() {
   deletedLoansList.innerHTML = "";
 
   if (!deletedLoans.length) {
-    deletedLoansList.innerHTML = `<div class="empty-state">No deleted loans in bin.</div>`;
+    deletedLoansList.innerHTML = `<div class="empty-state">No records found — no deleted loans in bin.</div>`;
     return;
   }
 
@@ -1037,16 +1076,25 @@ window.addEventListener('beforeunload', async () => {
 });
 
 window.logout = async () => {
-  const uid = localStorage.getItem("uid");
-  if (uid) {
-    await updateDoc(doc(db, "users", uid), {
-      online: false,
-      lastSeen: serverTimestamp()
-    });
-    console.log("✅ Set offline status for user:", uid);
+  try {
+    const uid = localStorage.getItem("uid") || (auth.currentUser && auth.currentUser.uid);
+    if (uid) {
+      try {
+        await updateDoc(doc(db, "users", uid), {
+          online: false,
+          lastSeen: serverTimestamp()
+        });
+      } catch (e) {
+        console.warn("Unable to update offline status:", e);
+      }
+    }
+    await signOut(auth);
+  } catch (error) {
+    console.error("Sign out error:", error);
+  } finally {
+    localStorage.removeItem("uid");
+    window.location.href = "index.html";
   }
-  await signOut(auth);
-  window.location.href = "role-selector.html";
 };
 </script>
 </body>
