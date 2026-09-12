@@ -636,6 +636,37 @@ textarea {
   font-size: 0.88rem;
 }
 
+/* ============ LOAN APPLICATIONS (new feature — additive only) ============ */
+.app-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 3px 12px rgba(15,30,60,0.035);
+}
+.app-card:last-child { margin-bottom: 0; }
+.app-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.app-card-head h4 { font-size: 0.98rem; font-weight: 800; color: var(--navy-900); }
+.app-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 10px 18px;
+  margin-bottom: 14px;
+}
+.app-field span { display: block; font-size: 0.68rem; color: var(--muted-2); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
+.app-field strong { display: block; font-size: 0.85rem; color: var(--text); font-weight: 600; }
+@media (max-width: 900px) { .app-card-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 560px) { .app-card-grid { grid-template-columns: 1fr; } }
+
 /* ============ REPORTS / BARS ============ */
 .bar-list { display: grid; gap: 12px; }
 .bar-row { display: grid; grid-template-columns: 130px 1fr 70px; align-items: center; gap: 10px; }
@@ -781,6 +812,11 @@ textarea {
     <button class="nav-link" data-tab="create" onclick="openTab(this,'create')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
       Create Loan
+    </button>
+    <button class="nav-link" data-tab="loanApplications" onclick="openTab(this,'loanApplications')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 8h1M9 12h6M9 16h6"/></svg>
+      Loan Applications
+      <span class="nav-badge" id="navLoanAppBadge" style="display:none;">0</span>
     </button>
 
     <div class="nav-group-label">Collections</div>
@@ -994,6 +1030,17 @@ textarea {
       <div id="loans-content"></div>
     </section>
 
+    <!-- ===================== LOAN APPLICATIONS (new feature — additive only) ===================== -->
+    <section id="loanApplications" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Loan Applications</h2>
+          <p>Review borrower details submitted by cashiers, then approve or reject each application.</p>
+        </div>
+      </div>
+      <div id="loan-apps-content"></div>
+    </section>
+
     <!-- ===================== CREATE LOAN ===================== -->
     <section id="create" class="section">
       <div class="section-head">
@@ -1158,6 +1205,7 @@ onAuthStateChanged(auth, async (user) => {
   loadOnlineUsers();
   loadLoans();
   loadCollectors();
+  loadLoanApplications();
 });
 
 const topbarDateEl = document.getElementById("topbarDate");
@@ -1556,6 +1604,7 @@ function loadLoans() {
     snap.forEach(d => {
       const l = { id: d.id, ...d.data() };
       if (l.deleted) return;
+      if (l.pendingApproval) return; // Loan applications awaiting approval live in the Loan Applications tab until approved/rejected
       currentLoans.push(l);
       if (l.status === "paid" || l.balance === 0) {
         paid.push(l);
@@ -1574,6 +1623,107 @@ function loadLoans() {
     renderCashierTab();
   });
 }
+
+// ===================== LOAN APPLICATIONS (new feature — additive only) =====================
+function loadLoanApplications() {
+  onSnapshot(collection(db, "loans"), (snap) => {
+    const content = document.getElementById("loan-apps-content");
+    if (!content) return;
+
+    const apps = [];
+    snap.forEach(d => {
+      const l = d.data();
+      if (l.deleted) return;
+      if (!l.pendingApproval) return;
+      apps.push({ id: d.id, ...l });
+    });
+
+    renderLoanApplications(apps, content);
+
+    const badge = document.getElementById("navLoanAppBadge");
+    if (badge) {
+      badge.textContent = apps.length;
+      badge.style.display = apps.length > 0 ? "inline-block" : "none";
+    }
+  });
+}
+
+function renderLoanApplications(apps, parent) {
+  parent.innerHTML = "";
+
+  const box = document.createElement("div");
+  box.className = "panel";
+  box.innerHTML = `<div class="panel-title"><h3>Pending applications</h3><span class="badge muted">${apps.length}</span></div>`;
+
+  if (!apps.length) {
+    box.innerHTML += `<div class="empty-state">No loan applications waiting for approval.</div>`;
+    parent.appendChild(box);
+    return;
+  }
+
+  const list = document.createElement("div");
+  apps.forEach(a => {
+    const card = document.createElement("div");
+    card.className = "app-card";
+    const submittedAt = fmtDate(a.createdAt);
+    card.innerHTML = `
+      <div class="app-card-head">
+        <h4>${a.borrowerName || `${a.firstName || ""} ${a.lastName || ""}`.trim()}</h4>
+        <span class="status-chip pending">PENDING</span>
+      </div>
+      <div class="app-card-grid">
+        <div class="app-field"><span>Contact Number</span><strong>${a.contactNumber || "N/A"}</strong></div>
+        <div class="app-field"><span>Email</span><strong>${a.email || "N/A"}</strong></div>
+        <div class="app-field"><span>Gender</span><strong>${a.gender || "N/A"}</strong></div>
+        <div class="app-field" style="grid-column: 1 / -1"><span>Address</span><strong>${a.address || "N/A"}</strong></div>
+        <div class="app-field"><span>Occupation</span><strong>${a.occupation || "N/A"}</strong></div>
+        <div class="app-field"><span>Income</span><strong>${a.income || "N/A"}</strong></div>
+        <div class="app-field"><span>Loan Amount</span><strong>${money(a.amount)}</strong></div>
+        <div class="app-field"><span>Payment Frequency</span><strong>${a.paymentFrequency === "weekly" ? "Weekly" : "Monthly"}</strong></div>
+        <div class="app-field"><span>Submitted By</span><strong>${a.createdByCashierName || "Cashier"}</strong></div>
+        ${submittedAt ? `<div class="app-field"><span>Submitted</span><strong>${submittedAt}</strong></div>` : ""}
+      </div>
+      <div class="row-actions">
+        <button class="button green" onclick="approveLoanApplication('${a.id}')">Approve</button>
+        <button class="button red" onclick="rejectLoanApplication('${a.id}')">Reject</button>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+  box.appendChild(list);
+  parent.appendChild(box);
+}
+
+window.approveLoanApplication = async (id) => {
+  const confirmed = window.confirm("Approve this loan application? The loan will become active once approved.");
+  if (!confirmed) return;
+
+  await runAction("Approving loan...", "Confirming borrower details and activating the loan.", async () => {
+    await updateDoc(doc(db, "loans", id), {
+      status: "approved",
+      pendingApproval: false,
+      approvedAt: serverTimestamp(),
+      approvedBy: adminId
+    });
+  });
+  alert("Loan approved. It now appears under Borrowers & Loans.");
+};
+
+window.rejectLoanApplication = async (id) => {
+  const confirmed = window.confirm("Reject this loan application? This cannot be undone.");
+  if (!confirmed) return;
+
+  await runAction("Rejecting loan...", "Updating the application status.", async () => {
+    await updateDoc(doc(db, "loans", id), {
+      status: "rejected",
+      pendingApproval: false,
+      rejectedAt: serverTimestamp(),
+      rejectedBy: adminId
+    });
+  });
+  alert("Loan application rejected.");
+};
 
 function updateOverviewStats(active, paid) {
   const totalLoans = currentLoans.length;
