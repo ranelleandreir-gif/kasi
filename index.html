@@ -1147,9 +1147,6 @@ input:focus, select:focus {
       <h1>KASIPAG OR KAtulong Sa Inyong PAGunlad</h1>
       <p>“To Help, To Create and To Provide”</p>
       <p>A financial assistance for lower interest rates and longer period of payment.</p>
-      <div class="hero-actions">
-        <button class="primary-button" onclick="openModal()">Create Account</button>
-      </div>
       <div class="feature-grid">
         <div class="feature-card">
           <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
@@ -1327,37 +1324,9 @@ input:focus, select:focus {
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
 </button>
 
-<div class="modal" id="modal">
-  <div class="modal-box">
-    <h3>Create Account</h3>
-    <p class="modal-sub">Register for cashier or collector portal access.</p>
-    <label class="field-label" for="name">Full Name</label>
-    <input id="name" placeholder="Full Name">
-    <label class="field-label" for="email">Email</label>
-    <input id="email" type="email" placeholder="Email">
-    <label class="field-label" for="password">Password</label>
-    <input id="password" type="password" placeholder="Password">
-    <label class="field-label" for="role">Role</label>
-    <select id="role">
-      <option value="cashier">Cashier</option>
-      <option value="collector">Collector</option>
-    </select>
-    <div class="modal-actions">
-      <button class="primary-button" onclick="signup()">Submit</button>
-      <button class="close-button" onclick="closeModal()">Close</button>
-    </div>
-    <p class="note-text" id="msg"></p>
-  </div>
-</div>
 </body>
 
 <script>
-function openModal(){
-  document.getElementById("modal").classList.add("open");
-}
-function closeModal(){
-  document.getElementById("modal").classList.remove("open");
-}
 function goLogin(){
   window.location.href = "role-selector.html";
 }
@@ -1365,52 +1334,6 @@ function goAdminProtection(){
   // Admin flow: Logo -> Admin Login (Firebase auth) -> Welcome -> Admin Dashboard
   window.location.href = "admin-login.html";
 }
-</script>
-
-<script type="module">
-import { auth, db } from "./firebase.js";
-import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-const msg = document.getElementById("msg");
-
-window.signup = async function () {
-  const name = document.getElementById("name").value.trim();
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
-  const role = document.getElementById("role").value;
-
-  if (!name || !email || !password) {
-    msg.textContent = "Fill all fields";
-    msg.style.color = "#f87171";
-    return;
-  }
-
-  if (role !== "cashier" && role !== "collector") {
-    msg.textContent = "Select a valid role.";
-    msg.style.color = "#f87171";
-    return;
-  }
-
-  try {
-    const userCred = await createUserWithEmailAndPassword(auth, email, password);
-
-    await setDoc(doc(db, "users", userCred.user.uid), {
-      name,
-      email,
-      role,
-      status: "pending",
-      assignedName: "",
-      createdAt: serverTimestamp()
-    });
-
-    msg.textContent = "Request submitted — wait for admin approval.";
-    msg.style.color = "#22c55e";
-  } catch (err) {
-    msg.textContent = err.message;
-    msg.style.color = "#f87171";
-  }
-};
 </script>
 
 <script>

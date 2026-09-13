@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasipag Create Account</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --navy-900: #0b1e3d;
+  --navy-800: #12294e;
+  --navy-700: #1b3763;
+  --blue: #2f6fed;
+  --blue-soft: #e8effe;
+  --teal: #0f9d82;
+  --teal-soft: #e3f7f2;
+  --gold: #c79a3c;
+  --amber: #b8791c;
+  --amber-soft: #fbf0dd;
+  --red: #c13b3b;
+  --red-soft: #fbeaea;
+  --green: #1a8a53;
+  --green-soft: #e6f6ee;
+  --bg: #f2f5fa;
+  --surface: #ffffff;
+  --surface-alt: #f7f9fc;
+  --border: #e2e7f0;
+  --text: #14213d;
+  --muted: #5c6a86;
+  --muted-2: #8592ab;
+  --radius-lg: 22px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --shadow-card: 0 1px 2px rgba(15,30,60,.05), 0 12px 32px rgba(15,30,60,.08);
+  --font-head: 'Manrope', Arial, sans-serif;
+  --font-body: 'Inter', Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  padding: 24px;
+}
+
+.page { width: min(920px, 100%); }
+
+/* ===== Back to Homepage — consistent across the login flow ===== */
+.top-nav {
+  display: flex;
+  margin-bottom: 14px;
+}
+
+.back-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  color: var(--navy-800);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 16px;
+  font-family: var(--font-body);
+  font-size: .86rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(15,30,60,.04);
+  cursor: pointer;
+  transition: background .15s ease, transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+.back-home svg { flex-shrink: 0; }
+
+.back-home:hover {
+  background: var(--surface-alt);
+  border-color: var(--blue);
+  color: var(--blue);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15,30,60,.08);
+}
+
+.back-home:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.auth-shell {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  animation: riseIn .5s ease both;
+}
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Brand panel — ledger-paper motif, matches the rest of the Kasipag system ===== */
+.auth-brand {
+  position: relative;
+  padding: 44px 40px;
+  background: var(--navy-900);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent, transparent 42px,
+    rgba(255,255,255,.05) 43px
+  );
+  color: #eef2fb;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.auth-brand::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 54px;
+  width: 1px;
+  background: rgba(199,154,60,.4);
+}
+
+.auth-brand-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-brand-top img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.auth-brand-top strong {
+  font-family: var(--font-head);
+  font-size: 1.05rem;
+  letter-spacing: -.01em;
+}
+
+.auth-brand-mid h1 {
+  margin: 0;
+  color: #fff;
+  font-family: var(--font-head);
+  font-size: clamp(1.5rem, 2.4vw, 1.85rem);
+  line-height: 1.25;
+}
+
+.auth-brand-mid p {
+  margin: 14px 0 0;
+  color: #b9c4dc;
+  line-height: 1.65;
+  font-size: .93rem;
+  max-width: 34ch;
+}
+
+.auth-brand-list {
+  list-style: none;
+  margin: 22px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.auth-brand-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: .86rem;
+  color: #d4dcef;
+}
+
+.auth-brand-list li::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+
+.auth-brand-foot {
+  font-size: .78rem;
+  color: #7f8bab;
+}
+
+/* ===== Form panel ===== */
+.auth-inner {
+  padding: 44px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.auth-title { margin-bottom: 22px; }
+.auth-title h1 {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: 1.45rem;
+  color: var(--navy-900);
+}
+.auth-title p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: .9rem;
+}
+
+form { display: contents; }
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.field label {
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--navy-800);
+}
+
+.field input {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  padding: 13px 14px;
+  font-size: .95rem;
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.field input:focus {
+  border-color: var(--blue);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+
+.field input.invalid {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+
+.field-error {
+  font-size: .78rem;
+  color: var(--red);
+  min-height: 1em;
+}
+
+.password-wrap { position: relative; }
+
+.password-wrap input { padding-right: 44px; }
+
+.toggle-pass {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  color: var(--muted-2);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: color .15s ease, background .15s ease;
+}
+
+.toggle-pass:hover { color: var(--navy-800); background: var(--border); }
+.toggle-pass:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* Role selection */
+.role-field { margin-bottom: 16px; }
+.role-field > label {
+  display: block;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--navy-800);
+  margin-bottom: 8px;
+}
+
+.role-select {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.role-option { position: relative; }
+
+.role-option input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.role-option-inner {
+  padding: 16px 14px;
+  background: var(--surface-alt);
+  border: 1.5px solid var(--border);
+  border-left: 3px solid var(--card-accent, var(--blue));
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.role-option.cashier .role-option-inner { --card-accent: var(--blue); }
+.role-option.collector .role-option-inner { --card-accent: var(--teal); }
+
+.role-option-inner .role-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--icon-bg, var(--blue-soft));
+  color: var(--card-accent, var(--blue));
+  flex-shrink: 0;
+}
+
+.role-option.cashier .role-icon { --icon-bg: var(--blue-soft); }
+.role-option.collector .role-icon { --icon-bg: var(--teal-soft); }
+
+.role-option-inner strong {
+  display: block;
+  font-family: var(--font-head);
+  font-size: .92rem;
+  color: var(--navy-900);
+}
+
+.role-option-inner span {
+  display: block;
+  font-size: .76rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.role-option:hover .role-option-inner {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(15,30,60,.08);
+}
+
+.role-option.selected .role-option-inner {
+  border-color: var(--card-accent, var(--blue));
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+
+.role-option input:focus-visible + .role-option-inner {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+button.submit-btn {
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 14px 20px;
+  background: var(--navy-900);
+  color: #fff;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: .95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+  margin-top: 4px;
+}
+
+button.submit-btn:hover { background: var(--navy-700); transform: translateY(-1px); box-shadow: 0 10px 24px rgba(11,30,61,.18); }
+button.submit-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+button.submit-btn:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.35);
+  border-top-color: #fff;
+  animation: spin .8s linear infinite;
+  display: none;
+}
+
+.submit-btn.loading .spinner { display: inline-block; }
+.submit-btn.loading .btn-text { opacity: .85; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.status-banner {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-size: .88rem;
+  line-height: 1.5;
+  display: none;
+}
+
+.status-banner.show { display: block; }
+.status-banner.error { background: var(--red-soft); color: var(--red); }
+.status-banner.success { background: var(--green-soft); color: var(--green); }
+
+.support {
+  margin: 20px 0 0;
+  color: var(--muted);
+  text-align: center;
+  font-size: .88rem;
+}
+
+.link {
+  color: var(--blue);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.link:hover { text-decoration: underline; }
+.link:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+@media (max-width: 760px) {
+  .auth-shell { grid-template-columns: 1fr; }
+  .auth-brand { padding: 30px 26px; }
+  .auth-brand-list { display: none; }
+  .auth-inner { padding: 32px 26px; }
+}
+
+@media (max-width: 560px) {
+  .field-row { grid-template-columns: 1fr; }
+  .role-select { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 420px) {
+  body { padding: 14px; }
+  .auth-brand, .auth-inner { padding: 26px 20px; }
+  .back-home { width: 100%; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-shell { animation: none; }
+  * { transition-duration: .001ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="top-nav">
+    <a class="back-home" href="index.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Back to Homepage
+    </a>
+  </div>
+
+  <div class="auth-shell">
+
+    <aside class="auth-brand">
+      <div class="auth-brand-top">
+        <img src="logopo.png" alt="KASIPAG Logo">
+        <strong>Kasipag</strong>
+      </div>
+      <div class="auth-brand-mid">
+        <h1>Create your account</h1>
+        <p>Register for Cashier or Collector portal access. Your account is reviewed by an administrator before it becomes active.</p>
+        <ul class="auth-brand-list">
+          <li>Fill out your registration details</li>
+          <li>Your request is sent to the Admin for review</li>
+          <li>Once approved, sign in with your new account</li>
+        </ul>
+      </div>
+      <div class="auth-brand-foot">Kasipag Microfinance &amp; Collection System</div>
+    </aside>
+
+    <div class="auth-inner">
+      <div class="auth-title">
+        <h1>Sign up</h1>
+        <p>All fields are required. Admin accounts cannot be created here.</p>
+      </div>
+
+      <form id="registerForm" novalidate>
+        <div class="field-row">
+          <div class="field">
+            <label for="fullName">Full Name</label>
+            <input id="fullName" type="text" autocomplete="name" placeholder="Juan Dela Cruz">
+            <div class="field-error" id="err-fullName"></div>
+          </div>
+          <div class="field">
+            <label for="contactNumber">Contact Number</label>
+            <input id="contactNumber" type="tel" autocomplete="tel" placeholder="09XXXXXXXXX">
+            <div class="field-error" id="err-contactNumber"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="email">Email Address</label>
+          <input id="email" type="email" autocomplete="username" placeholder="you@example.com">
+          <div class="field-error" id="err-email"></div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="password">Password</label>
+            <div class="password-wrap">
+              <input id="password" type="password" autocomplete="new-password" placeholder="At least 6 characters">
+              <button type="button" class="toggle-pass" data-target="password" aria-label="Show password">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <div class="field-error" id="err-password"></div>
+          </div>
+          <div class="field">
+            <label for="confirmPassword">Confirm Password</label>
+            <div class="password-wrap">
+              <input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Re-enter password">
+              <button type="button" class="toggle-pass" data-target="confirmPassword" aria-label="Show password">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <div class="field-error" id="err-confirmPassword"></div>
+          </div>
+        </div>
+
+        <div class="role-field">
+          <label>Select Account Role</label>
+          <div class="role-select">
+            <label class="role-option cashier" id="roleOptionCashier">
+              <input type="radio" name="accountRole" value="cashier" id="roleCashier">
+              <span class="role-option-inner">
+                <span class="role-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M8 15h4"/></svg>
+                </span>
+                <span>
+                  <strong>Cashier</strong>
+                  <span>Confirm payments and view history</span>
+                </span>
+              </span>
+            </label>
+            <label class="role-option collector" id="roleOptionCollector">
+              <input type="radio" name="accountRole" value="collector" id="roleCollector">
+              <span class="role-option-inner">
+                <span class="role-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.4-4 4-6 7.5-6s6.1 2 7.5 6"/></svg>
+                </span>
+                <span>
+                  <strong>Collector</strong>
+                  <span>See assigned loans and collections</span>
+                </span>
+              </span>
+            </label>
+          </div>
+          <div class="field-error" id="err-accountRole"></div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">
+          <span class="spinner" aria-hidden="true"></span>
+          <span class="btn-text">Submit Registration</span>
+        </button>
+
+        <div class="status-banner" id="statusBanner"></div>
+      </form>
+
+      <p class="support">Already have an account? <a class="link" href="role-selector.html">Login</a></p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Role card selection (visual only — writes into the radio inputs below)
+  document.querySelectorAll(".role-option").forEach(function (opt) {
+    opt.addEventListener("click", function () {
+      document.querySelectorAll(".role-option").forEach(function (o) { o.classList.remove("selected"); });
+      opt.classList.add("selected");
+      opt.querySelector("input[type=radio]").checked = true;
+    });
+  });
+
+  // Password visibility toggles
+  document.querySelectorAll(".toggle-pass").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      const target = document.getElementById(btn.dataset.target);
+      const isPass = target.type === "password";
+      target.type = isPass ? "text" : "password";
+      btn.setAttribute("aria-label", isPass ? "Hide password" : "Show password");
+    });
+  });
+</script>
+
+<script type="module">
+  import { auth, db } from "./firebase.js";
+  import { createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const form = document.getElementById("registerForm");
+  const submitBtn = document.getElementById("submitBtn");
+  const statusBanner = document.getElementById("statusBanner");
+
+  const fields = {
+    fullName: document.getElementById("fullName"),
+    contactNumber: document.getElementById("contactNumber"),
+    email: document.getElementById("email"),
+    password: document.getElementById("password"),
+    confirmPassword: document.getElementById("confirmPassword")
+  };
+
+  function setFieldError(name, message) {
+    const input = fields[name];
+    const errEl = document.getElementById("err-" + name);
+    if (message) {
+      if (input) input.classList.add("invalid");
+      if (errEl) errEl.textContent = message;
+    } else {
+      if (input) input.classList.remove("invalid");
+      if (errEl) errEl.textContent = "";
+    }
+  }
+
+  function clearErrors() {
+    Object.keys(fields).forEach(function (name) { setFieldError(name, ""); });
+    document.getElementById("err-accountRole").textContent = "";
+  }
+
+  function showBanner(message, kind) {
+    statusBanner.textContent = message;
+    statusBanner.className = "status-banner show " + kind;
+  }
+
+  function hideBanner() {
+    statusBanner.className = "status-banner";
+    statusBanner.textContent = "";
+  }
+
+  function setLoading(isLoading) {
+    submitBtn.disabled = isLoading;
+    submitBtn.classList.toggle("loading", isLoading);
+    submitBtn.querySelector(".btn-text").textContent = isLoading ? "Submitting..." : "Submit Registration";
+  }
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    clearErrors();
+    hideBanner();
+
+    const fullName = fields.fullName.value.trim();
+    const contactNumber = fields.contactNumber.value.trim();
+    const email = fields.email.value.trim();
+    const password = fields.password.value;
+    const confirmPassword = fields.confirmPassword.value;
+    const selectedRoleInput = document.querySelector('input[name="accountRole"]:checked');
+    const role = selectedRoleInput ? selectedRoleInput.value : "";
+
+    let hasError = false;
+
+    if (!fullName) { setFieldError("fullName", "Full name is required."); hasError = true; }
+    if (!contactNumber) { setFieldError("contactNumber", "Contact number is required."); hasError = true; }
+
+    if (!email) {
+      setFieldError("email", "Email is required.");
+      hasError = true;
+    } else if (!emailPattern.test(email)) {
+      setFieldError("email", "Enter a valid email address.");
+      hasError = true;
+    }
+
+    if (!password) {
+      setFieldError("password", "Password is required.");
+      hasError = true;
+    } else if (password.length < 6) {
+      setFieldError("password", "Password must be at least 6 characters.");
+      hasError = true;
+    }
+
+    if (!confirmPassword) {
+      setFieldError("confirmPassword", "Please confirm your password.");
+      hasError = true;
+    } else if (password && confirmPassword !== password) {
+      setFieldError("confirmPassword", "Passwords do not match.");
+      hasError = true;
+    }
+
+    if (role !== "cashier" && role !== "collector") {
+      document.getElementById("err-accountRole").textContent = "Please select Cashier or Collector.";
+      hasError = true;
+    }
+
+    if (hasError) {
+      showBanner("Please fix the highlighted fields.", "error");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const userCred = await createUserWithEmailAndPassword(auth, email, password);
+
+      await setDoc(doc(db, "users", userCred.user.uid), {
+        name: fullName,
+        email: email,
+        role: role,
+        status: "pending",
+        assignedName: "",
+        contactNumber: contactNumber,
+        createdAt: serverTimestamp()
+      });
+
+      // Sign the newly-created account back out — a pending account must not
+      // remain in an authenticated session until an Admin approves it.
+      try { await signOut(auth); } catch (e) { /* no-op */ }
+
+      form.reset();
+      document.querySelectorAll(".role-option").forEach(function (o) { o.classList.remove("selected"); });
+      showBanner("Registration submitted. Your account is pending Admin approval — you'll be able to sign in once it's approved.", "success");
+    } catch (error) {
+      console.error("Registration error:", error);
+      let message = "Something went wrong. Please try again.";
+      if (error.code === "auth/email-already-in-use") {
+        message = "This email is already registered.";
+      } else if (error.code === "auth/invalid-email") {
+        message = "Enter a valid email address.";
+      } else if (error.code === "auth/weak-password") {
+        message = "Password must be at least 6 characters.";
+      }
+      showBanner(message, "error");
+    } finally {
+      setLoading(false);
+    }
+  });
+</script>
+</body>
+</html>
