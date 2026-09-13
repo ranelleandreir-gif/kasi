@@ -141,6 +141,13 @@ body {
   width: 168px;
   height: 168px;
   object-fit: contain;
+  mix-blend-mode: multiply;
+  animation: spinLogo 8s linear infinite;
+}
+
+@keyframes spinLogo {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .auth-brand-top strong {
@@ -303,6 +310,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .auth-shell { animation: none; }
   * { transition-duration: .001ms !important; }
+  .auth-brand-top img { animation: none; }
 }
 </style>
 </head>
