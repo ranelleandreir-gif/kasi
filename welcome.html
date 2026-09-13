@@ -182,48 +182,55 @@ body {
       <button class="logout-btn" onclick="logout()">🚪 Logout</button>
     </div>
     <p class="subtext">Your dashboard is loading. When it is ready, you will be taken to the admin control center.</p>
-    <div class="admin-key-panel">
-      <input id="adminKey" type="password" placeholder="Enter admin access key">
-      <button id="unlockButton">Unlock Admin Dashboard</button>
-      <div class="status" id="adminStatus">Enter the access key to continue.</div>
-    </div>
-    <div class="loader" id="loader"></div>
+    <div class="status" id="adminStatus">Verifying admin session...</div>
+    <div class="loader active" id="loader"></div>
   </div>
 
-<script>
-  const ADMIN_ACCESS_KEY = "KASIPAG-ADMIN-2026";
-  const unlockButton = document.getElementById("unlockButton");
-  const adminKeyInput = document.getElementById("adminKey");
+<script type="module">
+  import { db, auth } from "./firebase.js";
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
   const adminStatus = document.getElementById("adminStatus");
-  const loader = document.getElementById("loader");
 
-  unlockButton.addEventListener("click", () => {
-    const value = adminKeyInput.value.trim();
-
-    if (!value) {
-      adminStatus.textContent = "Please enter the access key.";
+  // Re-uses the SAME Firebase Admin authentication + Firestore "role" check
+  // already used by admin-login.html / admin-dashboard.html.
+  // No new auth system, no Firebase config changes, no Firestore changes.
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      adminStatus.textContent = "Session not found. Redirecting to Admin Login...";
       adminStatus.style.color = "#f87171";
+      setTimeout(() => { window.location.replace("admin-login.html"); }, 900);
       return;
     }
 
-    if (value !== ADMIN_ACCESS_KEY) {
-      adminStatus.textContent = "Wrong access key. Try again.";
+    try {
+      const userSnap = await getDoc(doc(db, "users", user.uid));
+      const isAdmin = userSnap.exists() && userSnap.data().role === "admin";
+
+      if (!isAdmin) {
+        adminStatus.textContent = "This account is not authorized for Admin access.";
+        adminStatus.style.color = "#f87171";
+        await signOut(auth);
+        setTimeout(() => { window.location.replace("admin-login.html"); }, 1200);
+        return;
+      }
+
+      adminStatus.textContent = "Welcome to Admin Dashboard. Loading...";
+      adminStatus.style.color = "#22c55e";
+
+      setTimeout(() => {
+        window.location.replace("admin-dashboard.html");
+      }, 1200);
+    } catch (err) {
+      console.error("Welcome screen verification error:", err);
+      adminStatus.textContent = "Something went wrong. Redirecting to Admin Login...";
       adminStatus.style.color = "#f87171";
-      return;
+      setTimeout(() => { window.location.replace("admin-login.html"); }, 1200);
     }
-
-    adminStatus.textContent = "Access key accepted. Loading admin dashboard...";
-    adminStatus.style.color = "#22c55e";
-    loader.classList.add("active");
-    unlockButton.disabled = true;
-    adminKeyInput.disabled = true;
-
-    setTimeout(() => {
-      window.location.replace("admin-dashboard.html");
-    }, 1400);
   });
 
-  async function logout() {
+  window.logout = async function logout() {
     // Import Firebase auth dynamically
     const { getAuth, signOut } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");

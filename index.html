@@ -1362,8 +1362,8 @@ function goLogin(){
   window.location.href = "role-selector.html";
 }
 function goAdminProtection(){
-  // Existing Admin Protection gate (access-key check) before Admin Dashboard
-  window.location.href = "welcome.html";
+  // Admin flow: Logo -> Admin Login (Firebase auth) -> Welcome -> Admin Dashboard
+  window.location.href = "admin-login.html";
 }
 </script>
 
