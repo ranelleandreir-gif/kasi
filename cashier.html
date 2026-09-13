@@ -338,6 +338,20 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
   .loaner-popup{padding:22px 18px 20px}
 }
 
+/* ===== Loan Term / Interest preview (new feature — additive only) ===== */
+.term-extra{display:none;margin-top:2px}
+.term-extra.show{display:block}
+.interest-preview{
+  margin-top:14px;padding:14px 16px;border-radius:var(--radius-md);
+  background:var(--teal-soft);border:1px solid rgba(15,157,130,.25);
+}
+.interest-preview h5{margin:0 0 6px;font-size:.72rem;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:.05em}
+.interest-preview .review-row{padding:4px 0;color:var(--navy-900)}
+
+/* ===== Approved Loans / Assign Rider / Delete Request (new feature — additive only) ===== */
+.badge.green{background:var(--teal-soft);color:var(--teal)}
+.badge.red{background:var(--red-soft);color:var(--red)}
+
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes popIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -445,15 +459,31 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
     <!-- Step 2: Loan Details -->
     <div class="loaner-step hidden" id="loanerStep2">
       <div class="loaner-grid">
-        <div class="loaner-field"><label for="loanerAmount">Loan Amount (₱)</label><input type="number" id="loanerAmount" min="0" placeholder="e.g. 10000"></div>
+        <div class="loaner-field"><label for="loanerAmount">Loan Amount (₱)</label><input type="number" id="loanerAmount" min="0" placeholder="e.g. 10000" oninput="updateLoanerInterestPreview()"></div>
         <div class="loaner-field">
-          <label for="loanerFrequency">Payment Frequency</label>
-          <select id="loanerFrequency">
-            <option value="">Select frequency</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
+          <label for="loanerTerm">Loan Term</label>
+          <select id="loanerTerm" onchange="onLoanerTermChange()">
+            <option value="">Select loan term</option>
+            <option value="3">3 Months</option>
+            <option value="6">6 Months</option>
+            <option value="12">1 Year</option>
+            <option value="custom">Other / Custom Term</option>
           </select>
         </div>
+      </div>
+      <div class="term-extra" id="loanerCustomTermRow">
+        <div class="loaner-grid">
+          <div class="loaner-field"><label for="loanerCustomMonths">Custom Term (months)</label><input type="number" id="loanerCustomMonths" min="1" placeholder="e.g. 9" oninput="updateLoanerInterestPreview()"></div>
+          <div class="loaner-field"><label for="loanerCustomRate">Monthly Interest Rate (%)</label><input type="number" id="loanerCustomRate" min="0" step="0.01" placeholder="e.g. 0.5" oninput="updateLoanerInterestPreview()"></div>
+        </div>
+      </div>
+      <div class="interest-preview" id="loanerInterestPreview" style="display:none">
+        <h5>Interest &amp; Total Payable</h5>
+        <div class="review-row"><span>Principal Loan Amount</span><strong id="prevPrincipal">₱0</strong></div>
+        <div class="review-row"><span>Monthly Interest Rate</span><strong id="prevRate">0%</strong></div>
+        <div class="review-row"><span>Loan Term</span><strong id="prevTerm">—</strong></div>
+        <div class="review-row"><span>Total Interest</span><strong id="prevInterest">₱0</strong></div>
+        <div class="review-row"><span>Total Amount to Pay</span><strong id="prevTotal">₱0</strong></div>
       </div>
       <div class="loaner-actions">
         <button type="button" class="button outline" onclick="loanerBackToPersonal()">← Back</button>
@@ -467,6 +497,29 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
       <div class="loaner-actions">
         <button type="button" class="button outline" onclick="loanerBackToLoanDetails()">← Back</button>
         <button type="button" class="button green" id="loanerSubmitBtn" onclick="submitLoanerApplication()">Submit Application</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ASSIGN RIDER (new feature — additive only) ===================== -->
+<div id="riderOverlay" class="action-overlay" aria-hidden="true">
+  <div class="loaner-popup" style="width:min(420px,calc(100% - 32px));">
+    <div class="loaner-head">
+      <div>
+        <h3>Assign Rider</h3>
+        <p>Select which rider will collect this loan.</p>
+      </div>
+      <button type="button" class="loaner-close" onclick="closeRiderModal()" aria-label="Close">✕</button>
+    </div>
+    <div class="loaner-step" style="margin-top:16px">
+      <div class="loaner-field">
+        <label for="riderSelect">Rider</label>
+        <select id="riderSelect"><option value="">Loading riders...</option></select>
+      </div>
+      <div class="loaner-actions">
+        <span></span>
+        <button type="button" class="button green" id="riderConfirmBtn" onclick="confirmAssignRider()">Assign Rider</button>
       </div>
     </div>
   </div>
@@ -486,6 +539,14 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
     <button type="button" id="addLoanerBtn" class="nav-link nav-action" onclick="openAddLoanerModal()">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
       <span class="nav-label">Add Loaner</span><span class="nav-hint">ADD</span>
+    </button>
+    <button type="button" id="collectorRequestsTabBtn" class="nav-link nav-action" onclick="showCashierTab('collectorRequests')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 20a7 7 0 0 1 14 0"/><circle cx="12" cy="8" r="4"/></svg>
+      <span class="nav-label">Collector Loan Requests</span><span class="nav-hint">REVIEW</span><span class="nav-count" id="navCollectorRequestCount">0</span>
+    </button>
+    <button type="button" id="approvedLoansTabBtn" class="nav-link nav-action" onclick="showCashierTab('approvedLoans')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg>
+      <span class="nav-label">Approved Loans</span><span class="nav-hint">VIEW</span><span class="nav-count" id="navApprovedLoanCount">0</span>
     </button>
     <button type="button" id="collectedTabBtn" class="nav-link active" onclick="showCashierTab('collected')">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h5"/></svg>
@@ -603,6 +664,18 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
           <div id="deletedLoansList"></div>
         </section>
 
+        <!-- ===================== COLLECTOR LOAN REQUESTS (new feature — additive only) ===================== -->
+        <section class="card hidden" id="collectorRequestsSection">
+          <h2>Collector Loan Requests</h2>
+          <p style="color:var(--muted);font-size:.85rem;margin:-6px 0 14px;">Loans submitted by field collectors. Review and approve to send them to the admin for final approval — no re-entry needed.</p>
+          <div id="collectorRequestsList"></div>
+        </section>
+
+        <section class="card hidden" id="approvedLoansSection">
+          <h2>Approved Loans</h2>
+          <div id="approvedLoansList"></div>
+        </section>
+
         <section class="card hidden" id="balanceSection">
           <h2>Borrower Loan Balance</h2>
           <div class="button-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
@@ -624,6 +697,8 @@ window.showCashierTab = function(tab){
     payments: document.getElementById('paymentSection'),
     deleted: document.getElementById('deletedPaymentsSection'),
     deletedLoans: document.getElementById('deletedLoansSection'),
+    approvedLoans: document.getElementById('approvedLoansSection'),
+    collectorRequests: document.getElementById('collectorRequestsSection'),
     balance: document.getElementById('balanceSection')
   };
   const buttons = {
@@ -631,6 +706,8 @@ window.showCashierTab = function(tab){
     payments: document.getElementById('paymentsTabBtn'),
     deleted: document.getElementById('deletedPaymentsTabBtn'),
     deletedLoans: document.getElementById('deletedLoansTabBtn'),
+    approvedLoans: document.getElementById('approvedLoansTabBtn'),
+    collectorRequests: document.getElementById('collectorRequestsTabBtn'),
     balance: document.getElementById('balanceTabBtn')
   };
   Object.values(sections).forEach(el => el && el.classList.add('hidden'));
@@ -650,6 +727,7 @@ import {
   updateDoc,
   doc,
   getDoc,
+  getDocs,
   deleteDoc,
   onSnapshot,
   serverTimestamp
@@ -676,11 +754,15 @@ window.showCashierTab = (tab) => {
   const paymentsBtn = document.getElementById("paymentsTabBtn");
   const deletedBtn = document.getElementById("deletedPaymentsTabBtn");
   const deletedLoansBtn = document.getElementById("deletedLoansTabBtn");
+  const approvedLoansBtn = document.getElementById("approvedLoansTabBtn");
+  const collectorRequestsBtn = document.getElementById("collectorRequestsTabBtn");
   const balanceBtn = document.getElementById("balanceTabBtn");
   const collectedSection = document.getElementById("collectedSection");
   const paymentSection = document.getElementById("paymentSection");
   const deletedSection = document.getElementById("deletedPaymentsSection");
   const deletedLoansSection = document.getElementById("deletedLoansSection");
+  const approvedLoansSection = document.getElementById("approvedLoansSection");
+  const collectorRequestsSection = document.getElementById("collectorRequestsSection");
   const balanceSection = document.getElementById("balanceSection");
 
   // Hide all sections
@@ -688,11 +770,15 @@ window.showCashierTab = (tab) => {
   paymentSection.classList.add("hidden");
   deletedSection.classList.add("hidden");
   deletedLoansSection.classList.add("hidden");
+  approvedLoansSection.classList.add("hidden");
+  collectorRequestsSection.classList.add("hidden");
   balanceSection.classList.add("hidden");
   collectedBtn.classList.remove("active");
   paymentsBtn.classList.remove("active");
   deletedBtn.classList.remove("active");
   deletedLoansBtn.classList.remove("active");
+  approvedLoansBtn.classList.remove("active");
+  collectorRequestsBtn.classList.remove("active");
   balanceBtn.classList.remove("active");
 
   if (tab === "payments") {
@@ -704,6 +790,12 @@ window.showCashierTab = (tab) => {
   } else if (tab === "deletedLoans") {
     deletedLoansSection.classList.remove("hidden");
     deletedLoansBtn.classList.add("active");
+  } else if (tab === "approvedLoans") {
+    approvedLoansSection.classList.remove("hidden");
+    approvedLoansBtn.classList.add("active");
+  } else if (tab === "collectorRequests") {
+    collectorRequestsSection.classList.remove("hidden");
+    collectorRequestsBtn.classList.add("active");
   } else if (tab === "balance") {
     balanceSection.classList.remove("hidden");
     balanceBtn.classList.add("active");
@@ -716,13 +808,15 @@ window.showCashierTab = (tab) => {
 
 // Keep the existing tab logic intact while ensuring navigation buttons work reliably.
 document.addEventListener("click", (event) => {
-  const button = event.target.closest("#collectedTabBtn, #paymentsTabBtn, #deletedPaymentsTabBtn, #deletedLoansTabBtn, #balanceTabBtn");
+  const button = event.target.closest("#collectedTabBtn, #paymentsTabBtn, #deletedPaymentsTabBtn, #deletedLoansTabBtn, #approvedLoansTabBtn, #collectorRequestsTabBtn, #balanceTabBtn");
   if (!button) return;
   const tabMap = {
     collectedTabBtn: "collected",
     paymentsTabBtn: "payments",
     deletedPaymentsTabBtn: "deleted",
     deletedLoansTabBtn: "deletedLoans",
+    approvedLoansTabBtn: "approvedLoans",
+    collectorRequestsTabBtn: "collectorRequests",
     balanceTabBtn: "balance"
   };
   const tab = tabMap[button.id];
@@ -760,6 +854,8 @@ onAuthStateChanged(auth, async (user) => {
   loadPayments();
   loadTrashPayments();
   loadDeletedLoans();
+  loadApprovedLoans();
+  loadCollectorLoanRequests();
   loadBorrowerBalances();
   showBalancePanel('active');
 
@@ -1203,16 +1299,85 @@ function showLoanerStep(step) {
 }
 
 function resetLoanerForm() {
-  ["loanerFirstName", "loanerLastName", "loanerContact", "loanerEmail", "loanerAddress", "loanerOccupation", "loanerIncome", "loanerAmount"].forEach((id) => {
+  ["loanerFirstName", "loanerLastName", "loanerContact", "loanerEmail", "loanerAddress", "loanerOccupation", "loanerIncome", "loanerAmount", "loanerCustomMonths", "loanerCustomRate"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
   const genderEl = document.getElementById("loanerGender");
   if (genderEl) genderEl.selectedIndex = 0;
-  const freqEl = document.getElementById("loanerFrequency");
-  if (freqEl) freqEl.selectedIndex = 0;
+  const termEl = document.getElementById("loanerTerm");
+  if (termEl) termEl.selectedIndex = 0;
+  const customRow = document.getElementById("loanerCustomTermRow");
+  if (customRow) customRow.classList.remove("show");
+  const preview = document.getElementById("loanerInterestPreview");
+  if (preview) preview.style.display = "none";
   showLoanerStep(1);
 }
+
+// ===== Loan Term / Interest calculation (new feature — additive only) =====
+// Adjust monthly rates here if the business changes its tubo/interest policy.
+const LOANER_INTEREST_RATES = { "3": 1, "6": 0.5, "12": 0.4 }; // % per month
+
+function getLoanerTermMonths(termType) {
+  if (termType === "custom") return Number(document.getElementById("loanerCustomMonths").value) || 0;
+  return Number(termType) || 0;
+}
+
+function getLoanerMonthlyRate(termType) {
+  if (termType === "custom") return Number(document.getElementById("loanerCustomRate").value) || 0;
+  return LOANER_INTEREST_RATES[termType] || 0;
+}
+
+function loanerTermLabel(termType, months) {
+  if (termType === "3") return "3 Months";
+  if (termType === "6") return "6 Months";
+  if (termType === "12") return "1 Year";
+  if (termType === "custom") return `${months || 0} Month${months === 1 ? "" : "s"} (Custom)`;
+  return "—";
+}
+
+function computeLoanerInterest(amount, termType) {
+  const months = getLoanerTermMonths(termType);
+  const rate = getLoanerMonthlyRate(termType);
+  const totalInterest = amount > 0 && months > 0 ? Math.round(amount * (rate / 100) * months * 100) / 100 : 0;
+  const totalPayable = Math.round((amount + totalInterest) * 100) / 100;
+  return { months, rate, totalInterest, totalPayable };
+}
+
+window.onLoanerTermChange = () => {
+  const termType = document.getElementById("loanerTerm").value;
+  const customRow = document.getElementById("loanerCustomTermRow");
+  if (termType === "custom") {
+    customRow.classList.add("show");
+    const rateEl = document.getElementById("loanerCustomRate");
+    if (rateEl && !rateEl.value) rateEl.value = LOANER_INTEREST_RATES["12"];
+  } else {
+    customRow.classList.remove("show");
+  }
+  updateLoanerInterestPreview();
+};
+
+window.updateLoanerInterestPreview = () => {
+  const amount = Number(document.getElementById("loanerAmount").value) || 0;
+  const termType = document.getElementById("loanerTerm").value;
+  const preview = document.getElementById("loanerInterestPreview");
+  if (!preview) return;
+  if (!termType || !amount) {
+    preview.style.display = "none";
+    return;
+  }
+  const { months, rate, totalInterest, totalPayable } = computeLoanerInterest(amount, termType);
+  if (!months || !rate) {
+    preview.style.display = "none";
+    return;
+  }
+  preview.style.display = "block";
+  document.getElementById("prevPrincipal").innerText = `₱${amount.toLocaleString()}`;
+  document.getElementById("prevRate").innerText = `${rate}% per month`;
+  document.getElementById("prevTerm").innerText = loanerTermLabel(termType, months);
+  document.getElementById("prevInterest").innerText = `₱${totalInterest.toLocaleString()}`;
+  document.getElementById("prevTotal").innerText = `₱${totalPayable.toLocaleString()}`;
+};
 
 window.openAddLoanerModal = () => {
   resetLoanerForm();
@@ -1242,14 +1407,26 @@ window.loanerBackToPersonal = () => showLoanerStep(1);
 
 window.loanerNextFromLoanDetails = () => {
   const amount = Number(document.getElementById("loanerAmount").value);
-  const frequency = document.getElementById("loanerFrequency").value;
+  const termType = document.getElementById("loanerTerm").value;
   if (!amount || amount <= 0) {
     alert("Enter a valid loan amount.");
     return;
   }
-  if (!frequency) {
-    alert("Select a payment frequency.");
+  if (!termType) {
+    alert("Select a loan term.");
     return;
+  }
+  if (termType === "custom") {
+    const months = Number(document.getElementById("loanerCustomMonths").value);
+    const rate = Number(document.getElementById("loanerCustomRate").value);
+    if (!months || months <= 0) {
+      alert("Enter a valid custom term in months.");
+      return;
+    }
+    if (!rate || rate <= 0) {
+      alert("Enter a valid monthly interest rate for the custom term.");
+      return;
+    }
   }
   buildLoanerReview();
   showLoanerStep(3);
@@ -1260,7 +1437,8 @@ window.loanerBackToLoanDetails = () => showLoanerStep(2);
 function buildLoanerReview() {
   const val = (id) => document.getElementById(id).value.trim();
   const amount = Number(document.getElementById("loanerAmount").value);
-  const frequency = document.getElementById("loanerFrequency").value;
+  const termType = document.getElementById("loanerTerm").value;
+  const { months, rate, totalInterest, totalPayable } = computeLoanerInterest(amount, termType);
   const reviewBox = document.getElementById("loanerReviewContent");
   if (!reviewBox) return;
   reviewBox.innerHTML = `
@@ -1278,7 +1456,10 @@ function buildLoanerReview() {
     <div class="review-group">
       <h4>Loan Details</h4>
       <div class="review-row"><span>Loan Amount</span><strong>₱${amount.toLocaleString()}</strong></div>
-      <div class="review-row"><span>Payment Frequency</span><strong>${frequency === "weekly" ? "Weekly" : "Monthly"}</strong></div>
+      <div class="review-row"><span>Loan Term</span><strong>${loanerTermLabel(termType, months)}</strong></div>
+      <div class="review-row"><span>Monthly Interest Rate</span><strong>${rate}%</strong></div>
+      <div class="review-row"><span>Total Interest</span><strong>₱${totalInterest.toLocaleString()}</strong></div>
+      <div class="review-row"><span>Total Amount to Pay</span><strong>₱${totalPayable.toLocaleString()}</strong></div>
     </div>
   `;
 }
@@ -1288,7 +1469,8 @@ window.submitLoanerApplication = async () => {
   const firstName = val("loanerFirstName");
   const lastName = val("loanerLastName");
   const amount = Number(document.getElementById("loanerAmount").value);
-  const frequency = document.getElementById("loanerFrequency").value;
+  const termType = document.getElementById("loanerTerm").value;
+  const { months, rate, totalInterest, totalPayable } = computeLoanerInterest(amount, termType);
 
   const submitBtn = document.getElementById("loanerSubmitBtn");
   if (submitBtn) {
@@ -1311,7 +1493,13 @@ window.submitLoanerApplication = async () => {
       balance: amount,
       loanType: "solo",
       memberNames: null,
-      paymentFrequency: frequency,
+      loanTermType: termType,
+      loanTermMonths: months,
+      monthlyInterestRate: rate,
+      totalInterest,
+      totalPayable,
+      fromLoanApplication: true,
+      deletionRequested: false,
       status: "pending",
       pendingApproval: true,
       assignedCollectorId: null,
@@ -1333,6 +1521,246 @@ window.submitLoanerApplication = async () => {
       submitBtn.disabled = false;
       submitBtn.innerText = "Submit Application";
     }
+  }
+};
+
+// ===================== APPROVED LOANS / ASSIGN RIDER / DELETE REQUEST (new feature — additive only) =====================
+let approvedLoans = [];
+let riderAssignLoanId = null;
+
+function loadApprovedLoans() {
+  onSnapshot(collection(db, "loans"), (snap) => {
+    approvedLoans = [];
+    snap.forEach(d => {
+      const l = d.data();
+      if (l.deleted) return;
+      if (!l.fromLoanApplication) return;
+      // Show loans this cashier originally created, OR collector-submitted loans this cashier approved
+      const ownedByThisCashier = l.createdByCashierId === cashierId || (l.fromCollectorApplication && l.approvedByCashierId === cashierId);
+      if (!ownedByThisCashier) return;
+      if (l.status !== "approved" && l.status !== "assigned") return;
+      approvedLoans.push({ id: d.id, ...l });
+    });
+    renderApprovedLoans();
+  });
+}
+
+// ===================== COLLECTOR LOAN REQUESTS (new feature — additive only) =====================
+// Loans submitted by field Collectors via their "Add Loaner" workflow wait here for Cashier
+// review before moving on to Admin for final approval. No re-entry of loan data is needed —
+// this reads/writes the SAME loan record the Collector created.
+function loadCollectorLoanRequests() {
+  onSnapshot(collection(db, "loans"), (snap) => {
+    const list = document.getElementById("collectorRequestsList");
+    if (!list) return;
+
+    const requests = [];
+    snap.forEach(d => {
+      const l = d.data();
+      if (l.deleted) return;
+      if (!l.fromCollectorApplication) return;
+      if (l.status !== "pending_cashier_approval") return;
+      requests.push({ id: d.id, ...l });
+    });
+
+    const navBadge = document.getElementById("navCollectorRequestCount");
+    if (navBadge) navBadge.innerText = requests.length;
+
+    list.innerHTML = "";
+    if (!requests.length) {
+      list.innerHTML = `<div class="empty-state">No records found — no collector loan requests waiting for review.</div>`;
+      return;
+    }
+
+    requests.forEach(r => {
+      const termLabel = loanerTermLabel(r.loanTermType, r.loanTermMonths);
+      const submittedAt = r.createdAt && r.createdAt.toDate ? new Date(r.createdAt.toDate()).toLocaleString() : "N/A";
+      const item = document.createElement("div");
+      item.className = "item";
+      item.innerHTML = `
+        <div class="item-title">
+          <h3>${r.borrowerName}</h3>
+          <span class="badge">PENDING CASHIER APPROVAL</span>
+        </div>
+        <div style="display:grid; gap:8px; color:#d1d5db;">
+          <div>Contact Number: <strong>${r.contactNumber || "N/A"}</strong></div>
+          <div>Email: <strong>${r.email || "N/A"}</strong></div>
+          <div>Address: <strong>${r.address || "N/A"}</strong></div>
+          <div>Occupation: <strong>${r.occupation || "N/A"}</strong></div>
+          <div>Income: <strong>${r.income || "N/A"}</strong></div>
+          <div>Loan Amount: <strong>₱${(r.amount || 0).toLocaleString()}</strong></div>
+          <div>Loan Term: <strong>${termLabel}</strong></div>
+          <div>Monthly Interest: <strong>${r.monthlyInterestRate || 0}%</strong></div>
+          <div>Total Interest: <strong>₱${(r.totalInterest || 0).toLocaleString()}</strong></div>
+          <div>Total Payable: <strong>₱${(r.totalPayable || r.amount || 0).toLocaleString()}</strong></div>
+          <div>Submitted By (Collector): <strong>${r.createdByCollectorName || "Collector"}</strong></div>
+          <div>Submitted: <strong>${submittedAt}</strong></div>
+        </div>
+        <div class="card-actions">
+          <button class="button green" onclick="approveCollectorLoanRequest('${r.id}')">Approve</button>
+          <button class="button red" onclick="rejectCollectorLoanRequest('${r.id}')">Reject</button>
+        </div>
+      `;
+      list.appendChild(item);
+    });
+  });
+}
+
+window.approveCollectorLoanRequest = async (loanId) => {
+  const confirmed = window.confirm("Approve this collector loan request? It will be sent to the admin for final approval.");
+  if (!confirmed) return;
+  try {
+    await updateDoc(doc(db, "loans", loanId), {
+      status: "pending_admin_approval",
+      pendingApproval: true, // surfaces automatically in the Admin's existing Loan Applications queue
+      cashierApprovedAt: serverTimestamp(),
+      approvedByCashierId: cashierId,
+      approvedByCashierName: cashierName
+    });
+    alert("Loan request approved and sent to admin for final approval.");
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+};
+
+window.rejectCollectorLoanRequest = async (loanId) => {
+  const confirmed = window.confirm("Reject this collector loan request? This cannot be undone.");
+  if (!confirmed) return;
+  try {
+    await updateDoc(doc(db, "loans", loanId), {
+      status: "rejected",
+      pendingApproval: false,
+      rejectedByCashierId: cashierId,
+      rejectedByCashierName: cashierName,
+      rejectedAt: serverTimestamp()
+    });
+    alert("Collector loan request rejected.");
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+};
+
+function renderApprovedLoans() {
+  const list = document.getElementById("approvedLoansList");
+  if (!list) return;
+  list.innerHTML = "";
+
+  const navCount = document.getElementById("navApprovedLoanCount");
+  if (navCount) navCount.innerText = approvedLoans.length;
+
+  if (!approvedLoans.length) {
+    list.innerHTML = `<div class="empty-state">No records found — no approved loans yet.</div>`;
+    return;
+  }
+
+  approvedLoans.forEach(l => {
+    const item = document.createElement("div");
+    item.className = "item";
+    const termLabel = loanerTermLabel(l.loanTermType, l.loanTermMonths);
+    const deletionPending = !!l.deletionRequested;
+    item.innerHTML = `
+      <div class="item-title">
+        <h3>${l.borrowerName}</h3>
+        <span class="badge green">APPROVED</span>
+      </div>
+      <div style="display:grid; gap:8px; color:#d1d5db;">
+        <div>💰 Loan Amount: <strong>₱${(l.amount || 0).toLocaleString()}</strong></div>
+        <div>📅 Term: <strong>${termLabel}</strong></div>
+        <div>📈 Interest: <strong>${l.monthlyInterestRate || 0}% per month</strong></div>
+        <div>🧾 Total Payable: <strong>₱${(l.totalPayable || l.amount || 0).toLocaleString()}</strong></div>
+        <div>🏍️ Assigned Rider: <strong>${l.assignedCollectorName || "Unassigned"}</strong></div>
+        ${l.fromCollectorApplication ? `<div>📥 Origin: <strong>Submitted by Collector (${l.createdByCollectorName || "Collector"})</strong></div>` : ""}
+        ${deletionPending ? `<div>🗑️ <span class="badge red">DELETE REQUESTED</span> — awaiting admin review</div>` : ""}
+      </div>
+      <div class="card-actions">
+        <button class="button orange" onclick="openAssignRiderModal('${l.id}')">${l.assignedCollectorId ? "Reassign Rider" : "Assign Rider"}</button>
+        ${deletionPending ? "" : `<button class="button red" onclick="requestLoanDeletion('${l.id}')">Request Deletion</button>`}
+      </div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+window.openAssignRiderModal = async (loanId) => {
+  riderAssignLoanId = loanId;
+  const select = document.getElementById("riderSelect");
+  select.innerHTML = `<option value="">Loading riders...</option>`;
+  document.getElementById("riderOverlay").classList.add("active");
+
+  try {
+    const usersSnap = await getDocs(collection(db, "users"));
+    const riders = [];
+    usersSnap.forEach(d => {
+      const u = d.data();
+      if (u.role === "collector" && u.status === "approved" && !u.deleted) {
+        riders.push({ id: d.id, name: u.assignedName || u.name || "Rider" });
+      }
+    });
+
+    if (!riders.length) {
+      select.innerHTML = `<option value="">No riders available</option>`;
+      return;
+    }
+    select.innerHTML = riders.map(r => `<option value="${r.id}" data-name="${r.name}">${r.name}</option>`).join("");
+  } catch (error) {
+    select.innerHTML = `<option value="">Error loading riders</option>`;
+    alert("Error loading riders: " + error.message);
+  }
+};
+
+window.closeRiderModal = () => {
+  document.getElementById("riderOverlay").classList.remove("active");
+  riderAssignLoanId = null;
+};
+
+window.confirmAssignRider = async () => {
+  const select = document.getElementById("riderSelect");
+  const riderId = select.value;
+  if (!riderId) {
+    alert("Select a rider first.");
+    return;
+  }
+  const riderName = select.options[select.selectedIndex].dataset.name || select.options[select.selectedIndex].text;
+  const loanId = riderAssignLoanId;
+  if (!loanId) return;
+
+  const btn = document.getElementById("riderConfirmBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = "Assigning...";
+  }
+  try {
+    await updateDoc(doc(db, "loans", loanId), {
+      assignedCollectorId: riderId,
+      assignedCollectorName: riderName,
+      status: "assigned",
+      riderAssignedAt: serverTimestamp(),
+      riderAssignedBy: cashierId
+    });
+    window.closeRiderModal();
+  } catch (error) {
+    alert("Error: " + error.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = "Assign Rider";
+    }
+  }
+};
+
+window.requestLoanDeletion = async (loanId) => {
+  const confirmed = window.confirm("Request deletion of this loan? An admin must approve the request before it is removed.");
+  if (!confirmed) return;
+  try {
+    await updateDoc(doc(db, "loans", loanId), {
+      deletionRequested: true,
+      deletionRequestedAt: serverTimestamp(),
+      deletionRequestedBy: cashierId,
+      deletionRequestedByName: cashierName
+    });
+    alert("Deletion request sent to admin for approval.");
+  } catch (error) {
+    alert("Error: " + error.message);
   }
 };
 

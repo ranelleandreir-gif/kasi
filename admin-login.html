@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasipag Admin Login</title>
+
+<style>
+:root {
+  font-family: Inter, Arial, sans-serif;
+  color: #e5e7eb;
+  background: #080f1a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at top left, rgba(34,197,94,0.18), transparent 30%),
+              radial-gradient(circle at bottom right, rgba(59,130,246,0.16), transparent 25%),
+              linear-gradient(145deg, #07101b 0%, #090d14 55%, #101a2d 100%);
+}
+
+.container {
+  width: min(420px, calc(100% - 32px));
+  padding: 32px;
+  background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(10,14,25,0.92));
+  border: 1px solid rgba(148,163,184,0.12);
+  border-radius: 28px;
+  box-shadow: 0 28px 80px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.04);
+  backdrop-filter: blur(18px);
+  animation: fadeUp 0.75s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+  display: grid;
+  gap: 14px;
+  text-align: center;
+  margin-bottom: 26px;
+}
+
+.logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.header img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  box-shadow: 0 16px 64px rgba(0,0,0,0.5);
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.5vw, 1.9rem);
+}
+
+.header p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.field label {
+  font-size: 0.82rem;
+  color: #cbd5e1;
+}
+
+.field input {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.04);
+  color: #e5e7eb;
+  padding: 13px 14px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.field input:focus {
+  border-color: rgba(59,130,246,0.55);
+}
+
+.login-button {
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #22c55e, #3b82f6);
+  color: #071018;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  margin-top: 6px;
+}
+
+.login-button:hover { transform: translateY(-2px); }
+.login-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.status {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 0.88rem;
+  color: #94a3b8;
+  min-height: 1.2em;
+}
+
+@media (max-width: 480px) {
+  .container {
+    width: calc(100% - 24px);
+    padding: 26px 20px;
+  }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo-section">
+      <img src="logopo.png" alt="KASIPAG Logo">
+      <h1>Admin Login</h1>
+    </div>
+    <p>Restricted access. Sign in with your Kasipag admin account.</p>
+  </div>
+
+  <form id="adminLoginForm">
+    <div class="field">
+      <label for="adminEmail">Email</label>
+      <input id="adminEmail" type="email" autocomplete="username" required>
+    </div>
+    <div class="field">
+      <label for="adminPassword">Password</label>
+      <input id="adminPassword" type="password" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="login-button" id="loginButton">Sign In</button>
+    <div class="status" id="loginStatus"></div>
+  </form>
+</div>
+
+<script type="module">
+  import { db, auth } from "./firebase.js";
+  import { signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const form = document.getElementById("adminLoginForm");
+  const emailInput = document.getElementById("adminEmail");
+  const passwordInput = document.getElementById("adminPassword");
+  const statusEl = document.getElementById("loginStatus");
+  const loginButton = document.getElementById("loginButton");
+
+  function showStatus(message, kind) {
+    statusEl.textContent = message;
+    statusEl.style.color = kind === "error" ? "#f87171" : kind === "success" ? "#22c55e" : "#94a3b8";
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!email || !password) {
+      showStatus("Please enter both email and password.", "error");
+      return;
+    }
+
+    loginButton.disabled = true;
+    showStatus("Signing in...", "");
+
+    try {
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      const user = credential.user;
+
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists() || userSnap.data().role !== "admin") {
+        showStatus("This account is not authorized for Admin access.", "error");
+        await signOut(auth);
+        loginButton.disabled = false;
+        return;
+      }
+
+      const userData = userSnap.data();
+
+      localStorage.setItem("uid", user.uid);
+      localStorage.setItem("role", "admin");
+      localStorage.setItem("assignedName", userData.assignedName || userData.name || "Admin");
+      localStorage.setItem("email", userData.email || email);
+
+      try {
+        await updateDoc(userRef, { online: true, lastSeen: serverTimestamp() });
+      } catch (err) {
+        console.warn("Could not update online status:", err);
+      }
+
+      showStatus("Access granted. Loading Admin Dashboard...", "success");
+
+      setTimeout(() => {
+        window.location.href = "admin-dashboard.html";
+      }, 700);
+
+    } catch (error) {
+      console.error("Admin login error:", error);
+      let message = "Login failed. Please check your credentials.";
+      if (["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found", "auth/invalid-email"].includes(error.code)) {
+        message = "Incorrect email or password.";
+      } else if (error.code === "auth/too-many-requests") {
+        message = "Too many attempts. Please try again later.";
+      }
+      showStatus(message, "error");
+      loginButton.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

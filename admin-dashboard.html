@@ -790,7 +790,7 @@ textarea {
 <div class="app-shell">
 
   <aside class="sidebar" id="sidebar">
-    <div class="brand">
+    <div class="brand" onclick="window.location.href='admin-login.html'" style="cursor:pointer;" title="Go to Admin Login">
       <img src="logopo.png" alt="Kasipag Logo">
       <div class="brand-text">
         <strong>Kasipag</strong>
@@ -817,6 +817,11 @@ textarea {
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 8h1M9 12h6M9 16h6"/></svg>
       Loan Applications
       <span class="nav-badge" id="navLoanAppBadge" style="display:none;">0</span>
+    </button>
+    <button class="nav-link" data-tab="deletionRequests" onclick="openTab(this,'deletionRequests')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></svg>
+      Deletion Requests
+      <span class="nav-badge" id="navDeleteReqBadge" style="display:none;">0</span>
     </button>
 
     <div class="nav-group-label">Collections</div>
@@ -1041,6 +1046,17 @@ textarea {
       <div id="loan-apps-content"></div>
     </section>
 
+    <!-- ===================== DELETION REQUESTS (new feature — additive only) ===================== -->
+    <section id="deletionRequests" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Deletion Requests</h2>
+          <p>Cashiers can request deletion of an approved loan. Approve to move it to the deleted/recycle-bin system, or reject to keep it active.</p>
+        </div>
+      </div>
+      <div id="deletion-requests-content"></div>
+    </section>
+
     <!-- ===================== CREATE LOAN ===================== -->
     <section id="create" class="section">
       <div class="section-head">
@@ -1206,6 +1222,7 @@ onAuthStateChanged(auth, async (user) => {
   loadLoans();
   loadCollectors();
   loadLoanApplications();
+  loadDeletionRequests();
 });
 
 const topbarDateEl = document.getElementById("topbarDate");
@@ -1389,7 +1406,7 @@ function renderLoanFolder(title, list, parent) {
   table.className = "data-table";
   table.innerHTML = `
     <thead><tr>
-      <th>Borrower</th><th>Type</th><th class="num">Amount</th><th class="num">Balance</th><th>Status</th><th>Collector</th><th>Actions</th>
+      <th>Borrower</th><th>Type</th><th class="num">Amount</th><th class="num">Balance</th><th>Term</th><th>Status</th><th>Assigned Rider</th><th>Actions</th>
     </tr></thead>
     <tbody></tbody>
   `;
@@ -1417,7 +1434,11 @@ function renderLoanFolder(title, list, parent) {
       <td>${isGroup ? `<span class="status-chip collected" title="${l.memberNames.join(', ')}">Group · ${l.memberNames.length}</span>` : "Solo"}</td>
       <td class="num amount">${money(l.amount)}</td>
       <td class="num amount">${money(l.balance)}${paymentDateText ? `<div class="cell-sub">${paymentDateText}</div>` : ""}</td>
-      <td><span class="status-chip ${l.balance === 0 ? 'paid' : (l.status || 'assigned')}">${l.balance === 0 ? 'PAID' : (l.status || '').toUpperCase()}</span></td>
+      <td>${l.loanTermType ? `${loanTermLabel(l)}${l.monthlyInterestRate != null ? `<div class="cell-sub">${l.monthlyInterestRate}%/mo</div>` : ""}` : "—"}</td>
+      <td>
+        <span class="status-chip ${l.balance === 0 ? 'paid' : (l.status || 'assigned')}">${l.balance === 0 ? 'PAID' : (l.status || '').toUpperCase()}</span>
+        ${l.deletionRequested ? `<div class="cell-sub" style="color:var(--red);font-weight:700;margin-top:4px;">DELETE REQUESTED</div>` : ""}
+      </td>
       <td>${l.assignedCollectorName || "Unassigned"}</td>
       <td>
         <div class="row-actions">
@@ -1679,8 +1700,14 @@ function renderLoanApplications(apps, parent) {
         <div class="app-field"><span>Occupation</span><strong>${a.occupation || "N/A"}</strong></div>
         <div class="app-field"><span>Income</span><strong>${a.income || "N/A"}</strong></div>
         <div class="app-field"><span>Loan Amount</span><strong>${money(a.amount)}</strong></div>
-        <div class="app-field"><span>Payment Frequency</span><strong>${a.paymentFrequency === "weekly" ? "Weekly" : "Monthly"}</strong></div>
-        <div class="app-field"><span>Submitted By</span><strong>${a.createdByCashierName || "Cashier"}</strong></div>
+        <div class="app-field"><span>Loan Term</span><strong>${loanTermLabel(a)}</strong></div>
+        <div class="app-field"><span>Monthly Interest Rate</span><strong>${a.monthlyInterestRate != null ? a.monthlyInterestRate + "% / month" : "N/A"}</strong></div>
+        <div class="app-field"><span>Total Interest</span><strong>${a.totalInterest != null ? money(a.totalInterest) : "N/A"}</strong></div>
+        <div class="app-field"><span>Total Amount to Pay</span><strong>${a.totalPayable != null ? money(a.totalPayable) : "N/A"}</strong></div>
+        <div class="app-field"><span>Submitted By</span><strong>${a.fromCollectorApplication ? (a.createdByCollectorName || "Collector") : (a.createdByCashierName || "Cashier")}</strong></div>
+        ${a.fromCollectorApplication ? `<div class="app-field"><span>Origin</span><strong>Collector</strong></div>` : ""}
+        ${a.fromCollectorApplication ? `<div class="app-field"><span>Assigned Collector</span><strong>${a.assignedCollectorName || a.createdByCollectorName || "N/A"}</strong></div>` : ""}
+        ${a.fromCollectorApplication ? `<div class="app-field"><span>Cashier-Approved By</span><strong>${a.approvedByCashierName || "N/A"}</strong></div>` : ""}
         ${submittedAt ? `<div class="app-field"><span>Submitted</span><strong>${submittedAt}</strong></div>` : ""}
       </div>
       <div class="row-actions">
@@ -1699,13 +1726,35 @@ window.approveLoanApplication = async (id) => {
   const confirmed = window.confirm("Approve this loan application? The loan will become active once approved.");
   if (!confirmed) return;
 
+  // Look up the loan first so we can tell whether this came from a Collector.
+  // Collector-submitted loans already know their assigned Collector, so final
+  // admin approval can send them straight to "assigned" — no separate
+  // "Assign collector" step needed, and no duplicate loan record is created.
+  let isCollectorLoan = false;
+  let hasAssignedCollector = false;
+  try {
+    const snap = await getDoc(doc(db, "loans", id));
+    if (snap.exists()) {
+      const data = snap.data();
+      isCollectorLoan = !!data.fromCollectorApplication;
+      hasAssignedCollector = !!data.assignedCollectorId;
+    }
+  } catch (e) {
+    console.warn("Could not read loan before approval:", e);
+  }
+
   await runAction("Approving loan...", "Confirming borrower details and activating the loan.", async () => {
-    await updateDoc(doc(db, "loans", id), {
+    const updateData = {
       status: "approved",
       pendingApproval: false,
       approvedAt: serverTimestamp(),
       approvedBy: adminId
-    });
+    };
+    if (isCollectorLoan && hasAssignedCollector) {
+      updateData.status = "assigned";
+      updateData.riderAssignedAt = serverTimestamp();
+    }
+    await updateDoc(doc(db, "loans", id), updateData);
   });
   alert("Loan approved. It now appears under Borrowers & Loans.");
 };
@@ -1723,6 +1772,114 @@ window.rejectLoanApplication = async (id) => {
     });
   });
   alert("Loan application rejected.");
+};
+
+// ===================== LOAN TERM HELPER (new feature — additive only) =====================
+function loanTermLabel(l) {
+  if (!l || !l.loanTermType) return "N/A";
+  if (l.loanTermType === "3") return "3 Months";
+  if (l.loanTermType === "6") return "6 Months";
+  if (l.loanTermType === "12") return "1 Year";
+  if (l.loanTermType === "custom") return `${l.loanTermMonths || 0} Month${l.loanTermMonths === 1 ? "" : "s"} (Custom)`;
+  return "N/A";
+}
+
+// ===================== DELETION REQUESTS (new feature — additive only) =====================
+function loadDeletionRequests() {
+  onSnapshot(collection(db, "loans"), (snap) => {
+    const content = document.getElementById("deletion-requests-content");
+    if (!content) return;
+
+    const requests = [];
+    snap.forEach(d => {
+      const l = d.data();
+      if (l.deleted) return;
+      if (!l.deletionRequested) return;
+      requests.push({ id: d.id, ...l });
+    });
+
+    renderDeletionRequests(requests, content);
+
+    const badge = document.getElementById("navDeleteReqBadge");
+    if (badge) {
+      badge.textContent = requests.length;
+      badge.style.display = requests.length > 0 ? "inline-block" : "none";
+    }
+  });
+}
+
+function renderDeletionRequests(requests, parent) {
+  parent.innerHTML = "";
+
+  const box = document.createElement("div");
+  box.className = "panel";
+  box.innerHTML = `<div class="panel-title"><h3>Pending deletion requests</h3><span class="badge muted">${requests.length}</span></div>`;
+
+  if (!requests.length) {
+    box.innerHTML += `<div class="empty-state">No deletion requests waiting for review.</div>`;
+    parent.appendChild(box);
+    return;
+  }
+
+  const list = document.createElement("div");
+  requests.forEach(l => {
+    const card = document.createElement("div");
+    card.className = "app-card";
+    const requestedAt = fmtDate(l.deletionRequestedAt);
+    card.innerHTML = `
+      <div class="app-card-head">
+        <h4>${l.borrowerName || "Borrower"}</h4>
+        <span class="status-chip deleted">DELETE REQUESTED</span>
+      </div>
+      <div class="app-card-grid">
+        <div class="app-field"><span>Loan Amount</span><strong>${money(l.amount)}</strong></div>
+        <div class="app-field"><span>Balance</span><strong>${money(l.balance)}</strong></div>
+        <div class="app-field"><span>Loan Term</span><strong>${loanTermLabel(l)}</strong></div>
+        <div class="app-field"><span>Assigned Rider</span><strong>${l.assignedCollectorName || "Unassigned"}</strong></div>
+        <div class="app-field"><span>Requested By</span><strong>${l.deletionRequestedByName || "Cashier"}</strong></div>
+        ${requestedAt ? `<div class="app-field"><span>Requested</span><strong>${requestedAt}</strong></div>` : ""}
+      </div>
+      <div class="row-actions">
+        <button class="button red" onclick="approveLoanDeletion('${l.id}')">Approve Delete</button>
+        <button class="button outline" onclick="rejectLoanDeletion('${l.id}')">Reject Delete</button>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+  box.appendChild(list);
+  parent.appendChild(box);
+}
+
+window.approveLoanDeletion = async (id) => {
+  const confirmed = window.confirm("Approve this deletion request? The loan will be moved to the deleted/recycle-bin system.");
+  if (!confirmed) return;
+
+  await runAction("Deleting loan...", "Moving this loan to the deleted records.", async () => {
+    await updateDoc(doc(db, "loans", id), {
+      deleted: true,
+      deletedAt: serverTimestamp(),
+      deletedBy: adminId,
+      deletionRequested: false,
+      deletionApprovedAt: serverTimestamp(),
+      deletionApprovedBy: adminId
+    });
+  });
+  alert("Deletion approved. The loan has been moved to the deleted records.");
+};
+
+window.rejectLoanDeletion = async (id) => {
+  const confirmed = window.confirm("Reject this deletion request? The loan will remain active.");
+  if (!confirmed) return;
+
+  await runAction("Rejecting deletion request...", "Restoring the loan to its previous status.", async () => {
+    await updateDoc(doc(db, "loans", id), {
+      deletionRequested: false,
+      deletionRejectedAt: serverTimestamp(),
+      deletionRejectedBy: adminId
+    });
+  });
+  alert("Deletion request rejected. The loan remains active.");
 };
 
 function updateOverviewStats(active, paid) {

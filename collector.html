@@ -3,585 +3,679 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title> Kasipag Collector</title>
+<title>Kasipag Collector</title>
 
 <style>
-body{
-  margin:0;
-  font-family:Inter, Arial, sans-serif;
-  background:#0b1220;
-  color:white;
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  color-scheme:light;
+  --font-head:'Manrope',Arial,sans-serif;
+  --font-body:'Inter',Arial,sans-serif;
+  --navy-900:#0b1e3d;
+  --navy-800:#12294e;
+  --navy-700:#1b3763;
+  --blue:#2f6fed;
+  --blue-soft:#e8effe;
+  --teal:#0f9d82;
+  --teal-soft:#e3f7f2;
+  --gold:#c79a3c;
+  --gold-soft:#faf1dd;
+  --amber:#b8791c;
+  --amber-soft:#fbf0dd;
+  --red:#c13b3b;
+  --red-soft:#fbeaea;
+  --bg:#f2f5fa;
+  --surface:#fff;
+  --surface-alt:#f7f9fc;
+  --border:#e2e7f0;
+  --text:#14213d;
+  --muted:#5c6a86;
+  --muted-2:#8592ab;
+  --radius-lg:18px;
+  --radius-md:12px;
+  --radius-sm:8px;
+  --shadow-card:0 1px 2px rgba(15,30,60,.04),0 8px 24px rgba(15,30,60,.06);
+  --shadow-pop:0 24px 60px rgba(11,30,61,.28);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:15px;-webkit-font-smoothing:antialiased}
+body{overflow-x:hidden}
+button,input,select{font-family:var(--font-body)}
+h1,h2,h3,h4{font-family:var(--font-head);color:var(--navy-900);margin:0}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+::selection{background:var(--blue-soft)}
+
+.app-shell{
   min-height:100vh;
-  background: radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 20%),
-              radial-gradient(circle at bottom right, rgba(34,197,94,0.16), transparent 18%),
-              #0b1220;
-}
-
-* { box-sizing: border-box; }
-
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(circle at 75% 25%, rgba(255,255,255,0.06), transparent 13%),
-              radial-gradient(circle at 20% 80%, rgba(34,197,94,0.08), transparent 12%);
-  pointer-events: none;
-}
-
-.page {
-  width: min(1200px, calc(100% - 32px));
-  margin: 0 auto;
-  padding: 24px 0 40px;
-  opacity: 0;
-  transform: translateY(16px);
-  animation: pagePop 0.72s ease forwards;
-}
-
-.action-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(7,11,18,0.74);
-  display: grid;
-  place-items: center;
-  z-index: 50;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.24s ease, visibility 0.24s ease;
-}
-
-.action-overlay.active {
-  opacity: 1;
-  visibility: visible;
-}
-
-.action-popup {
-  width: min(420px, calc(100% - 40px));
-  padding: 28px 26px;
-  border-radius: 28px;
-  background: rgba(15,23,42,0.96);
-  border: 1px solid rgba(148,163,184,0.16);
-  box-shadow: 0 34px 90px rgba(0,0,0,0.35);
-  text-align: center;
-  animation: popIn 0.28s ease both;
-}
-
-.action-popup .spinner {
-  width: 52px;
-  height: 52px;
-  margin: 0 auto 16px;
-  border-radius: 50%;
-  border: 5px solid rgba(255,255,255,0.14);
-  border-top-color: #22c55e;
-  animation: spin 0.85s linear infinite;
-}
-
-.action-popup strong {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 1.1rem;
-}
-
-.action-popup span {
-  color: #94a3b8;
-  font-size: 0.95rem;
-}
-
-@keyframes popIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes pagePop {
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  gap: 24px;
-}
-
-.main-panel {
-  display: grid;
-  gap: 24px;
-}
-
-.sidebar {
-  background: rgba(15,23,42,0.96);
-  border: 1px solid rgba(148,163,184,0.16);
-  border-radius: 24px;
-  padding: 24px;
-  position: sticky;
-  top: 24px;
-  min-height: 420px;
-}
-
-.sidebar h2 {
-  margin: 0 0 20px;
-  font-size: 1.1rem;
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  border: 1px solid rgba(148,163,184,0.12);
-  background: transparent;
-  color: white;
-  border-radius: 16px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
-  cursor: pointer;
-  text-align: left;
-  transition: background .2s ease, border-color .2s ease;
-}
-
-.nav-link.active {
-  background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(34,197,94,0.14));
-  border-color: rgba(59,130,246,0.55);
-}
-
-.nav-link:hover {
-  border-color: rgba(59,130,246,0.35);
-}
-
-.sidebar-summary {
-  margin-top: 28px;
-  display: grid;
-  gap: 12px;
-}
-
-.summary-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(148,163,184,0.16);
-}
-
-.summary-item strong {
-  font-size: 0.98rem;
-}
-
-/* TOP BAR */
-.top{
-  padding:24px 24px 20px;
-  background:rgba(15,23,42,0.75);
-  text-align:center;
-  border-radius: 24px;
-  border:1px solid rgba(255,255,255,0.08);
-  backdrop-filter: blur(20px);
-  margin-bottom: 24px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.top:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 24px 45px rgba(34,197,94,0.12);
-}
-
-.top-brand {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-
-.top-brand img {
-  width: 72px;
-  height: 72px;
-  object-fit: contain;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-}
-
-.top-content {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-
-.top-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.top-content h1 {
-  margin: 0;
-  font-size: clamp(2rem, 2.5vw, 2.8rem);
-  letter-spacing: -0.04em;
-}
-
-.top-actions .logout-btn {
-  min-width: 140px;
-}
-
-@media (max-width: 860px) {
-  .top-brand {
-    gap: 14px;
-  }
-
-  .top-brand img {
-    width: 60px;
-    height: 60px;
-  }
-
-  .top-content h1 {
-    font-size: clamp(1.8rem, 5vw, 2.3rem);
-  }
-}
-
-@media (max-width: 560px) {
-  .top {
-    padding: 18px 16px 16px;
-  }
-
-  .top-brand {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .top-brand img {
-    width: 52px;
-    height: 52px;
-  }
-
-  .logout-btn {
-    width: 100%;
-  }
-}
-
-.top-content p {
-  margin: 0;
-  color: #9ca3af;
-  max-width: 720px;
-}
-
-.logout-btn {
-  background: var(--red);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 10px 16px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.logout-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
-}
-
-/* STATS */
-.stats{
   display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap:16px;
-  margin: 20px 0 0;
+  grid-template-columns:248px minmax(0,1fr);
+  grid-template-rows:64px minmax(0,1fr);
+  grid-template-areas:"sidebar topbar" "sidebar main";
 }
-
-.box{
-  background:rgba(255,255,255,0.08);
-  padding:18px 20px;
-  border-radius:18px;
-  text-align:center;
-  border:1px solid rgba(255,255,255,0.08);
-  transition: transform 0.26s ease, box-shadow 0.26s ease;
+.sidebar{
+  grid-area:sidebar;
+  position:sticky;top:0;height:100vh;
+  padding:18px 14px 20px;
+  background:var(--navy-900);
+  background-image:radial-gradient(circle at 15% 0%,rgba(47,111,237,.25),transparent 40%);
+  color:#cfd9ee;
+  overflow-y:auto;z-index:40;
+  display:flex;flex-direction:column;
 }
-
-.box:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 20px 45px rgba(0,0,0,0.18);
+.brand{
+  display:flex;align-items:center;gap:12px;
+  padding:6px 8px 20px;margin-bottom:14px;
+  border-bottom:1px solid rgba(255,255,255,.08);
 }
-
-.box strong {
-  display: block;
-  font-size: 1.9rem;
-  margin-bottom: 8px;
-  color: #fff;
+.brand img{width:40px;height:40px;border-radius:10px;object-fit:contain;background:#fff;padding:3px}
+.brand-text strong{display:block;color:#fff;font-family:var(--font-head);font-size:1rem;line-height:1.2}
+.brand-text span{font-size:.72rem;color:#93a2c4}
+.nav-group-label{
+  font-size:.68rem;color:#6f7fa3;font-weight:700;letter-spacing:.06em;
+  padding:14px 10px 7px;text-transform:uppercase
 }
-
-.box span {
-  color: #9ca3af;
+.nav-link{
+  width:100%;display:flex;align-items:center;gap:11px;
+  border:1px solid transparent;background:transparent;color:#cfd9ee;
+  border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:3px;
+  cursor:pointer;text-align:left;font-size:.84rem;font-weight:600;
+  transition:background .18s ease,color .18s ease,transform .18s ease,border-color .18s ease;
 }
-
-/* LIST */
-#assignedList,
-#collectList {
-  padding-bottom: 22px;
-  display: grid;
-  gap: 16px;
+.nav-link:hover{background:rgba(255,255,255,.07);color:#fff;transform:translateX(2px)}
+.nav-link.active{
+  background:linear-gradient(135deg,#2f6fed 0%,#1856cf 100%);
+  color:#fff;
+  border-color:rgba(160,195,255,.9);
+  box-shadow:inset 4px 0 0 #fff,0 10px 26px rgba(47,111,237,.45);
+  font-weight:800;
+  transform:translateX(2px)
 }
+.nav-link svg{flex-shrink:0;opacity:.9}
+.nav-link .nav-label{flex:1;min-width:0}
+.nav-count{margin-left:auto;min-width:22px;height:22px;padding:0 6px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.09);color:#dbe4f7;font-size:.68rem;font-weight:800}
+.nav-link.active .nav-count{background:rgba(255,255,255,.18);color:#fff}
+.nav-link.active .nav-hint{background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.3)}
 
-/* CARD */
+.nav-action{
+  position:relative;
+  border-color:rgba(47,111,237,.16);
+  background:rgba(255,255,255,.035);
+  box-shadow:inset 3px 0 0 rgba(47,111,237,.55);
+}
+.nav-action::after{
+  content:"›";
+  margin-left:2px;
+  color:#91a4c8;
+  font-size:1.25rem;
+  line-height:1;
+  transition:transform .18s ease,color .18s ease;
+}
+.nav-action:hover::after{transform:translateX(4px);color:#fff}
+.nav-action:hover{
+  background:linear-gradient(90deg,rgba(47,111,237,.16),rgba(47,111,237,.07));
+  border-color:rgba(47,111,237,.45);
+  box-shadow:inset 3px 0 0 var(--blue),0 7px 18px rgba(0,0,0,.12);
+}
+.nav-action:active{transform:translateX(2px) scale(.985)}
+.nav-action.active{
+  background:linear-gradient(135deg,#2f6fed 0%,#1856cf 100%);
+  border-color:rgba(160,195,255,.9);
+  box-shadow:inset 4px 0 0 #fff,0 10px 26px rgba(47,111,237,.45);
+}
+.nav-action.active::after{content:"✓";color:#fff;font-size:.85rem;font-weight:900}
+.nav-hint{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:3px 6px;border-radius:6px;
+  background:rgba(47,111,237,.1);color:#7ea9ff;
+  border:1px solid rgba(47,111,237,.2);
+  font-size:.55rem;font-weight:900;letter-spacing:.06em;
+  opacity:.9;transition:background .18s ease,color .18s ease,border-color .18s ease
+}
+.nav-action:hover .nav-hint{background:rgba(47,111,237,.2);color:#bcd3ff;border-color:rgba(47,111,237,.4)}
+.nav-action.active .nav-hint{background:rgba(255,255,255,.16);color:#fff;border-color:rgba(255,255,255,.25)}
+
+.sidebar-summary{margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,.08);display:grid;gap:8px}
+.summary-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:9px 12px;border-radius:var(--radius-sm);
+  background:rgba(255,255,255,.045);font-size:.78rem
+}
+.summary-item strong{color:#dbe4f7;font-weight:500}
+.summary-item span{color:#fff;font-weight:800;font-family:var(--font-head)}
+
+.topbar{
+  grid-area:topbar;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:16px;padding:0 22px;position:sticky;top:0;z-index:30;
+}
+.topbar-title{display:flex;align-items:center;gap:10px}
+.topbar-mark{
+  width:34px;height:34px;border-radius:10px;background:var(--blue-soft);color:var(--blue);
+  display:grid;place-items:center
+}
+.topbar-title strong{font-family:var(--font-head);font-size:.92rem;color:var(--navy-900)}
+.topbar-title span{display:block;color:var(--muted-2);font-size:.72rem;margin-top:1px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.cashier-chip{
+  display:flex;align-items:center;gap:9px;padding:6px 12px 6px 6px;
+  border:1px solid var(--border);background:var(--surface-alt);border-radius:999px
+}
+.cashier-avatar{
+  width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--navy-700),var(--blue));color:#fff;
+  font-family:var(--font-head);font-weight:800;font-size:.78rem
+}
+.cashier-chip strong{display:block;font-size:.8rem}
+.cashier-chip span{display:block;color:var(--muted-2);font-size:.68rem}
+.logout-btn{
+  border:1px solid var(--red);background:var(--red-soft);color:var(--red);
+  border-radius:var(--radius-sm);padding:8px 13px;font-size:.8rem;font-weight:700;
+  cursor:pointer;transition:transform .15s ease,background .15s ease,box-shadow .15s ease
+}
+.logout-btn:hover{transform:translateY(-1px);background:#f6dcdc;box-shadow:0 8px 18px rgba(193,59,59,.12)}
+.refresh-btn{
+  border:1px solid var(--border);background:var(--surface-alt);color:var(--navy-800);
+  border-radius:var(--radius-sm);padding:8px 13px;font-size:.8rem;font-weight:700;
+  cursor:pointer;transition:transform .15s ease,background .15s ease
+}
+.refresh-btn:hover{transform:translateY(-1px);background:#eef2f9}
+
+.main{
+  grid-area:main;min-width:0;padding:24px 26px 60px;
+}
+.main-panel{max-width:1400px;margin:0 auto}
+.hero{
+  display:flex;justify-content:space-between;align-items:center;gap:20px;
+  padding:22px 24px;margin-bottom:20px;
+  background:linear-gradient(135deg,#fff 0%,#f8fbff 100%);
+  border:1px solid var(--border);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-card);position:relative;overflow:hidden
+}
+.hero:after{
+  content:"";position:absolute;width:220px;height:220px;border-radius:50%;
+  right:-90px;top:-120px;background:rgba(47,111,237,.08);pointer-events:none
+}
+.hero-copy{position:relative;z-index:1}
+.eyebrow{font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);margin-bottom:6px}
+.hero h1{font-size:clamp(1.45rem,2vw,2rem);letter-spacing:-.03em}
+.hero p{margin:5px 0 0;color:var(--muted);font-size:.84rem}
+.hero-meta{display:flex;align-items:center;gap:9px;position:relative;z-index:1;flex-wrap:wrap}
+.live-pill{
+  display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border-radius:999px;
+  background:var(--teal-soft);color:var(--teal);font-size:.72rem;font-weight:800
+}
+.live-pill:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px rgba(15,157,130,.12)}
+
+.stats{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:20px
+}
+.stat{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:17px 19px;box-shadow:var(--shadow-card);position:relative;overflow:hidden;
+  transition:transform .18s ease,box-shadow .18s ease
+}
+.stat:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--blue))}
+.stat:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(15,30,60,.1)}
+.stat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px}
+.stat-icon{
+  width:35px;height:35px;border-radius:10px;display:grid;place-items:center;
+  color:var(--accent,var(--blue));background:var(--accent-soft,var(--blue-soft))
+}
+.stat strong{display:block;font-family:var(--font-head);font-size:1.55rem;font-weight:800;color:var(--navy-900);line-height:1;margin-bottom:5px;font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:.78rem}
+.stat-hint{font-size:.68rem!important;color:var(--muted-2)!important;margin-top:6px;display:block}
+
+.container{display:block}
 .card{
-  background:rgba(255,255,255,0.05);
-  padding:18px;
-  border-radius:16px;
-  backdrop-filter:blur(10px);
-  border: 1px solid rgba(255,255,255,0.08);
-  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:20px 22px;margin-bottom:18px;box-shadow:var(--shadow-card);
+  animation:fadeUp .28s ease both
+}
+.card h2{
+  display:flex;align-items:center;gap:9px;font-size:1.02rem;font-weight:800;
+  padding-bottom:13px;margin-bottom:14px;border-bottom:1px solid var(--border)
+}
+.card h2:before{
+  content:"";width:4px;height:20px;border-radius:4px;background:linear-gradient(var(--blue),var(--teal))
+}
+.card-subtext{color:var(--muted);font-size:.85rem;margin:-6px 0 14px}
+.item{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:17px;margin-bottom:12px;box-shadow:0 3px 12px rgba(15,30,60,.035);
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+.item:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(15,30,60,.08);border-color:#d3dbea}
+.item:last-child{margin-bottom:0}
+.item-title{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:13px;flex-wrap:wrap}
+.item-title h3{font-size:.98rem;font-weight:800;color:var(--navy-900)}
+.detail-grid{display:grid;gap:8px;color:var(--muted);font-size:.82rem}
+.detail-grid strong{color:var(--text)}
+.badge{
+  display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;
+  background:var(--blue-soft);color:var(--blue);font-size:.7rem;font-weight:800;white-space:nowrap
+}
+.badge.green{background:var(--teal-soft);color:var(--teal)}
+.badge.red{background:var(--red-soft);color:var(--red)}
+.badge.orange{background:var(--gold-soft);color:var(--gold)}
+.badge.amber{background:var(--amber-soft);color:var(--amber)}
+
+.collect-highlight{
+  margin-top:12px;padding:13px 15px;border-radius:var(--radius-md);
+  background:var(--surface-alt);border:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
+}
+.collect-highlight.late{background:var(--red-soft);border-color:rgba(193,59,59,.25)}
+.collect-highlight .label{font-size:.74rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.collect-highlight strong{font-family:var(--font-head);font-size:1.15rem;color:var(--navy-900)}
+.collect-highlight.late strong{color:var(--red)}
+.penalty-line{color:var(--red);font-weight:800;font-size:.82rem;margin-top:6px}
+
+.input-group{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;margin-top:15px}
+input,select{
+  width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--surface-alt);color:var(--text);padding:10px 12px;font-size:.84rem;outline:none;
+  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease
+}
+input::placeholder{color:#9aa6ba}
+input:focus,select:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(47,111,237,.1)}
+.select-label{display:block;margin-bottom:6px;color:var(--muted);font-size:.78rem;font-weight:600}
+.row{margin-top:10px}
+.button,.card-actions button{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:38px;padding:9px 13px;border-radius:var(--radius-sm);
+  border:1px solid transparent;font-size:.78rem;font-weight:700;cursor:pointer;
+  transition:transform .15s ease,box-shadow .15s ease,background .15s ease,border-color .15s ease;
+}
+.button:hover,.card-actions button:hover{transform:translateY(-1px)}
+.button.green{background:var(--teal);color:#fff;box-shadow:0 5px 12px rgba(15,157,130,.16)}
+.button.green:hover{box-shadow:0 8px 18px rgba(15,157,130,.22)}
+.button.blue{background:var(--blue);color:#fff}
+.button.red,.card-actions .button.red{background:var(--red);color:#fff}
+.button.orange{background:var(--gold);color:#fff}
+.button.outline{background:#fff;color:var(--navy-800);border-color:var(--border)}
+.card-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px!important}
+
+.empty-state{
+  padding:34px 20px;border-radius:var(--radius-md);background:var(--surface-alt);
+  border:1px dashed var(--border);color:var(--muted);text-align:center;font-size:.84rem
+}
+.hidden{display:none!important}
+
+.action-overlay{
+  position:fixed;inset:0;background:rgba(11,30,61,.55);display:grid;place-items:center;
+  z-index:100;opacity:0;visibility:hidden;transition:opacity .2s ease,visibility .2s ease
+}
+.action-overlay.active{opacity:1;visibility:visible}
+.action-popup{
+  width:min(400px,calc(100% - 40px));padding:30px 26px;border-radius:20px;background:#fff;
+  border:1px solid var(--border);box-shadow:var(--shadow-pop);text-align:center;animation:popIn .28s ease both
+}
+.action-popup .spinner{
+  width:44px;height:44px;margin:0 auto 16px;border-radius:50%;
+  border:4px solid var(--blue-soft);border-top-color:var(--blue);animation:spin .8s linear infinite
+}
+.action-popup strong{display:block;margin-bottom:8px;font-size:1.02rem;color:var(--navy-900)}
+.action-popup span{color:var(--muted);font-size:.86rem}
+
+/* ===== Add Loaner modal ===== */
+.loaner-popup{
+  width:min(640px,calc(100% - 32px));max-height:88vh;overflow-y:auto;
+  padding:28px 26px 24px;border-radius:20px;background:#fff;
+  border:1px solid var(--border);box-shadow:var(--shadow-pop);
+  text-align:left;animation:popIn .28s ease both;
+}
+.loaner-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:4px}
+.loaner-head h3{font-size:1.15rem;font-weight:800;color:var(--navy-900)}
+.loaner-head p{margin:4px 0 0;color:var(--muted);font-size:.82rem}
+.loaner-close{
+  border:none;background:var(--surface-alt);color:var(--muted);width:30px;height:30px;
+  border-radius:50%;font-size:1rem;cursor:pointer;display:grid;place-items:center;flex-shrink:0;
+  transition:background .15s ease,color .15s ease
+}
+.loaner-close:hover{background:var(--red-soft);color:var(--red)}
+.loaner-progress{display:flex;gap:6px;margin:18px 0 16px}
+.loaner-progress span{flex:1;height:4px;border-radius:999px;background:var(--border);transition:background .2s ease}
+.loaner-progress span.done{background:var(--blue)}
+.loaner-step-label{font-size:.7rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);margin-bottom:14px}
+.loaner-step{display:grid;gap:14px}
+.loaner-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.loaner-field label{display:block;margin-bottom:6px;color:var(--muted);font-size:.8rem;font-weight:600}
+.loaner-field select{
+  width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--surface-alt);color:var(--text);padding:10px 12px;font-size:.84rem;
+  font-family:var(--font-body);outline:none;transition:border-color .15s ease,box-shadow .15s ease
+}
+.loaner-field select:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(47,111,237,.1)}
+.loaner-actions{display:flex;justify-content:space-between;gap:10px;margin-top:6px;padding-top:16px;border-top:1px solid var(--border)}
+.review-group{margin-bottom:16px}
+.review-group h4{font-size:.82rem;font-weight:800;color:var(--navy-900);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.review-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:.84rem;color:var(--muted)}
+.review-row strong{color:var(--text);font-weight:700;text-align:right}
+@media (max-width:600px){
+  .loaner-grid{grid-template-columns:1fr}
+  .loaner-popup{padding:22px 18px 20px}
 }
 
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 34px rgba(0,0,0,0.24);
+.term-extra{display:none;margin-top:2px}
+.term-extra.show{display:block}
+.interest-preview{
+  margin-top:14px;padding:14px 16px;border-radius:var(--radius-md);
+  background:var(--teal-soft);border:1px solid rgba(15,157,130,.25);
+}
+.interest-preview h5{margin:0 0 6px;font-size:.72rem;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:.05em}
+.interest-preview .review-row{padding:4px 0;color:var(--navy-900)}
+
+/* ===== Collect Payment modal ===== */
+.collect-popup{
+  width:min(460px,calc(100% - 32px));padding:26px 24px 22px;border-radius:20px;background:#fff;
+  border:1px solid var(--border);box-shadow:var(--shadow-pop);text-align:left;animation:popIn .28s ease both;
 }
 
-.item-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media (max-width:1100px){
+  .app-shell{grid-template-columns:220px minmax(0,1fr)}
+  .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
-
-.item-title h3 {
-  margin: 0;
-  font-size: 1.05rem;
+@media (max-width:900px){
+  .app-shell{display:block;min-height:100vh}
+  .sidebar{
+    position:sticky;top:0;height:auto;padding:10px 12px;
+    flex-direction:row;align-items:center;gap:7px;overflow-x:auto;overflow-y:hidden;
+    box-shadow:0 5px 18px rgba(11,30,61,.14);z-index:50
+  }
+  .brand{padding:0 10px 0 2px;margin:0;border:0;flex:0 0 auto}
+  .brand img{width:34px;height:34px}
+  .brand-text span{display:none}
+  .nav-group-label{display:none}
+  .nav-link{width:auto;flex:0 0 auto;margin:0;padding:9px 11px;white-space:nowrap}
+  .nav-action{min-width:max-content}
+  .nav-hint{display:none}
+  .sidebar-summary{display:none}
+  .topbar{position:relative;height:58px;padding:0 14px}
+  .main{padding:18px 14px 45px}
+  .cashier-chip span{display:none}
+  .hero{padding:18px 19px}
 }
-
-.row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-  font-size: 0.9rem;
-  color: #cbd5e1;
+@media (max-width:680px){
+  .stats{grid-template-columns:1fr}
+  .hero{align-items:flex-start;flex-direction:column}
+  .hero-meta{width:100%}
+  .live-pill{width:100%;justify-content:center}
+  .input-group{grid-template-columns:1fr}
+  .card-actions .button{width:100%}
+  .item-title{align-items:flex-start;flex-direction:column}
+  .badge{align-self:flex-start}
+  .card{padding:17px 14px}
 }
-
-.row:last-child {
-  margin-bottom: 0;
+@media (max-width:480px){
+  .topbar-title span{display:none}
+  .cashier-chip{padding-right:7px}
+  .cashier-chip strong{display:none}
+  .logout-btn,.refresh-btn{padding:8px 10px}
+  .hero h1{font-size:1.35rem}
 }
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 0.88rem;
-}
-
-.badge.collected {
-  background: rgba(34,197,94,0.18);
-  color: #a7f3d0;
-}
-
-.badge.unpaid {
-  background: rgba(239,68,68,0.18);
-  color: #fca5a5;
-}
-
-/* BUTTONS */
-button{
-  width:48%;
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
-  font-weight:bold;
-  transition: transform .18s ease, box-shadow .18s ease;
-}
-
-select {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.06);
-  color: white;
-  margin-top: 8px;
-}
-
-button:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.05);
-}
-
-.collected{background:#10b981;color:white;}
-.unpaid{background:#ef4444;color:white;}
-
-@media (max-width: 900px) {
-  .page {
-    width: calc(100% - 24px);
-    padding: 20px 12px 32px;
-  }
-
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    position: static;
-    top: auto;
-  }
-
-  .stats {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    position: static;
-    top: auto;
-    min-height: auto;
-  }
-
-  .top {
-    flex-wrap: wrap;
-  }
-
-  .top-content {
-    width: 100%;
-  }
-
-  .top-actions {
-    width: 100%;
-    margin-top: 16px;
-    justify-content: flex-start;
-  }
-
-  .item-title {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .item-title h3 {
-    font-size: 1rem;
-  }
-
-  .row {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  button {
-    width: 100%;
-  }
-
-  select {
-    width: 100%;
-  }
-}
-
-.hidden {
-  display: none !important;
-}
-
-button {
-  transition: transform 0.2s ease, filter 0.2s ease;
-}
-
-@keyframes floatIn {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 520px) {
-  .top {
-    padding: 16px 12px;
-  }
-
-  .card {
-    padding: 16px;
-  }
-
-  .stats {
-    gap: 12px;
-  }
-
-  .sidebar {
-    padding: 18px;
-  }
-
-  .summary-item {
-    padding: 12px 14px;
-  }
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}
 }
 </style>
 </head>
 
 <body>
+<div id="actionOverlay" class="action-overlay" aria-live="polite" aria-hidden="true">
+  <div class="action-popup">
+    <div class="spinner"></div>
+    <strong id="actionTitle">Processing...</strong>
+    <span id="actionMessage">Please wait while the system updates your dashboard.</span>
+  </div>
+</div>
 
-<div class="page">
-  <div id="actionOverlay" class="action-overlay" aria-live="polite" aria-hidden="true">
-    <div class="action-popup">
-      <div class="spinner"></div>
-      <strong id="actionTitle">Processing...</strong>
-      <span id="actionMessage">Please wait while the system updates your dashboard.</span>
+<!-- ===================== ADD LOANER (new feature — additive only) ===================== -->
+<div id="loanerOverlay" class="action-overlay" aria-hidden="true">
+  <div class="loaner-popup">
+    <div class="loaner-head">
+      <div>
+        <h3>Add Loaner</h3>
+        <p>Register a new loan application. It will wait for cashier, then admin, approval — no duplicate entry needed.</p>
+      </div>
+      <button type="button" class="loaner-close" onclick="closeAddLoanerModal()" aria-label="Close">✕</button>
+    </div>
+    <div class="loaner-progress">
+      <span id="loanerProgress1" class="done"></span>
+      <span id="loanerProgress2"></span>
+      <span id="loanerProgress3"></span>
+    </div>
+    <div class="loaner-step-label" id="loanerStepLabel">Step 1 of 3 — Borrower Information</div>
+
+    <!-- Step 1: Personal Information -->
+    <div class="loaner-step" id="loanerStep1">
+      <div class="loaner-grid">
+        <div class="loaner-field"><label for="loanerFirstName">First Name</label><input type="text" id="loanerFirstName" placeholder="Juan"></div>
+        <div class="loaner-field"><label for="loanerLastName">Last Name</label><input type="text" id="loanerLastName" placeholder="Dela Cruz"></div>
+        <div class="loaner-field"><label for="loanerContact">Contact Number</label><input type="text" id="loanerContact" placeholder="09xx xxx xxxx"></div>
+        <div class="loaner-field"><label for="loanerEmail">Email</label><input type="email" id="loanerEmail" placeholder="juan@email.com"></div>
+        <div class="loaner-field" style="grid-column:1 / -1"><label for="loanerAddress">Address</label><input type="text" id="loanerAddress" placeholder="Street, Barangay, City"></div>
+        <div class="loaner-field">
+          <label for="loanerGender">Gender</label>
+          <select id="loanerGender">
+            <option value="">Select gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+            <option value="Prefer not to say">Prefer not to say</option>
+          </select>
+        </div>
+        <div class="loaner-field"><label for="loanerOccupation">Occupation</label><input type="text" id="loanerOccupation" placeholder="e.g. Vendor (or N/A)"></div>
+        <div class="loaner-field"><label for="loanerIncome">Income</label><input type="text" id="loanerIncome" placeholder="e.g. ₱8,000/month (or N/A)"></div>
+      </div>
+      <div class="loaner-actions">
+        <span></span>
+        <button type="button" class="button blue" onclick="loanerNextFromPersonal()">Next: Loan Details →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Loan Details -->
+    <div class="loaner-step hidden" id="loanerStep2">
+      <div class="loaner-grid">
+        <div class="loaner-field"><label for="loanerAmount">Loan Amount (₱)</label><input type="number" id="loanerAmount" min="0" placeholder="e.g. 10000" oninput="updateLoanerInterestPreview()"></div>
+        <div class="loaner-field">
+          <label for="loanerTerm">Loan Term</label>
+          <select id="loanerTerm" onchange="onLoanerTermChange()">
+            <option value="">Select loan term</option>
+            <option value="3">3 Months</option>
+            <option value="6">6 Months</option>
+            <option value="12">1 Year</option>
+            <option value="custom">Other / Custom Term</option>
+          </select>
+        </div>
+      </div>
+      <div class="term-extra" id="loanerCustomTermRow">
+        <div class="loaner-grid">
+          <div class="loaner-field"><label for="loanerCustomMonths">Custom Term (months)</label><input type="number" id="loanerCustomMonths" min="1" placeholder="e.g. 9" oninput="updateLoanerInterestPreview()"></div>
+          <div class="loaner-field"><label for="loanerCustomRate">Monthly Interest Rate (%)</label><input type="number" id="loanerCustomRate" min="0" step="0.01" placeholder="e.g. 0.5" oninput="updateLoanerInterestPreview()"></div>
+        </div>
+      </div>
+      <div class="interest-preview" id="loanerInterestPreview" style="display:none">
+        <h5>Interest &amp; Total Payable</h5>
+        <div class="review-row"><span>Principal Loan Amount</span><strong id="prevPrincipal">₱0</strong></div>
+        <div class="review-row"><span>Monthly Interest Rate</span><strong id="prevRate">0%</strong></div>
+        <div class="review-row"><span>Loan Term</span><strong id="prevTerm">—</strong></div>
+        <div class="review-row"><span>Total Interest</span><strong id="prevInterest">₱0</strong></div>
+        <div class="review-row"><span>Total Amount to Pay</span><strong id="prevTotal">₱0</strong></div>
+      </div>
+      <div class="loaner-actions">
+        <button type="button" class="button outline" onclick="loanerBackToPersonal()">← Back</button>
+        <button type="button" class="button blue" onclick="loanerNextFromLoanDetails()">Next: Review →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Review & Submit -->
+    <div class="loaner-step hidden" id="loanerStep3">
+      <div id="loanerReviewContent"></div>
+      <div class="loaner-actions">
+        <button type="button" class="button outline" onclick="loanerBackToLoanDetails()">← Back</button>
+        <button type="button" class="button green" id="loanerSubmitBtn" onclick="submitLoanerApplication()">Submit for Cashier Approval</button>
+      </div>
     </div>
   </div>
+</div>
 
-  <div class="dashboard-grid">
-    <aside class="sidebar">
-      <h2>Collector Menu</h2>
-      <button id="assignedTabBtn" class="nav-link active" onclick="showCollectorTab('assigned')">Assigned Loans</button>
-      <button id="collectTabBtn" class="nav-link" onclick="showCollectorTab('collect')">Collect & Assign</button>
-      <div class="sidebar-summary">
-        <div class="summary-item"><strong>Total</strong><span id="sideTotal">0</span></div>
-        <div class="summary-item"><strong>Collected</strong><span id="sideCollected">0</span></div>
-        <div class="summary-item"><strong>Unpaid</strong><span id="sideUnpaid">0</span></div>
+<!-- ===================== COLLECT PAYMENT (new feature — additive only) ===================== -->
+<div id="collectPaymentOverlay" class="action-overlay" aria-hidden="true">
+  <div class="collect-popup">
+    <div class="loaner-head">
+      <div>
+        <h3 id="cpBorrowerName">Collect Payment</h3>
+        <p>Enter the amount actually received from the borrower.</p>
       </div>
-    </aside>
+      <button type="button" class="loaner-close" onclick="closeCollectPaymentModal()" aria-label="Close">✕</button>
+    </div>
+    <div style="margin-top:16px;display:grid;gap:8px;">
+      <div class="review-row"><span>Amount Due</span><strong id="cpAmountDue">₱0</strong></div>
+      <div class="review-row" id="cpPenaltyRow" style="display:none"><span>Late Penalty</span><strong id="cpPenalty" style="color:var(--red)">+₱50</strong></div>
+      <div class="review-row"><span>Total to Collect</span><strong id="cpTotalDue">₱0</strong></div>
+      <div class="review-row"><span>Remaining Balance (before)</span><strong id="cpBalanceBefore">₱0</strong></div>
+    </div>
+    <div class="loaner-field" style="margin-top:14px">
+      <label for="cpAmountPaid">Amount Paid (₱)</label>
+      <input type="number" id="cpAmountPaid" min="0" placeholder="e.g. 250" oninput="updateCollectPaymentPreview()">
+    </div>
+    <div style="margin-top:10px;display:grid;gap:8px;">
+      <div class="review-row"><span>Remaining Balance (after)</span><strong id="cpBalanceAfter">—</strong></div>
+    </div>
+    <div class="loaner-actions">
+      <span></span>
+      <button type="button" class="button green" id="cpConfirmBtn" onclick="confirmCollectPayment()">✔ Confirm Payment</button>
+    </div>
+  </div>
+</div>
 
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <img src="logopo.png" alt="Kasipag Logo">
+      <div class="brand-text">
+        <strong>Kasipag</strong>
+        <span>Microfinance &amp; Collection System</span>
+      </div>
+    </div>
+
+    <div class="nav-group-label">Collector workspace</div>
+    <button type="button" id="addLoanerBtn" class="nav-link nav-action" onclick="openAddLoanerModal()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+      <span class="nav-label">Add Loaner</span><span class="nav-hint">ADD</span>
+    </button>
+    <button type="button" id="requestsTabBtn" class="nav-link nav-action" onclick="showCollectorTab('requests')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+      <span class="nav-label">My Loan Requests</span><span class="nav-hint">VIEW</span><span class="nav-count" id="navRequestCount">0</span>
+    </button>
+    <button type="button" id="assignedTabBtn" class="nav-link active" onclick="showCollectorTab('assigned')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h5"/></svg>
+      Assigned Collections
+    </button>
+    <button type="button" id="collectTabBtn" class="nav-link" onclick="showCollectorTab('collect')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg>
+      Collect &amp; Assign
+    </button>
+
+    <div class="sidebar-summary">
+      <div class="summary-item"><strong>Total</strong><span id="sideTotal">0</span></div>
+      <div class="summary-item"><strong>Collected</strong><span id="sideCollected">0</span></div>
+      <div class="summary-item"><strong>Unpaid</strong><span id="sideUnpaid">0</span></div>
+    </div>
+  </aside>
+
+  <header class="topbar">
+    <div class="topbar-title">
+      <div class="topbar-mark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h5"/></svg>
+      </div>
+      <div>
+        <strong>Collector Workspace</strong>
+        <span>Field collections &amp; loan requests</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="cashier-chip">
+        <div class="cashier-avatar">C</div>
+        <div><strong id="collectorName">Collector</strong><span>Authorized workspace</span></div>
+      </div>
+      <button class="refresh-btn" onclick="loadTasks()">🔄 Refresh</button>
+      <button class="logout-btn" onclick="logout()">↪ Sign Out</button>
+    </div>
+  </header>
+
+  <main class="main">
     <div class="main-panel">
-      <div class="top">
-        <div class="top-content">
-          <div class="top-brand">
-            <img src="logopo.png" alt="Kasipag Logo">
-            <div>
-              <h1>Kasipag Collector</h1>
-              <p>“To HELP, to CREATE and to PROVIDE”</p>
-              <p class="subtext">Logged in as <strong id="collectorName">Collector</strong></p>
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow">Collector operations</div>
+          <h1>Kasipag Collector</h1>
+          <p>“To HELP, to CREATE and to PROVIDE” &nbsp;•&nbsp; Manage assigned collections and submit new loan requests.</p>
+        </div>
+        <div class="hero-meta">
+          <span class="live-pill">Live data connected</span>
+          <button type="button" class="button green" onclick="openAddLoanerModal()">+ Add Loaner</button>
+        </div>
+      </section>
+
+      <section class="stats">
+        <div class="stat" style="--accent:var(--blue);--accent-soft:var(--blue-soft)">
+          <div class="stat-top">
+            <div class="stat-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h5"/></svg>
             </div>
           </div>
+          <strong id="total">0</strong>
+          <span>Total loans</span>
+          <span class="stat-hint">Currently in your care</span>
         </div>
-        <div class="top-actions">
-          <button class="logout-btn" onclick="loadTasks()">🔄 Refresh</button>
-          <button class="logout-btn" onclick="logout()">🚪 Sign Out</button>
+        <div class="stat" style="--accent:var(--teal);--accent-soft:var(--teal-soft)">
+          <div class="stat-top">
+            <div class="stat-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+          </div>
+          <strong id="collected">0</strong>
+          <span>Collected</span>
+          <span class="stat-hint">Assigned to a cashier</span>
         </div>
+        <div class="stat" style="--accent:var(--red);--accent-soft:var(--red-soft)">
+          <div class="stat-top">
+            <div class="stat-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </div>
+          </div>
+          <strong id="unpaid">0</strong>
+          <span>Unpaid / retry</span>
+          <span class="stat-hint">Needs follow-up</span>
+        </div>
+      </section>
+
+      <div class="container">
+        <!-- ===================== MY LOAN REQUESTS (new feature — additive only) ===================== -->
+        <section class="card hidden" id="requestsSection">
+          <h2>My Loan Requests</h2>
+          <p class="card-subtext">Loans you submitted via Add Loaner. Track their approval status — once fully approved, the same record moves into your Assigned Collections automatically.</p>
+          <div id="requestsList"></div>
+        </section>
+
+        <section class="card" id="assignedSection">
+          <h2>Assigned Collections</h2>
+          <p class="card-subtext">Accounts you're responsible for collecting, with the exact amount due today calculated automatically.</p>
+          <div id="assignedList"></div>
+        </section>
+
+        <section class="card hidden" id="collectSection">
+          <h2>Collect &amp; Assign</h2>
+          <p class="card-subtext">Loans previously marked unpaid — retry collection or forward to a cashier.</p>
+          <div id="collectList"></div>
+        </section>
       </div>
-
-      <!-- STATS -->
-      <div class="stats">
-    <div class="box">
-      <strong id="total">0</strong>
-      <span>Total Loans</span>
     </div>
-
-    <div class="box">
-      <strong id="collected">0</strong>
-      <span>Collected</span>
-    </div>
-
-    <div class="box">
-      <strong id="unpaid">0</strong>
-      <span>Unpaid</span>
-    </div>
-  </div>
-
-  <!-- LIST -->
-  <div id="assignedList"></div>
-  <div id="collectList" class="hidden"></div>
-    </div>
-  </div>
+  </main>
 </div>
 
 <script type="module">
@@ -592,31 +686,44 @@ import {
   where,
   onSnapshot,
   doc,
+  addDoc,
   updateDoc,
   serverTimestamp,
+  Timestamp,
   getDocs,
   getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 let cashiers = [];
+let collectorId = null;
+let collectorName = "Collector";
+let loansCache = {}; // id -> latest loan data, used by the Collect Payment modal
 
 window.showCollectorTab = (tab) => {
   const assignedBtn = document.getElementById("assignedTabBtn");
   const collectBtn = document.getElementById("collectTabBtn");
-  const assignedList = document.getElementById("assignedList");
-  const collectList = document.getElementById("collectList");
+  const requestsBtn = document.getElementById("requestsTabBtn");
+  const assignedList = document.getElementById("assignedSection");
+  const collectList = document.getElementById("collectSection");
+  const requestsSection = document.getElementById("requestsSection");
+
+  assignedList.classList.add("hidden");
+  collectList.classList.add("hidden");
+  requestsSection.classList.add("hidden");
+  assignedBtn.classList.remove("active");
+  collectBtn.classList.remove("active");
+  requestsBtn.classList.remove("active");
 
   if (tab === "collect") {
-    assignedList.classList.add("hidden");
     collectList.classList.remove("hidden");
-    assignedBtn.classList.remove("active");
     collectBtn.classList.add("active");
+  } else if (tab === "requests") {
+    requestsSection.classList.remove("hidden");
+    requestsBtn.classList.add("active");
   } else {
     assignedList.classList.remove("hidden");
-    collectList.classList.add("hidden");
     assignedBtn.classList.add("active");
-    collectBtn.classList.remove("active");
   }
 };
 
@@ -647,7 +754,514 @@ function cashierOptions(loan) {
   return options;
 }
 
-let collectorId = null;
+// ===== Loan Term label helper =====
+function collectorLoanTermLabel(data) {
+  if (!data || !data.loanTermType) return "N/A";
+  if (data.loanTermType === "3") return "3 Months";
+  if (data.loanTermType === "6") return "6 Months";
+  if (data.loanTermType === "12") return "1 Year";
+  if (data.loanTermType === "custom") return `${data.loanTermMonths || 0} Month${data.loanTermMonths === 1 ? "" : "s"} (Custom)`;
+  return "N/A";
+}
+
+function peso(n) {
+  return `₱${(Number(n) || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+}
+
+// ===================== ADD LOANER (new feature — additive only) =====================
+function showLoanerStep(step) {
+  [1, 2, 3].forEach((n) => {
+    const stepEl = document.getElementById("loanerStep" + n);
+    if (stepEl) stepEl.classList.toggle("hidden", n !== step);
+    const dot = document.getElementById("loanerProgress" + n);
+    if (dot) dot.classList.toggle("done", n <= step);
+  });
+  const labels = {
+    1: "Step 1 of 3 — Borrower Information",
+    2: "Step 2 of 3 — Loan Details",
+    3: "Step 3 of 3 — Review & Submit"
+  };
+  const labelEl = document.getElementById("loanerStepLabel");
+  if (labelEl) labelEl.innerText = labels[step];
+}
+
+function resetLoanerForm() {
+  ["loanerFirstName", "loanerLastName", "loanerContact", "loanerEmail", "loanerAddress", "loanerOccupation", "loanerIncome", "loanerAmount", "loanerCustomMonths", "loanerCustomRate"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  const genderEl = document.getElementById("loanerGender");
+  if (genderEl) genderEl.selectedIndex = 0;
+  const termEl = document.getElementById("loanerTerm");
+  if (termEl) termEl.selectedIndex = 0;
+  const customRow = document.getElementById("loanerCustomTermRow");
+  if (customRow) customRow.classList.remove("show");
+  const preview = document.getElementById("loanerInterestPreview");
+  if (preview) preview.style.display = "none";
+  showLoanerStep(1);
+}
+
+// Keep these interest rules identical to the Cashier's Add Loaner so a loan
+// costs the same regardless of who submits it.
+const LOANER_INTEREST_RATES = { "3": 1, "6": 0.5, "12": 0.4 }; // % per month
+
+function getLoanerTermMonths(termType) {
+  if (termType === "custom") return Number(document.getElementById("loanerCustomMonths").value) || 0;
+  return Number(termType) || 0;
+}
+
+function getLoanerMonthlyRate(termType) {
+  if (termType === "custom") return Number(document.getElementById("loanerCustomRate").value) || 0;
+  return LOANER_INTEREST_RATES[termType] || 0;
+}
+
+function loanerTermLabel(termType, months) {
+  if (termType === "3") return "3 Months";
+  if (termType === "6") return "6 Months";
+  if (termType === "12") return "1 Year";
+  if (termType === "custom") return `${months || 0} Month${months === 1 ? "" : "s"} (Custom)`;
+  return "—";
+}
+
+function computeLoanerInterest(amount, termType) {
+  const months = getLoanerTermMonths(termType);
+  const rate = getLoanerMonthlyRate(termType);
+  const totalInterest = amount > 0 && months > 0 ? Math.round(amount * (rate / 100) * months * 100) / 100 : 0;
+  const totalPayable = Math.round((amount + totalInterest) * 100) / 100;
+  return { months, rate, totalInterest, totalPayable };
+}
+
+window.onLoanerTermChange = () => {
+  const termType = document.getElementById("loanerTerm").value;
+  const customRow = document.getElementById("loanerCustomTermRow");
+  if (termType === "custom") {
+    customRow.classList.add("show");
+    const rateEl = document.getElementById("loanerCustomRate");
+    if (rateEl && !rateEl.value) rateEl.value = LOANER_INTEREST_RATES["12"];
+  } else {
+    customRow.classList.remove("show");
+  }
+  updateLoanerInterestPreview();
+};
+
+window.updateLoanerInterestPreview = () => {
+  const amount = Number(document.getElementById("loanerAmount").value) || 0;
+  const termType = document.getElementById("loanerTerm").value;
+  const preview = document.getElementById("loanerInterestPreview");
+  if (!preview) return;
+  if (!termType || !amount) {
+    preview.style.display = "none";
+    return;
+  }
+  const { months, rate, totalInterest, totalPayable } = computeLoanerInterest(amount, termType);
+  if (!months || !rate) {
+    preview.style.display = "none";
+    return;
+  }
+  preview.style.display = "block";
+  document.getElementById("prevPrincipal").innerText = peso(amount);
+  document.getElementById("prevRate").innerText = `${rate}% per month`;
+  document.getElementById("prevTerm").innerText = loanerTermLabel(termType, months);
+  document.getElementById("prevInterest").innerText = peso(totalInterest);
+  document.getElementById("prevTotal").innerText = peso(totalPayable);
+};
+
+window.openAddLoanerModal = () => {
+  resetLoanerForm();
+  const overlay = document.getElementById("loanerOverlay");
+  if (overlay) overlay.classList.add("active");
+};
+
+window.closeAddLoanerModal = () => {
+  const overlay = document.getElementById("loanerOverlay");
+  if (overlay) overlay.classList.remove("active");
+};
+
+window.loanerNextFromPersonal = () => {
+  const required = ["loanerFirstName", "loanerLastName", "loanerContact", "loanerEmail", "loanerAddress", "loanerGender", "loanerOccupation", "loanerIncome"];
+  for (const id of required) {
+    const el = document.getElementById(id);
+    if (!el || !el.value.trim()) {
+      alert("Please fill in all borrower information fields (enter N/A if not applicable).");
+      if (el) el.focus();
+      return;
+    }
+  }
+  showLoanerStep(2);
+};
+
+window.loanerBackToPersonal = () => showLoanerStep(1);
+
+window.loanerNextFromLoanDetails = () => {
+  const amount = Number(document.getElementById("loanerAmount").value);
+  const termType = document.getElementById("loanerTerm").value;
+  if (!amount || amount <= 0) {
+    alert("Enter a valid loan amount.");
+    return;
+  }
+  if (!termType) {
+    alert("Select a loan term.");
+    return;
+  }
+  if (termType === "custom") {
+    const months = Number(document.getElementById("loanerCustomMonths").value);
+    const rate = Number(document.getElementById("loanerCustomRate").value);
+    if (!months || months <= 0) {
+      alert("Enter a valid custom term in months.");
+      return;
+    }
+    if (!rate || rate <= 0) {
+      alert("Enter a valid monthly interest rate for the custom term.");
+      return;
+    }
+  }
+  buildLoanerReview();
+  showLoanerStep(3);
+};
+
+window.loanerBackToLoanDetails = () => showLoanerStep(2);
+
+function buildLoanerReview() {
+  const val = (id) => document.getElementById(id).value.trim();
+  const amount = Number(document.getElementById("loanerAmount").value);
+  const termType = document.getElementById("loanerTerm").value;
+  const { months, rate, totalInterest, totalPayable } = computeLoanerInterest(amount, termType);
+  const reviewBox = document.getElementById("loanerReviewContent");
+  if (!reviewBox) return;
+  reviewBox.innerHTML = `
+    <div class="review-group">
+      <h4>Borrower Information</h4>
+      <div class="review-row"><span>First Name</span><strong>${val("loanerFirstName")}</strong></div>
+      <div class="review-row"><span>Last Name</span><strong>${val("loanerLastName")}</strong></div>
+      <div class="review-row"><span>Contact Number</span><strong>${val("loanerContact")}</strong></div>
+      <div class="review-row"><span>Email</span><strong>${val("loanerEmail")}</strong></div>
+      <div class="review-row"><span>Address</span><strong>${val("loanerAddress")}</strong></div>
+      <div class="review-row"><span>Gender</span><strong>${val("loanerGender")}</strong></div>
+      <div class="review-row"><span>Occupation</span><strong>${val("loanerOccupation")}</strong></div>
+      <div class="review-row"><span>Income</span><strong>${val("loanerIncome")}</strong></div>
+    </div>
+    <div class="review-group">
+      <h4>Loan Details</h4>
+      <div class="review-row"><span>Loan Amount</span><strong>${peso(amount)}</strong></div>
+      <div class="review-row"><span>Loan Term</span><strong>${loanerTermLabel(termType, months)}</strong></div>
+      <div class="review-row"><span>Monthly Interest Rate</span><strong>${rate}%</strong></div>
+      <div class="review-row"><span>Total Interest</span><strong>${peso(totalInterest)}</strong></div>
+      <div class="review-row"><span>Total Amount to Pay</span><strong>${peso(totalPayable)}</strong></div>
+    </div>
+  `;
+}
+
+window.submitLoanerApplication = async () => {
+  const val = (id) => document.getElementById(id).value.trim();
+  const firstName = val("loanerFirstName");
+  const lastName = val("loanerLastName");
+  const amount = Number(document.getElementById("loanerAmount").value);
+  const termType = document.getElementById("loanerTerm").value;
+  const { months, rate, totalInterest, totalPayable } = computeLoanerInterest(amount, termType);
+
+  const submitBtn = document.getElementById("loanerSubmitBtn");
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerText = "Submitting...";
+  }
+
+  try {
+    // ===== Collector loan approval workflow (new feature — additive only) =====
+    // status starts at "pending_cashier_approval". A cashier reviews it first;
+    // approving sets pendingApproval:true so it then surfaces automatically in
+    // the Admin's existing Loan Applications queue for final approval. This is
+    // the SAME loan record throughout — no duplicates are created for the
+    // cashier or admin steps.
+    await addDoc(collection(db, "loans"), {
+      borrowerName: `${firstName} ${lastName}`.trim(),
+      firstName,
+      lastName,
+      contactNumber: val("loanerContact"),
+      email: val("loanerEmail"),
+      address: val("loanerAddress"),
+      gender: val("loanerGender"),
+      occupation: val("loanerOccupation"),
+      income: val("loanerIncome"),
+      amount,
+      balance: amount,
+      loanType: "solo",
+      memberNames: null,
+      loanTermType: termType,
+      loanTermMonths: months,
+      monthlyInterestRate: rate,
+      totalInterest,
+      totalPayable,
+      fromLoanApplication: true,
+      fromCollectorApplication: true,
+      deletionRequested: false,
+      status: "pending_cashier_approval",
+      pendingApproval: false,
+      assignedCollectorId: collectorId,
+      assignedCollectorName: collectorName,
+      assignedCashierId: null,
+      assignedCashierName: "",
+      createdByCollectorId: collectorId,
+      createdByCollectorName: collectorName,
+      createdAt: serverTimestamp()
+    });
+
+    alert("Loan request submitted! It is now pending cashier approval.");
+    window.closeAddLoanerModal();
+    resetLoanerForm();
+  } catch (error) {
+    alert("Error: " + error.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerText = "Submit for Cashier Approval";
+    }
+  }
+};
+
+// ===================== MY LOAN REQUESTS (new feature — additive only) =====================
+function requestStatusBadge(status) {
+  const map = {
+    pending_cashier_approval: { label: "PENDING CASHIER APPROVAL", cls: "orange" },
+    pending_admin_approval: { label: "PENDING ADMIN APPROVAL", cls: "amber" },
+    assigned: { label: "APPROVED", cls: "green" },
+    approved: { label: "APPROVED", cls: "green" },
+    paid: { label: "PAID", cls: "green" },
+    rejected: { label: "REJECTED", cls: "red" }
+  };
+  return map[status] || { label: (status || "UNKNOWN").toUpperCase(), cls: "" };
+}
+
+function loadMyLoanRequests() {
+  if (!collectorId) return;
+  onSnapshot(collection(db, "loans"), (snap) => {
+    const list = document.getElementById("requestsList");
+    if (!list) return;
+
+    const myRequests = [];
+    snap.forEach(d => {
+      const l = d.data();
+      if (l.deleted) return;
+      if (l.createdByCollectorId !== collectorId) return;
+      myRequests.push({ id: d.id, ...l });
+    });
+
+    myRequests.sort((a, b) => {
+      const at = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+      const bt = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+      return bt - at;
+    });
+
+    const pendingCount = myRequests.filter(r => r.status === "pending_cashier_approval" || r.status === "pending_admin_approval").length;
+    const navCount = document.getElementById("navRequestCount");
+    if (navCount) navCount.innerText = pendingCount;
+
+    list.innerHTML = "";
+    if (!myRequests.length) {
+      list.innerHTML = `<div class="empty-state">You haven't submitted any loan requests yet. Use "+ Add Loaner" to get started.</div>`;
+      return;
+    }
+
+    myRequests.forEach(r => {
+      const badge = requestStatusBadge(r.status);
+      const termLabel = collectorLoanTermLabel(r);
+      const item = document.createElement("div");
+      item.className = "item";
+      item.innerHTML = `
+        <div class="item-title">
+          <h3>${r.borrowerName}</h3>
+          <span class="badge ${badge.cls}">${badge.label}</span>
+        </div>
+        <div class="detail-grid">
+          <div>Loan Amount: <strong>${peso(r.amount)}</strong></div>
+          <div>Term: <strong>${termLabel}</strong> · Total Payable: <strong>${peso(r.totalPayable || r.amount)}</strong></div>
+          ${r.status === "rejected" ? `<div>Rejected by: <strong>${r.rejectedByCashierName || r.rejectedBy || "Reviewer"}</strong></div>` : ""}
+        </div>
+      `;
+      list.appendChild(item);
+    });
+  });
+}
+
+// ===================== PAYMENT SCHEDULE / AMOUNT TO COLLECT (new feature — additive only) =====================
+// Computes, from existing loan fields, how much is due right now and whether a
+// ₱50 late penalty applies. Falls back gracefully for older loans that don't
+// have loan-term/interest fields.
+function toJsDate(value) {
+  if (!value) return null;
+  if (value.toDate) return value.toDate();
+  if (value instanceof Date) return value;
+  return new Date(value);
+}
+
+function computeSchedule(data) {
+  const totalPayable = Number(data.totalPayable != null ? data.totalPayable : data.amount) || 0;
+  let termMonths = Number(data.loanTermMonths) || 0;
+  if (!termMonths && data.loanTermType && data.loanTermType !== "custom") {
+    termMonths = Number(data.loanTermType) || 0;
+  }
+  const balance = Number(data.balance) || 0;
+  const installment = termMonths > 0 ? Math.round((totalPayable / termMonths) * 100) / 100 : null;
+
+  const storedDueDate = toJsDate(data.nextDueDate);
+  let dueDate;
+  if (storedDueDate) {
+    dueDate = storedDueDate;
+  } else {
+    const anchor = toJsDate(data.riderAssignedAt) || toJsDate(data.approvedAt) || toJsDate(data.createdAt) || new Date();
+    dueDate = new Date(anchor);
+    dueDate.setMonth(dueDate.getMonth() + 1);
+    const now = new Date();
+    while (dueDate < now && balance > 0) {
+      dueDate.setMonth(dueDate.getMonth() + 1);
+    }
+  }
+
+  const now = new Date();
+  const isLate = balance > 0 && dueDate < now;
+  const penalty = isLate ? 50 : 0;
+  const amountDueBase = balance > 0 ? Math.min(installment != null ? installment : balance, balance) : 0;
+  const amountToCollect = Math.max(Math.round((amountDueBase + penalty) * 100) / 100, 0);
+
+  const paidSoFar = Math.max(totalPayable - balance, 0);
+  const periodsPaid = installment ? Math.min(Math.round(paidSoFar / installment), termMonths) : 0;
+  const remainingMonths = termMonths > 0 ? Math.max(termMonths - periodsPaid, 0) : null;
+
+  return { installment, remainingMonths, dueDate, isLate, penalty, amountDueBase, amountToCollect, totalPayable };
+}
+
+function fmtDate(d) {
+  if (!d) return "N/A";
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+}
+
+function buildCollectHighlight(data) {
+  if (data.status === "paid" || Number(data.balance) <= 0) {
+    return `<div class="collect-highlight"><span class="label">Status</span><strong>PAID / COMPLETED</strong></div>`;
+  }
+  const sched = computeSchedule(data);
+  const remainingText = sched.remainingMonths != null ? `${sched.remainingMonths} Month${sched.remainingMonths === 1 ? "" : "s"} remaining` : "N/A";
+  return `
+    <div class="collect-highlight ${sched.isLate ? "late" : ""}">
+      <span class="label">Amount to Collect Today</span>
+      <strong>${peso(sched.amountToCollect)}</strong>
+    </div>
+    <div class="detail-grid" style="margin-top:8px">
+      <div>Total Payable: <strong>${peso(sched.totalPayable)}</strong></div>
+      <div>Amount Paid So Far: <strong>${peso(Math.max(sched.totalPayable - (data.balance || 0), 0))}</strong></div>
+      <div>Remaining Balance: <strong>${peso(data.balance)}</strong></div>
+      <div>Payment Schedule: <strong>${remainingText}</strong></div>
+      <div>Due Date: <strong>${fmtDate(sched.dueDate)}</strong></div>
+    </div>
+    ${sched.isLate ? `<div class="penalty-line">Penalty: +${peso(sched.penalty)} (late payment)</div>` : ""}
+  `;
+}
+
+// ===================== COLLECT PAYMENT MODAL (new feature — additive only) =====================
+let collectPaymentLoanId = null;
+
+window.openCollectPaymentModal = (loanId) => {
+  const data = loansCache[loanId];
+  if (!data) return;
+  collectPaymentLoanId = loanId;
+
+  const sched = computeSchedule(data);
+  document.getElementById("cpBorrowerName").innerText = `Collect Payment — ${data.borrowerName}`;
+  document.getElementById("cpAmountDue").innerText = peso(sched.amountDueBase);
+  document.getElementById("cpBalanceBefore").innerText = peso(data.balance);
+  document.getElementById("cpBalanceAfter").innerText = "—";
+
+  const penaltyRow = document.getElementById("cpPenaltyRow");
+  if (sched.penalty > 0) {
+    penaltyRow.style.display = "flex";
+    document.getElementById("cpPenalty").innerText = `+${peso(sched.penalty)}`;
+  } else {
+    penaltyRow.style.display = "none";
+  }
+  document.getElementById("cpTotalDue").innerText = peso(sched.amountToCollect);
+
+  const amountInput = document.getElementById("cpAmountPaid");
+  amountInput.value = sched.amountToCollect || "";
+
+  document.getElementById("collectPaymentOverlay").classList.add("active");
+  updateCollectPaymentPreview();
+};
+
+window.closeCollectPaymentModal = () => {
+  document.getElementById("collectPaymentOverlay").classList.remove("active");
+  collectPaymentLoanId = null;
+};
+
+window.updateCollectPaymentPreview = () => {
+  const data = loansCache[collectPaymentLoanId];
+  if (!data) return;
+  const amountPaid = Number(document.getElementById("cpAmountPaid").value) || 0;
+  const sched = computeSchedule(data);
+  const penaltyPaid = Math.min(amountPaid, sched.penalty);
+  const principalPaid = Math.min(Math.max(amountPaid - penaltyPaid, 0), data.balance);
+  const newBalance = Math.max(Math.round((data.balance - principalPaid) * 100) / 100, 0);
+  document.getElementById("cpBalanceAfter").innerText = peso(newBalance);
+};
+
+window.confirmCollectPayment = async () => {
+  const loanId = collectPaymentLoanId;
+  const data = loansCache[loanId];
+  if (!loanId || !data) return;
+
+  const amountPaid = Number(document.getElementById("cpAmountPaid").value);
+  if (!amountPaid || amountPaid <= 0) {
+    alert("Enter a valid amount paid.");
+    return;
+  }
+
+  const sched = computeSchedule(data);
+  const penaltyPaid = Math.min(amountPaid, sched.penalty);
+  const principalPaid = Math.min(Math.max(amountPaid - penaltyPaid, 0), data.balance);
+  const newBalance = Math.max(Math.round((data.balance - principalPaid) * 100) / 100, 0);
+
+  const newDueDate = new Date(sched.dueDate);
+  newDueDate.setMonth(newDueDate.getMonth() + 1);
+
+  const btn = document.getElementById("cpConfirmBtn");
+  if (btn) { btn.disabled = true; btn.innerText = "Saving..."; }
+
+  try {
+    const updateData = {
+      balance: newBalance,
+      lastPaymentAt: serverTimestamp(),
+      lastPaymentBy: collectorId,
+      lastPaymentByName: collectorName,
+      nextDueDate: newBalance > 0 ? Timestamp.fromDate(newDueDate) : null
+    };
+    if (newBalance <= 0) {
+      updateData.status = "paid";
+    }
+    await updateDoc(doc(db, "loans", loanId), updateData);
+
+    // Reuses the SAME "payments" collection the Cashier's payment workflow writes to,
+    // so this reflects automatically wherever payments/loans are already displayed.
+    await addDoc(collection(db, "payments"), {
+      loanId,
+      borrowerName: data.borrowerName,
+      amountPaid,
+      remainingBalance: newBalance,
+      penaltyApplied: sched.penalty > 0,
+      penaltyAmount: penaltyPaid,
+      recordedByRole: "collector",
+      collectorId,
+      collectorName,
+      cashierId: data.assignedCashierId || null,
+      cashierName: data.assignedCashierName || "",
+      createdAt: serverTimestamp()
+    });
+
+    window.closeCollectPaymentModal();
+    alert(`✅ Payment recorded! Remaining balance: ${peso(newBalance)}`);
+  } catch (error) {
+    alert("Error: " + error.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerText = "✔ Confirm Payment"; }
+  }
+};
 
 function loadTasks() {
   if (!collectorId) {
@@ -655,154 +1269,138 @@ function loadTasks() {
     return;
   }
 
-  console.log("Loading tasks for collector:", collectorId);
-
-  // First try to get all loans to see if we can read them
   const q = query(collection(db, "loans"));
 
   onSnapshot(q, async (snap) => {
-  console.log("Snapshot received with", snap.size, "total loans");
-  
-  // Filter loans for this collector
-  const collectorLoans = [];
-  snap.forEach(d => {
-    const data = d.data();
-    if (data.deleted) return; // Skip deleted loans
-    if (data.assignedCollectorId === collectorId && data.balance > 0 && (data.status === "assigned" || data.status === "unpaid")) {
-      collectorLoans.push({ id: d.id, ...data });
+    // Filter loans for this collector
+    const collectorLoans = [];
+    snap.forEach(d => {
+      const data = d.data();
+      if (data.deleted) return; // Skip deleted loans
+      if (data.assignedCollectorId === collectorId && data.balance > 0 && (data.status === "assigned" || data.status === "unpaid")) {
+        collectorLoans.push({ id: d.id, ...data });
+        loansCache[d.id] = { id: d.id, ...data };
+      }
+    });
+
+    await loadCashiers();
+
+    let total = 0;
+    let collected = 0;
+    let unpaid = 0;
+
+    const assignedList = document.getElementById("assignedList");
+    const collectList = document.getElementById("collectList");
+    assignedList.innerHTML = "";
+    collectList.innerHTML = "";
+
+    collectorLoans.forEach(data => {
+      total++;
+      if (data.status === "unpaid") unpaid++;
+
+      const termInfo = data.loanTermType
+        ? `<div>Term: <strong>${collectorLoanTermLabel(data)}</strong> · Interest: <strong>${data.monthlyInterestRate || 0}%/mo</strong></div>`
+        : "";
+
+      if (data.status === "assigned") {
+        // ===== ASSIGNED COLLECTIONS TAB =====
+        const assignedCard = document.createElement("div");
+        assignedCard.className = "item";
+        assignedCard.innerHTML = `
+          <div class="item-title">
+            <h3>${data.borrowerName}</h3>
+            <span class="badge">ASSIGNED</span>
+          </div>
+          <div class="detail-grid">
+            <div>📍 ${data.address || "No address"}</div>
+            <div>Type: <strong>${data.loanType || 'solo'}</strong> ${data.memberNames && data.memberNames.length > 0 ? `| Members: ${data.memberNames.join(', ')}` : ''}</div>
+            ${termInfo}
+            <div>Cashier: <strong>${data.assignedCashierName || "Not assigned"}</strong></div>
+          </div>
+          ${buildCollectHighlight(data)}
+          <div class="row">
+            <label for="cashier-${data.id}" class="select-label">Choose cashier:</label>
+            <select id="cashier-${data.id}">${cashierOptions(data)}</select>
+          </div>
+          <div class="card-actions">
+            <button class="button green" onclick="openCollectPaymentModal('${data.id}')">💵 Collect Payment</button>
+            <button class="button blue" onclick="assignToCashier('${data.id}')">👤 Assign to Cashier</button>
+          </div>
+        `;
+        assignedList.appendChild(assignedCard);
+      } else if (data.status === "unpaid") {
+        // ===== COLLECT & ASSIGN TAB (retries) =====
+        const card = document.createElement("div");
+        card.className = "item";
+        card.innerHTML = `
+          <div class="item-title">
+            <h3>${data.borrowerName}</h3>
+            <span class="badge red">UNPAID</span>
+          </div>
+          <div class="detail-grid">
+            <div>📍 ${data.address || "No address"}</div>
+            <div>Type: <strong>${data.loanType || 'solo'}</strong> ${data.memberNames && data.memberNames.length > 0 ? `| Members: ${data.memberNames.join(', ')}` : ''}</div>
+            ${termInfo}
+            <div>Cashier: <strong>${data.assignedCashierName || "Not assigned"}</strong></div>
+          </div>
+          ${buildCollectHighlight(data)}
+          <div class="row">
+            <label for="cashier-${data.id}" class="select-label">Choose cashier:</label>
+            <select id="cashier-${data.id}">${cashierOptions(data)}</select>
+          </div>
+          <div class="card-actions">
+            <button class="button green" onclick="openCollectPaymentModal('${data.id}')">💵 Collect Payment</button>
+            <button class="button blue" onclick="assignToCashier('${data.id}')">👤 Assign to Cashier</button>
+            <button class="button red" onclick="markUnpaid('${data.id}')">❌ Unpaid</button>
+          </div>
+        `;
+        collectList.appendChild(card);
+      }
+    });
+
+    // Add empty states if needed
+    if (assignedList.children.length === 0) {
+      assignedList.innerHTML = `<div class="empty-state">No assigned loans. Wait for admin/cashier to assign loans.</div>`;
     }
-  });
-  
-  console.log("Found", collectorLoans.length, "loans for this collector");
-  
-  await loadCashiers();
-
-  let total = 0;
-  let collected = 0;
-  let unpaid = 0;
-
-  const assignedList = document.getElementById("assignedList");
-  const collectList = document.getElementById("collectList");
-  assignedList.innerHTML="";
-  collectList.innerHTML="";
-
-  collectorLoans.forEach(data => {
-    console.log("Processing loan:", data.id, "Status:", data.status, "Balance:", data.balance);
-    
-    total++;
-
-    if(data.status==="unpaid") unpaid++;
-
-    if (data.status === "assigned") {
-      // ===== ASSIGNED LOANS TAB =====
-      const assignedCard = document.createElement("div");
-      assignedCard.className = "card";
-      assignedCard.innerHTML = `
-        <h3>${data.borrowerName}</h3>
-        <p> Remaining Balance: <strong>₱${data.balance}</strong></p>
-        <p>📍 ${data.address || "No address"}</p>
-        <p>Status: ${data.status}</p>
-        <p>Type: <strong>${data.loanType || 'solo'}</strong> ${data.memberNames && data.memberNames.length > 0 ? `| Members: ${data.memberNames.join(', ')}` : ''}</p>
-        <p>Cashier: <strong>${data.assignedCashierName || "Not assigned"}</strong></p>
-        <div class="row">
-          <label for="cashier-${data.id}" class="select-label">Choose cashier:</label>
-          <select id="cashier-${data.id}">${cashierOptions(data)}</select>
-        </div>
-        <div class="row">
-          <button class="collected">👤 Assign to Cashier</button>
-        </div>
-      `;
-      
-      assignedCard.querySelector(".collected").onclick = async () => {
-        const select = assignedCard.querySelector(`#cashier-${data.id}`);
-        const selectedId = select?.value;
-        const selectedCashier = cashiers.find(c => c.id === selectedId);
-
-        if (cashiers.length > 0 && !selectedId) {
-          alert("Please select a cashier before assigning.");
-          return;
-        }
-
-        await updateDoc(doc(db, "loans", data.id), {
-          status: "collected",
-          collectedAt: serverTimestamp(),
-          assignedCashierId: selectedCashier?.id || null,
-          assignedCashierName: selectedCashier?.name || ""
-          // Keep current balance - cashier will deduct later
-        });
-      };
-      
-      assignedList.appendChild(assignedCard);
-      
-    } else if (data.status === "unpaid") {
-      // ===== COLLECT LOANS TAB (For Retries) =====
-      const card = document.createElement("div");
-      card.className="card";
-
-      card.innerHTML=`
-        <h3>${data.borrowerName}</h3>
-        <p> Remaining Balance: <strong>₱${data.balance}</strong></p>
-        <p>📍 ${data.address || "No address"}</p>
-        <p>Status: ${data.status}</p>
-        <p>Type: <strong>${data.loanType || 'solo'}</strong> ${data.memberNames && data.memberNames.length > 0 ? `| Members: ${data.memberNames.join(', ')}` : ''}</p>
-        <p>Cashier: <strong>${data.assignedCashierName || "Not assigned"}</strong></p>
-        <div class="row">
-          <label for="cashier-${data.id}" class="select-label">Choose cashier:</label>
-          <select id="cashier-${data.id}">${cashierOptions(data)}</select>
-        </div>
-        <div class="row">
-          <button class="collected">👤 Assign to Cashier</button>
-          <button class="unpaid">❌ Unpaid</button>
-        </div>
-      `;
-
-      card.querySelector(".collected").onclick = async () => {
-        const select = card.querySelector(`#cashier-${data.id}`);
-        const selectedId = select?.value;
-        const selectedCashier = cashiers.find(c => c.id === selectedId);
-
-        if (cashiers.length > 0 && !selectedId) {
-          alert("Please select a cashier before assigning.");
-          return;
-        }
-
-        await updateDoc(doc(db, "loans", data.id), {
-          status: "collected",
-          collectedAt: serverTimestamp(),
-          assignedCashierId: selectedCashier?.id || null,
-          assignedCashierName: selectedCashier?.name || ""
-          // Keep current balance - cashier will deduct later
-        });
-      };
-
-      card.querySelector(".unpaid").onclick = async ()=>{
-        await updateDoc(doc(db,"loans",data.id),{
-          status:"unpaid"
-        });
-      };
-      
-      collectList.appendChild(card);
+    if (collectList.children.length === 0) {
+      collectList.innerHTML = `<div class="empty-state">No loans to collect yet.</div>`;
     }
+
+    /* UPDATE STATS */
+    document.getElementById("total").innerText = total;
+    document.getElementById("collected").innerText = collected;
+    document.getElementById("unpaid").innerText = unpaid;
+    document.getElementById("sideTotal").innerText = total;
+    document.getElementById("sideCollected").innerText = collected;
+    document.getElementById("sideUnpaid").innerText = unpaid;
   });
-
-  // Add empty states if needed
-  if (assignedList.children.length === 0) {
-    assignedList.innerHTML = `<div class="empty-state">No assigned loans. Wait for admin to assign loans.</div>`;
-  }
-  if (collectList.children.length === 0) {
-    collectList.innerHTML = `<div class="empty-state">No loans to collect yet.</div>`;
-  }
-
-  /* UPDATE STATS */
-  document.getElementById("total").innerText=total;
-  document.getElementById("collected").innerText=collected;
-  document.getElementById("unpaid").innerText=unpaid;
-  document.getElementById("sideTotal").innerText=total;
-  document.getElementById("sideCollected").innerText=collected;
-  document.getElementById("sideUnpaid").innerText=unpaid;
-
-});
 }
+window.loadTasks = loadTasks;
+
+window.assignToCashier = async (loanId) => {
+  const select = document.getElementById(`cashier-${loanId}`);
+  const selectedId = select?.value;
+  const selectedCashier = cashiers.find(c => c.id === selectedId);
+
+  if (cashiers.length > 0 && !selectedId) {
+    alert("Please select a cashier before assigning.");
+    return;
+  }
+
+  await updateDoc(doc(db, "loans", loanId), {
+    status: "collected",
+    collectedAt: serverTimestamp(),
+    assignedCashierId: selectedCashier?.id || null,
+    assignedCashierName: selectedCashier?.name || ""
+    // Keep current balance - cashier will deduct later
+  });
+};
+
+window.markUnpaid = async (loanId) => {
+  await updateDoc(doc(db, "loans", loanId), {
+    status: "unpaid"
+  });
+};
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -811,7 +1409,6 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   collectorId = user.uid;
-  console.log("Collector authenticated with ID:", collectorId, "email:", user.email);
   const userSnap = await getDoc(doc(db, "users", collectorId));
   if (!userSnap.exists()) {
     console.error("User document does not exist for collectorId:", collectorId);
@@ -819,9 +1416,8 @@ onAuthStateChanged(auth, async (user) => {
     window.location.href = "login.html";
     return;
   }
-  
+
   const userData = userSnap.data();
-  console.log("User data:", userData);
   if (userData.role !== "collector") {
     console.error("User role is not collector:", userData.role);
     alert("Collector access only.");
@@ -829,12 +1425,14 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
+  collectorName = userData.assignedName || userData.name || "Collector";
   const collectorNameEl = document.getElementById("collectorName");
   if (collectorNameEl) {
-    collectorNameEl.textContent = userData.assignedName || userData.name || "Collector";
+    collectorNameEl.textContent = collectorName;
   }
 
   loadTasks();
+  loadMyLoanRequests();
 });
 
 // 🔥 SET OFFLINE ON PAGE UNLOAD
