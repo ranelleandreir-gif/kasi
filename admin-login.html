@@ -5,11 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kasipag Admin Login</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
 :root {
-  font-family: Inter, Arial, sans-serif;
-  color: #e5e7eb;
-  background: #080f1a;
+  --navy-900: #0b1e3d;
+  --navy-800: #12294e;
+  --navy-700: #1b3763;
+  --blue: #2f6fed;
+  --blue-soft: #e8effe;
+  --teal: #0f9d82;
+  --gold: #c79a3c;
+  --gold-soft: #faf1dd;
+  --red: #c13b3b;
+  --red-soft: #fbeaea;
+  --bg: #f2f5fa;
+  --surface: #ffffff;
+  --surface-alt: #f7f9fc;
+  --border: #e2e7f0;
+  --text: #14213d;
+  --muted: #5c6a86;
+  --muted-2: #8592ab;
+  --radius-lg: 22px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --shadow-card: 0 1px 2px rgba(15,30,60,.05), 0 12px 32px rgba(15,30,60,.08);
+  --font-head: 'Manrope', Arial, sans-serif;
+  --font-body: 'Inter', Arial, sans-serif;
+
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--bg);
 }
 
 * { box-sizing: border-box; }
@@ -19,58 +47,166 @@ body {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  background: radial-gradient(circle at top left, rgba(34,197,94,0.18), transparent 30%),
-              radial-gradient(circle at bottom right, rgba(59,130,246,0.16), transparent 25%),
-              linear-gradient(145deg, #07101b 0%, #090d14 55%, #101a2d 100%);
+  background: var(--bg);
+  padding: 24px;
 }
 
-.container {
-  width: min(420px, calc(100% - 32px));
-  padding: 32px;
-  background: linear-gradient(145deg, rgba(15,23,42,0.96), rgba(10,14,25,0.92));
-  border: 1px solid rgba(148,163,184,0.12);
-  border-radius: 28px;
-  box-shadow: 0 28px 80px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.04);
-  backdrop-filter: blur(18px);
-  animation: fadeUp 0.75s ease both;
+h1, h2 { font-family: var(--font-head); margin: 0; color: var(--navy-900); }
+
+.page { width: min(880px, 100%); }
+
+/* ===== Back to Homepage — consistent across the login flow ===== */
+.top-nav {
+  display: flex;
+  width: min(880px, 100%);
+  margin-bottom: 14px;
 }
 
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
+.back-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  color: var(--navy-800);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 16px;
+  font-family: var(--font-body);
+  font-size: .86rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(15,30,60,.04);
+  cursor: pointer;
+  transition: background .15s ease, transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+.back-home svg { flex-shrink: 0; }
+
+.back-home:hover {
+  background: var(--surface-alt);
+  border-color: var(--blue);
+  color: var(--blue);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15,30,60,.08);
+}
+
+.back-home:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.auth-shell {
+  width: min(880px, 100%);
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  animation: riseIn .5s ease both;
+}
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.header {
-  display: grid;
-  gap: 14px;
-  text-align: center;
-  margin-bottom: 26px;
-}
-
-.logo-section {
+/* ===== Brand panel — ledger-paper motif, distinct from the generic gradient-blob look ===== */
+.auth-brand {
+  position: relative;
+  padding: 44px 40px;
+  background: var(--navy-900);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent, transparent 42px,
+    rgba(255,255,255,.05) 43px
+  );
+  color: #eef2fb;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.auth-brand::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 54px;
+  width: 1px;
+  background: rgba(199,154,60,.4);
+}
+
+.auth-brand-top {
+  display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.header img {
-  width: 96px;
-  height: 96px;
+.auth-brand-top img {
+  width: 44px;
+  height: 44px;
   object-fit: contain;
-  box-shadow: 0 16px 64px rgba(0,0,0,0.5);
 }
 
-.header h1 {
-  margin: 0;
-  font-size: clamp(1.5rem, 2.5vw, 1.9rem);
+.auth-brand-top strong {
+  font-family: var(--font-head);
+  font-size: 1.05rem;
+  letter-spacing: -.01em;
 }
 
-.header p {
-  margin: 0;
-  color: #94a3b8;
-  font-size: 0.9rem;
+.auth-brand-mid h1 {
+  color: #fff;
+  font-size: clamp(1.5rem, 2.4vw, 1.85rem);
+  line-height: 1.25;
 }
+
+.auth-brand-mid p {
+  margin: 14px 0 0;
+  color: #b9c4dc;
+  line-height: 1.65;
+  font-size: .93rem;
+  max-width: 34ch;
+}
+
+.auth-brand-list {
+  list-style: none;
+  margin: 22px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.auth-brand-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: .86rem;
+  color: #d4dcef;
+}
+
+.auth-brand-list li::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+
+.auth-brand-foot {
+  font-size: .78rem;
+  color: #7f8bab;
+}
+
+/* ===== Form panel ===== */
+.auth-form-panel {
+  padding: 44px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.form-head { margin-bottom: 26px; }
+.form-head h2 { font-size: 1.45rem; }
+.form-head p { margin: 8px 0 0; color: var(--muted); font-size: .9rem; }
 
 .field {
   display: grid;
@@ -79,85 +215,131 @@ body {
 }
 
 .field label {
-  font-size: 0.82rem;
-  color: #cbd5e1;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--navy-800);
 }
 
 .field input {
   width: 100%;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.04);
-  color: #e5e7eb;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
   padding: 13px 14px;
-  font-size: 0.95rem;
+  font-size: .95rem;
+  font-family: var(--font-body);
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
 
 .field input:focus {
-  border-color: rgba(59,130,246,0.55);
+  border-color: var(--blue);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--blue-soft);
 }
 
 .login-button {
   width: 100%;
   border: none;
-  border-radius: 16px;
+  border-radius: var(--radius-sm);
   padding: 14px 20px;
-  background: linear-gradient(135deg, #22c55e, #3b82f6);
-  color: #071018;
+  background: var(--navy-900);
+  color: #fff;
+  font-family: var(--font-head);
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: .95rem;
   cursor: pointer;
-  transition: transform 0.2s ease;
-  margin-top: 6px;
+  transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+  margin-top: 4px;
 }
 
-.login-button:hover { transform: translateY(-2px); }
+.login-button:hover { background: var(--navy-700); transform: translateY(-1px); box-shadow: 0 10px 24px rgba(11,30,61,.18); }
+.login-button:active { transform: translateY(0); }
+.login-button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .login-button:disabled {
-  opacity: 0.65;
+  opacity: .6;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .status {
   margin-top: 16px;
   text-align: center;
-  font-size: 0.88rem;
-  color: #94a3b8;
+  font-size: .87rem;
+  color: var(--muted);
   min-height: 1.2em;
 }
 
-@media (max-width: 480px) {
-  .container {
-    width: calc(100% - 24px);
-    padding: 26px 20px;
-  }
+@media (max-width: 760px) {
+  .auth-shell { grid-template-columns: 1fr; }
+  .auth-brand { padding: 30px 26px; }
+  .auth-brand-mid p { max-width: none; }
+  .auth-brand-list { display: none; }
+  .auth-form-panel { padding: 32px 26px; }
+}
+
+@media (max-width: 420px) {
+  body { padding: 14px; }
+  .auth-brand, .auth-form-panel { padding: 26px 20px; }
+  .back-home { width: 100%; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-shell { animation: none; }
+  * { transition-duration: .001ms !important; }
 }
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="header">
-    <div class="logo-section">
+
+<div class="top-nav">
+  <a class="back-home" href="index.html">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    Back to Homepage
+  </a>
+</div>
+
+<div class="auth-shell">
+
+  <aside class="auth-brand">
+    <div class="auth-brand-top">
       <img src="logopo.png" alt="KASIPAG Logo">
-      <h1>Admin Login</h1>
+      <strong>Kasipag</strong>
     </div>
-    <p>Restricted access. Sign in with your Kasipag admin account.</p>
+    <div class="auth-brand-mid">
+      <h1>Admin console</h1>
+      <p>Manage loans, approvals, and staff assignments across every Kasipag branch from one secure dashboard.</p>
+      <ul class="auth-brand-list">
+        <li>Approve and assign new loans</li>
+        <li>Track collectors and cashiers in real time</li>
+        <li>Review payments, reports, and requests</li>
+      </ul>
+    </div>
+    <div class="auth-brand-foot">Kasipag Microfinance &amp; Collection System</div>
+  </aside>
+
+  <div class="auth-form-panel">
+    <div class="form-head">
+      <h2>Sign in</h2>
+      <p>Restricted access. Sign in with your Kasipag admin account.</p>
+    </div>
+
+    <form id="adminLoginForm">
+      <div class="field">
+        <label for="adminEmail">Email</label>
+        <input id="adminEmail" type="email" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="adminPassword">Password</label>
+        <input id="adminPassword" type="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="login-button" id="loginButton">Sign In</button>
+      <div class="status" id="loginStatus"></div>
+    </form>
   </div>
 
-  <form id="adminLoginForm">
-    <div class="field">
-      <label for="adminEmail">Email</label>
-      <input id="adminEmail" type="email" autocomplete="username" required>
-    </div>
-    <div class="field">
-      <label for="adminPassword">Password</label>
-      <input id="adminPassword" type="password" autocomplete="current-password" required>
-    </div>
-    <button type="submit" class="login-button" id="loginButton">Sign In</button>
-    <div class="status" id="loginStatus"></div>
-  </form>
 </div>
 
 <script type="module">
