@@ -77,20 +77,20 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-o
   padding:14px 10px 7px;text-transform:uppercase
 }
 .nav-link{
-  width:100%;display:flex;align-items:center;gap:11px;
+  width:100%;display:flex;align-items:center;gap:12px;
   border:1px solid transparent;background:transparent;color:#cfd9ee;
   border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:3px;
-  cursor:pointer;text-align:left;font-size:.84rem;font-weight:600;
-  transition:background .18s ease,color .18s ease,transform .18s ease,border-color .18s ease;
+  cursor:pointer;text-align:left;font-size:.87rem;font-weight:500;
+  transition:background .15s ease,color .15s ease,transform .15s ease,border-color .15s ease;
 }
 .nav-link:hover{background:rgba(255,255,255,.07);color:#fff;transform:translateX(2px)}
 .nav-link.active{
-  background:linear-gradient(135deg,#2f6fed 0%,#1856cf 100%);
+  background:linear-gradient(135deg,rgba(47,111,237,.9),rgba(47,111,237,.55));
   color:#fff;
-  border-color:rgba(160,195,255,.9);
-  box-shadow:inset 4px 0 0 #fff,0 10px 26px rgba(47,111,237,.45);
+  border-color:transparent;
+  box-shadow:0 6px 16px rgba(47,111,237,.35);
   font-weight:800;
-  transform:translateX(2px)
+  transform:translateX(0)
 }
 .nav-link svg{flex-shrink:0;opacity:.9}
 .nav-link .nav-label{flex:1;min-width:0}
@@ -1536,7 +1536,10 @@ function loadApprovedLoans() {
       if (l.deleted) return;
       if (!l.fromLoanApplication) return;
       // Show loans this cashier originally created, OR collector-submitted loans this cashier approved
-      const ownedByThisCashier = l.createdByCashierId === cashierId || (l.fromCollectorApplication && l.approvedByCashierId === cashierId);
+      const ownedByThisCashier =
+        l.createdByCashierId === cashierId ||
+        (l.fromCollectorApplication && l.approvedByCashierId === cashierId) ||
+        (l.fromAdminCreation && l.assignedCashierId === cashierId);
       if (!ownedByThisCashier) return;
       if (l.status !== "approved" && l.status !== "assigned") return;
       approvedLoans.push({ id: d.id, ...l });
@@ -1669,6 +1672,8 @@ function renderApprovedLoans() {
         <div>📈 Interest: <strong>${l.monthlyInterestRate || 0}% per month</strong></div>
         <div>🧾 Total Payable: <strong>₱${(l.totalPayable || l.amount || 0).toLocaleString()}</strong></div>
         <div>🏍️ Assigned Rider: <strong>${l.assignedCollectorName || "Unassigned"}</strong></div>
+        <div>💼 Assigned Cashier: <strong>${l.assignedCashierName || cashierName || "Cashier"}</strong></div>
+        ${l.fromAdminCreation ? `<div>📥 Origin: <strong>Created and approved by Admin</strong></div>` : ""}
         ${l.fromCollectorApplication ? `<div>📥 Origin: <strong>Submitted by Collector (${l.createdByCollectorName || "Collector"})</strong></div>` : ""}
         ${deletionPending ? `<div>🗑️ <span class="badge red">DELETE REQUESTED</span> — awaiting admin review</div>` : ""}
       </div>

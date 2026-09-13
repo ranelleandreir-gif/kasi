@@ -1088,6 +1088,10 @@ textarea {
             <select id="collectorSelect"></select>
           </div>
           <div>
+            <label class="input-label" for="cashierSelect">Assigned cashier</label>
+            <select id="cashierSelect"></select>
+          </div>
+          <div>
             <label class="input-label" for="loanType">Loan type</label>
             <select id="loanType" onchange="toggleMemberNames()">
               <option value="solo">Solo Loan</option>
@@ -1221,6 +1225,7 @@ onAuthStateChanged(auth, async (user) => {
   loadOnlineUsers();
   loadLoans();
   loadCollectors();
+  loadCashiers();
   loadLoanApplications();
   loadDeletionRequests();
 });
@@ -2115,6 +2120,31 @@ function loadCollectors() {
   });
 }
 
+// Additive only: load the existing approved Cashier accounts for Admin loan assignment.
+function loadCashiers() {
+  const select = document.getElementById("cashierSelect");
+  if (!select) {
+    console.error("cashierSelect element not found");
+    return;
+  }
+
+  onSnapshot(collection(db, "users"), (snap) => {
+    select.innerHTML = '<option value="">-- Select a Cashier --</option>';
+    let cashierCount = 0;
+    snap.forEach(d => {
+      const u = d.data();
+      if (u.role === "cashier" && u.status === "approved" && !u.deleted) {
+        const option = document.createElement("option");
+        option.value = d.id;
+        option.textContent = `${u.assignedName || u.name || u.email || "Cashier"}`;
+        select.appendChild(option);
+        cashierCount++;
+      }
+    });
+    console.log("Loaded", cashierCount, "cashiers into dropdown");
+  });
+}
+
 const actionOverlay = document.getElementById("actionOverlay");
 const actionTitle = document.getElementById("actionTitle");
 const actionMessage = document.getElementById("actionMessage");
@@ -2306,13 +2336,14 @@ window.createLoan = async () => {
   const amount = Number(document.getElementById("amount").value.trim());
   const address = document.getElementById("address").value.trim();
   const collectorId = document.getElementById("collectorSelect").value;
+  const cashierId = document.getElementById("cashierSelect").value;
   const loanType = document.getElementById("loanType").value;
   const memberNamesInput = document.getElementById("memberNames").value.trim();
 
-  console.log("Creating loan with collectorId:", collectorId, "borrowerName:", borrowerName, "amount:", amount);
+  console.log("Creating admin loan:", { borrowerName, amount, collectorId, cashierId, loanType });
 
-  if (!borrowerName || !amount || !address || !collectorId) {
-    alert("Fill all fields before creating the loan.");
+  if (!borrowerName || !amount || !address || !collectorId || !cashierId) {
+    alert("Fill all fields, including Assigned Collector and Assigned Cashier, before creating the loan.");
     return;
   }
 
@@ -2329,11 +2360,15 @@ window.createLoan = async () => {
     ? `${borrowerName} (Members: ${memberNames.join(", ")})`
     : borrowerName;
 
-  await runAction("Creating loan...", "Assigning the loan and saving borrower details.", async () => {
+  await runAction("Creating loan...", "Approving the loan and assigning collector and cashier.", async () => {
     const usersSnap = await getDocs(collection(db, "users"));
     let collectorName = "";
+    let assignedCashierName = "";
+
     usersSnap.forEach(d => {
-      if (d.id === collectorId) collectorName = d.data().assignedName || d.data().name;
+      const u = d.data();
+      if (d.id === collectorId) collectorName = u.assignedName || u.name || u.email || "Collector";
+      if (d.id === cashierId) assignedCashierName = u.assignedName || u.name || u.email || "Cashier";
     });
 
     await addDoc(collection(db, "loans"), {
@@ -2343,22 +2378,42 @@ window.createLoan = async () => {
       address,
       loanType,
       memberNames: memberNames.length > 0 ? memberNames : null,
-      status: "assigned",
+
+      // Admin-created loans are automatically approved.
+      status: "approved",
+      pendingApproval: false,
+      fromAdminCreation: true,
+      createdByAdminId: adminId,
+      createdByAdminName: document.getElementById("adminNameDisplay")?.textContent || "Admin",
+      createdByRole: "admin",
+      approvedAt: serverTimestamp(),
+      approvedBy: adminId,
+
+      // Keep BOTH assignments in the same loan record.
       assignedCollectorId: collectorId,
       assignedCollectorName: collectorName,
+      assignedCashierId: cashierId,
+      assignedCashierName: assignedCashierName,
+
       createdAt: serverTimestamp()
     });
 
-    console.log("Loan created with assignedCollectorId:", collectorId, "status: assigned", "balance:", amount, "collectorName:", collectorName);
+    console.log("Admin loan created:", {
+      status: "approved",
+      assignedCollectorId: collectorId,
+      assignedCashierId: cashierId
+    });
 
     document.getElementById("borrowerName").value = "";
     document.getElementById("amount").value = "";
     document.getElementById("address").value = "";
     document.getElementById("collectorSelect").selectedIndex = 0;
+    document.getElementById("cashierSelect").selectedIndex = 0;
     document.getElementById("loanType").selectedIndex = 0;
     document.getElementById("memberNames").value = "";
     document.getElementById("memberNamesContainer").style.display = "none";
-    alert("Loan created and assigned successfully.");
+
+    alert(`Loan approved and assigned to ${assignedCashierName}. Collector: ${collectorName}.`);
   });
 };
 
@@ -2395,17 +2450,22 @@ window.assignCollector = async (loanId) => {
     const loanDoc = await getDoc(doc(db, "loans", loanId));
     const currentData = loanDoc.data();
 
-    await updateDoc(doc(db, "loans", loanId), {
+    const assignmentUpdate = {
       assignedCollectorId: selected.id,
       assignedCollectorName: selected.name,
-      status: "assigned",
-      assignedCashierId: null,
-      assignedCashierName: "",
       collectedAt: null,
       confirmedAt: null,
       confirmedById: null
-      // Keep current balance - don't reset it
-    });
+      // Keep current balance and existing Cashier assignment.
+    };
+
+    // Preserve automatic approval for Admin-created loans.
+    // Existing non-Admin loans keep their previous reassignment behavior.
+    assignmentUpdate.status = (currentData.fromAdminCreation && currentData.status === "approved")
+      ? "approved"
+      : "assigned";
+
+    await updateDoc(doc(db, "loans", loanId), assignmentUpdate);
     alert(`Reassigned to ${selected.name}. Current balance: ₱${currentData.balance}`);
   } catch (error) {
     console.error("Assignment error:", error);
