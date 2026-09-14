@@ -167,6 +167,23 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 }
 .cashier-chip strong{display:block;font-size:.8rem}
 .cashier-chip span{display:block;color:var(--muted-2);font-size:.68rem}
+.cashier-avatar{cursor:pointer;overflow:hidden;position:relative}
+.cashier-avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+.profile-menu-wrap{position:relative}
+.profile-menu{
+  position:absolute;top:calc(100% + 8px);left:0;min-width:196px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);
+  box-shadow:var(--shadow-pop);padding:6px;display:none;z-index:100
+}
+.profile-menu.open{display:block}
+.profile-menu-label{padding:8px 10px 6px;font-size:.68rem;color:var(--muted-2);font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+.profile-menu-item{
+  width:100%;text-align:left;background:transparent;border:none;
+  padding:9px 10px;border-radius:var(--radius-sm);font-size:.83rem;font-weight:600;
+  color:var(--text);cursor:pointer;font-family:var(--font-body)
+}
+.profile-menu-item:hover{background:var(--surface-alt)}
+.profile-menu-item.danger{color:var(--red)}
 .logout-btn{
   border:1px solid var(--red);background:var(--red-soft);color:var(--red);
   border-radius:var(--radius-sm);padding:8px 13px;font-size:.8rem;font-weight:700;
@@ -557,7 +574,7 @@ input:focus,select:focus{border-color:var(--blue);background:#fff;box-shadow:0 0
     <div class="brand">
       <img src="oklogo.png" alt="Kasipag Logo">
       <div class="brand-text">
-        <strong>Kasipag</strong>
+        <strong>ＫＡＳＩＰＡＧ</strong>
         <span>Microfinance &amp; Collection System</span>
       </div>
     </div>
@@ -599,7 +616,15 @@ input:focus,select:focus{border-color:var(--blue);background:#fff;box-shadow:0 0
     </div>
     <div class="topbar-right">
       <div class="cashier-chip">
-        <div class="cashier-avatar">C</div>
+        <div class="profile-menu-wrap">
+          <div class="cashier-avatar" id="collectorAvatar" onclick="toggleProfileMenu(event)">C</div>
+          <div class="profile-menu" id="profileMenu">
+            <div class="profile-menu-label">Collector</div>
+            <button type="button" class="profile-menu-item" onclick="triggerProfilePicInput()">Change Profile Picture</button>
+            <button type="button" class="profile-menu-item danger" id="removeProfilePicBtn" style="display:none" onclick="removeProfilePicture()">Remove Profile Picture</button>
+          </div>
+          <input type="file" id="profilePicInput" accept="image/*" style="display:none" onchange="handleProfilePicChange(event)">
+        </div>
         <div><strong id="collectorName">Collector</strong><span>Authorized workspace</span></div>
       </div>
       <button class="refresh-btn" onclick="loadTasks()">🔄 Refresh</button>
@@ -1430,6 +1455,7 @@ onAuthStateChanged(auth, async (user) => {
   if (collectorNameEl) {
     collectorNameEl.textContent = collectorName;
   }
+  applyCollectorProfilePicture(userData.profilePictureUrl || null);
 
   loadTasks();
   loadMyLoanRequests();
@@ -1461,6 +1487,113 @@ window.logout = async () => {
   localStorage.removeItem("email");
   await signOut(auth);
   window.location.href = "role-selector.html";
+};
+
+// ==== Admin-style Profile Picture Feature (added, does not alter existing logic) ====
+const MAX_PROFILE_PIC_BYTES = 2 * 1024 * 1024; // 2MB raw upload limit before compression
+
+function applyCollectorProfilePicture(url) {
+  const avatar = document.getElementById("collectorAvatar");
+  const removeBtn = document.getElementById("removeProfilePicBtn");
+  if (!avatar) return;
+  if (url) {
+    avatar.innerHTML = `<img src="${url}" alt="Profile picture">`;
+    if (removeBtn) removeBtn.style.display = "block";
+  } else {
+    avatar.innerHTML = "C";
+    if (removeBtn) removeBtn.style.display = "none";
+  }
+}
+
+window.toggleProfileMenu = (event) => {
+  event.stopPropagation();
+  const menu = document.getElementById("profileMenu");
+  if (menu) menu.classList.toggle("open");
+};
+
+document.addEventListener("click", (event) => {
+  const menu = document.getElementById("profileMenu");
+  const wrap = document.querySelector(".profile-menu-wrap");
+  if (menu && menu.classList.contains("open") && wrap && !wrap.contains(event.target)) {
+    menu.classList.remove("open");
+  }
+});
+
+window.triggerProfilePicInput = () => {
+  const menu = document.getElementById("profileMenu");
+  if (menu) menu.classList.remove("open");
+  const input = document.getElementById("profilePicInput");
+  if (input) input.click();
+};
+
+function resizeImageToDataUrl(file, maxDim) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) {
+          height = Math.round(height * (maxDim / width));
+          width = maxDim;
+        } else if (height > maxDim) {
+          width = Math.round(width * (maxDim / height));
+          height = maxDim;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.onerror = () => reject(new Error("Invalid image file."));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error("Unable to read file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+window.handleProfilePicChange = async (event) => {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+
+  if (!file.type || !file.type.startsWith("image/")) {
+    alert("Please select a valid image file.");
+    return;
+  }
+  if (file.size > MAX_PROFILE_PIC_BYTES) {
+    alert("Image is too large. Please choose a file under 2MB.");
+    return;
+  }
+
+  try {
+    const dataUrl = await resizeImageToDataUrl(file, 300);
+    await updateDoc(doc(db, "users", collectorId), {
+      profilePictureUrl: dataUrl
+    });
+    applyCollectorProfilePicture(dataUrl);
+  } catch (error) {
+    alert("Please select a valid image file.");
+    console.error("Profile picture upload error:", error);
+  }
+};
+
+window.removeProfilePicture = async () => {
+  const confirmed = window.confirm("Remove your profile picture?");
+  if (!confirmed) return;
+  try {
+    await updateDoc(doc(db, "users", collectorId), {
+      profilePictureUrl: ""
+    });
+    applyCollectorProfilePicture(null);
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+  const menu = document.getElementById("profileMenu");
+  if (menu) menu.classList.remove("open");
 };
 </script>
 

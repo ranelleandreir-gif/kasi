@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kasipag Admin Dashboard</title>
+<script>
+/* ADDED: Admin Lock — apply locked state before first paint to avoid any flash of dashboard content */
+(function () {
+  try {
+    if (localStorage.getItem('adminLockedState') === 'true') {
+      document.documentElement.classList.add('admin-locked');
+    }
+  } catch (e) {}
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -797,6 +807,63 @@ textarea {
 .action-popup strong { display: block; margin-bottom: 8px; font-size: 1.02rem; color: var(--navy-900); }
 .action-popup span { color: var(--muted); font-size: 0.86rem; }
 
+/* ============ DELETE / RESTORE CONFIRMATION ============ */
+.delete-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(11,30,61,.58);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 18px;
+}
+.delete-confirm-backdrop.show { display: flex; }
+.delete-confirm-modal {
+  width: min(440px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-pop);
+  padding: 24px;
+}
+.delete-confirm-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--red-soft);
+  color: var(--red);
+  margin-bottom: 14px;
+}
+.delete-confirm-modal h3 { font-size: 1.12rem; margin-bottom: 7px; }
+.delete-confirm-modal p { margin: 0 0 16px; color: var(--muted); font-size: .86rem; line-height: 1.55; }
+.delete-confirm-modal label { display:block; margin-bottom:7px; font-size:.78rem; font-weight:700; color:var(--navy-800); }
+.delete-confirm-modal input {
+  width:100%;
+  background:var(--surface-alt);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:11px 12px;
+  font-family:var(--font-body);
+  font-size:.9rem;
+}
+.delete-confirm-modal input:focus { outline:2px solid var(--blue); outline-offset:1px; }
+.delete-confirm-error { display:none; color:var(--red); font-size:.78rem; margin-top:8px; }
+.delete-confirm-error.show { display:block; }
+.delete-confirm-actions { display:flex; gap:10px; margin-top:20px; }
+.delete-confirm-actions button { flex:1; }
+.delete-confirm-modal .danger-note {
+  padding:10px 12px;
+  border-radius:var(--radius-sm);
+  background:var(--red-soft);
+  color:var(--red);
+  font-size:.76rem;
+  font-weight:600;
+  margin-bottom:15px;
+}
 /* ============ RESPONSIVE ============ */
 @media (max-width: 1080px) {
   .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -872,6 +939,145 @@ textarea {
 @media (max-width: 600px) {
   .loaner-grid { grid-template-columns: 1fr; }
 }
+
+/* ============ ADMIN LOCK FEATURE (ADDED — does not alter any rule above) ============ */
+.lock-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: #cfd9f2;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+  flex-shrink: 0;
+}
+.lock-btn:hover { background: rgba(255,255,255,0.14); color: #fff; border-color: rgba(255,255,255,0.28); }
+.lock-btn svg { width: 17px; height: 17px; }
+
+/* Hide the entire existing dashboard whenever locked */
+html.admin-locked .app-shell,
+html.admin-locked #actionOverlay,
+html.admin-locked .sidebar-scrim {
+  display: none !important;
+}
+
+.admin-lock-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(11,30,61,0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+  padding: 16px;
+}
+.admin-lock-modal-backdrop.show { display: flex; }
+
+.admin-lock-modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  width: 100%;
+  max-width: 360px;
+  padding: 22px 22px 20px;
+}
+.admin-lock-modal h3 { display: flex; align-items: center; gap: 8px; font-size: 1.05rem; margin-bottom: 4px; }
+.admin-lock-modal p.hint { color: var(--muted); font-size: .82rem; margin: 0 0 16px; }
+.admin-lock-modal label { display: block; font-size: .78rem; font-weight: 600; color: var(--navy-800); margin: 12px 0 6px; }
+.admin-lock-modal input[type="password"] {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-family: var(--font-body);
+  font-size: .9rem;
+  background: var(--surface-alt);
+  color: var(--text);
+}
+.admin-lock-modal input[type="password"]:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+.admin-lock-error { color: var(--red); font-size: .78rem; margin-top: 10px; display: none; }
+.admin-lock-error.show { display: block; }
+.admin-lock-actions { display: flex; gap: 10px; margin-top: 20px; }
+.admin-lock-actions button {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: .86rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.admin-lock-btn-primary { background: var(--navy-900); color: #fff; }
+.admin-lock-btn-primary:hover { background: var(--navy-800); }
+.admin-lock-btn-secondary { background: var(--surface-alt); color: var(--text); border-color: var(--border); }
+.admin-lock-btn-secondary:hover { background: var(--border); }
+
+.admin-locked-overlay {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(160deg, var(--navy-900), var(--navy-700));
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 20px;
+}
+html.admin-locked .admin-locked-overlay { display: flex; }
+.admin-locked-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  padding: 32px 28px 26px;
+  text-align: center;
+}
+.admin-locked-card .lock-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--blue-soft);
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+}
+.admin-locked-card h2 { font-size: 1.2rem; margin-bottom: 6px; }
+.admin-locked-card p.hint { color: var(--muted); font-size: .84rem; margin: 0 0 18px; }
+.admin-locked-card input[type="password"] {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: .9rem;
+  background: var(--surface-alt);
+  color: var(--text);
+  text-align: left;
+}
+.admin-locked-card input[type="password"]:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+.admin-locked-card button {
+  width: 100%;
+  margin-top: 14px;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 700;
+  font-size: .9rem;
+  cursor: pointer;
+}
+.admin-locked-card button:hover { background: #2559c9; }
+.admin-locked-error { color: var(--red); font-size: .8rem; margin-top: 12px; display: none; }
+.admin-locked-error.show { display: block; }
+@media (max-width: 480px) {
+  .admin-locked-card { padding: 26px 20px 22px; }
+}
 </style>
 </head>
 <body>
@@ -892,7 +1098,9 @@ textarea {
     <div class="brand" onclick="window.location.href='admin-login.html'" style="cursor:pointer;" title="Go to Admin Login">
       <img src="oklogo.png" alt="Kasipag Logo">
       <div class="brand-text">
-        <strong>Kasipag</strong>
+        <button type="button" id="adminLockBtn" class="lock-btn" title="Lock Admin Dashboard" aria-label="Lock Admin Dashboard" onclick="event.stopPropagation(); window.openAdminLockModal();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        </button>
         <span>Microfinance &amp; Collection System</span>
       </div>
     </div>
@@ -922,6 +1130,11 @@ textarea {
       Deletion Requests
       <span class="nav-badge" id="navDeleteReqBadge" style="display:none;">0</span>
     </button>
+    <button class="nav-link" data-tab="deletedLoans" onclick="openTab(this,'deletedLoans')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></svg>
+      Deleted Loans
+      <span class="nav-badge" id="navDeletedLoansBadge" style="display:none;">0</span>
+    </button>
 
     <div class="nav-group-label">Collections</div>
     <button class="nav-link" data-tab="collectorsTab" onclick="openTab(this,'collectorsTab')">
@@ -944,6 +1157,11 @@ textarea {
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M2.7 20c1.1-3.6 3.4-5.4 6.3-5.4s5.2 1.8 6.3 5.4"/><circle cx="17.5" cy="7.5" r="2.4"/><path d="M15.5 14.4c2.4.4 4 2 4.8 4.9"/></svg>
       Users &amp; Accounts
       <span class="nav-badge" id="navPendingBadge" style="display:none;">0</span>
+    </button>
+    <button class="nav-link" data-tab="deletedUsers" onclick="openTab(this,'deletedUsers')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></svg>
+      Deleted Users
+      <span class="nav-badge" id="navDeletedUsersBadge" style="display:none;">0</span>
     </button>
     <button class="nav-link" data-tab="online" onclick="openTab(this,'online')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none"/></svg>
@@ -1165,6 +1383,17 @@ textarea {
       <div id="deletion-requests-content"></div>
     </section>
 
+    <!-- ===================== DELETED LOANS ===================== -->
+    <section id="deletedLoans" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Deleted Loans</h2>
+          <p>Soft-deleted loans are kept here until restored or permanently deleted.</p>
+        </div>
+      </div>
+      <div id="deleted-loans-content"></div>
+    </section>
+
     <!-- ===================== ADD NEW LOAN (same Add Loaner form/UI as Cashier) ===================== -->
     <section id="create" class="section">
       <div class="section-head">
@@ -1332,6 +1561,17 @@ textarea {
       </div>
     </section>
 
+    <!-- ===================== DELETED USERS ===================== -->
+    <section id="deletedUsers" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Deleted Users</h2>
+          <p>Deleted accounts can be restored or permanently removed from the system.</p>
+        </div>
+      </div>
+      <div id="deleted-users-content"></div>
+    </section>
+
     <!-- ===================== ONLINE ===================== -->
     <section id="online" class="section"></section>
 
@@ -1358,6 +1598,7 @@ let adminId = null;
 let currentUsers = [];
 let deletedUsers = [];
 let currentLoans = [];
+let deletedLoans = [];
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
@@ -1733,13 +1974,62 @@ function renderLoanFolder(title, list, parent) {
   filterLoanRowsInternal();
 }
 
+function renderDeletedLoans(list, parent) {
+  const box = document.createElement("div");
+  box.className = "panel";
+  box.innerHTML = `<div class="panel-title"><h3>Deleted loan records</h3><span class="badge muted">${list.length}</span></div>`;
+
+  if (!list.length) {
+    box.innerHTML += `<div class="empty-state">No records found</div>`;
+    parent.appendChild(box);
+    return;
+  }
+
+  const wrap = document.createElement("div");
+  wrap.className = "table-scroll";
+  const table = document.createElement("table");
+  table.className = "data-table";
+  table.innerHTML = `
+    <thead><tr>
+      <th>Borrower</th><th>Loan ID</th><th>Type</th><th class="num">Amount</th><th class="num">Balance</th><th>Term</th><th>Deleted At</th><th>Actions</th>
+    </tr></thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
+
+  list.forEach(l => {
+    const tr = document.createElement("tr");
+    tr.dataset.search = `${(l.borrowerName || "").toLowerCase()} ${(l.address || "").toLowerCase()} ${(l.id || "").toLowerCase()}`;
+    tr.innerHTML = `
+      <td><div class="cell-primary">${l.borrowerName || "No Name"}</div><div class="cell-sub">${l.address || "No address on file"}</div></td>
+      <td><span class="cell-sub">${l.id}</span></td>
+      <td>${l.loanType === "group" ? "Group" : "Solo"}</td>
+      <td class="num amount">${money(l.amount)}</td>
+      <td class="num amount">${money(l.balance)}</td>
+      <td>${loanTermLabel(l)}</td>
+      <td>${fmtDate(l.deletedAt) || "—"}</td>
+      <td>
+        <div class="row-actions">
+          <button class="button green" onclick="restoreLoan('${l.id}')">Restore</button>
+          <button class="button red" onclick="deleteLoanPermanently('${l.id}')">Delete Permanently</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  wrap.appendChild(table);
+  box.appendChild(wrap);
+  parent.appendChild(box);
+}
+
 function renderDeletedUsers(title, list, parent) {
   const box = document.createElement("div");
   box.className = "panel";
   box.innerHTML = `<div class="panel-title"><h3>${title}</h3><span class="badge muted">${list.length}</span></div>`;
 
   if (!list.length) {
-    box.innerHTML += `<div class="empty-state">No deleted users in bin.</div>`;
+    box.innerHTML += `<div class="empty-state">No records found</div>`;
     parent.appendChild(box);
     return;
   }
@@ -1824,9 +2114,7 @@ function loadUsers() {
     snap.forEach(d => {
       const u = d.data();
       const user = { id: d.id, ...u };
-      if (u.deletedPermanent) {
-        return;
-      }
+      if (u.deletedPermanent) return;
       if (u.deleted) {
         deletedUsers.push(user);
         return;
@@ -1837,12 +2125,27 @@ function loadUsers() {
     refreshUsersUI(null, currentUsers.length);
     renderCollectorsTab();
     renderCashierTab();
+
+    const deletedUsersContent = document.getElementById("deleted-users-content");
+    if (deletedUsersContent) {
+      deletedUsersContent.innerHTML = "";
+      renderDeletedUsers("Deleted accounts", deletedUsers, deletedUsersContent);
+    }
+
+    const deletedUsersBadge = document.getElementById("navDeletedUsersBadge");
+    if (deletedUsersBadge) {
+      deletedUsersBadge.textContent = deletedUsers.length;
+      deletedUsersBadge.style.display = deletedUsers.length ? "inline-block" : "none";
+    }
   });
 }
 
 function loadTrashUsers() {
-  deletedUsers = currentUsers.filter(u => u.deleted && !u.deletedPermanent);
-  refreshUsersUI();
+  const deletedUsersContent = document.getElementById("deleted-users-content");
+  if (deletedUsersContent) {
+    deletedUsersContent.innerHTML = "";
+    renderDeletedUsers("Deleted accounts", deletedUsers, deletedUsersContent);
+  }
 }
 
 function refreshUsersUI(folders = null, totalCount = null) {
@@ -1865,8 +2168,8 @@ function refreshUsersUI(folders = null, totalCount = null) {
   renderFolder("Cashiers", folders.cashier, usersDiv);
   renderFolder("Collectors / riders", folders.collector, usersDiv);
   renderFolder("Admins", folders.admin, usersDiv);
-  renderDeletedUsers("Deleted accounts (bin)", deletedUsers, usersDiv);
   filterUserRows();
+  renderDeletedUsers("Deleted accounts (bin)", deletedUsers, document.getElementById("deleted-users-content"));
 
   const total = totalCount ?? currentUsers.length;
   const approved = folders.cashier.length + folders.collector.length + folders.admin.length;
@@ -1896,10 +2199,14 @@ function loadLoans() {
     const active = [];
     const paid = [];
     currentLoans = [];
+    deletedLoans = [];
 
     snap.forEach(d => {
       const l = { id: d.id, ...d.data() };
-      if (l.deleted) return;
+      if (l.deleted) {
+        deletedLoans.push(l);
+        return;
+      }
       if (l.pendingApproval) return; // Loan applications awaiting approval live in the Loan Applications tab until approved/rejected
       currentLoans.push(l);
       if (l.status === "paid" || l.balance === 0) {
@@ -1912,6 +2219,18 @@ function loadLoans() {
     renderLoanFolder("Active loans (need collection)", active, loansContent);
     renderLoanFolder("Paid loans (balance = 0)", paid, loansContent);
     document.getElementById("paidCount").textContent = paid.length;
+
+    const deletedLoansContent = document.getElementById("deleted-loans-content");
+    if (deletedLoansContent) {
+      deletedLoansContent.innerHTML = "";
+      renderDeletedLoans(deletedLoans, deletedLoansContent);
+    }
+
+    const deletedLoansBadge = document.getElementById("navDeletedLoansBadge");
+    if (deletedLoansBadge) {
+      deletedLoansBadge.textContent = deletedLoans.length;
+      deletedLoansBadge.style.display = deletedLoans.length ? "inline-block" : "none";
+    }
 
     updateOverviewStats(active, paid);
     renderReports(active, paid);
@@ -2510,21 +2829,112 @@ window.sendPasswordReset = async (id) => {
   });
 };
 
-window.deleteUser = async (id) => {
-  await runAction("Deleting user...", "Moving this account to bin so it can be recovered later.", async () => {
-    const userRef = doc(db, "users", id);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) throw new Error("User not found.");
-    await updateDoc(userRef, {
-      deleted: true,
-      deletedAt: serverTimestamp(),
-      deletedBy: adminId
-    });
-  });
+let pendingDeleteAction = null;
+
+window.openDeleteConfirm = (type, id, permanent = false) => {
+  pendingDeleteAction = { type, id, permanent };
+
+  const title = document.getElementById("deleteConfirmTitle");
+  const message = document.getElementById("deleteConfirmMessage");
+  const label = document.getElementById("deleteConfirmLabel");
+  const input = document.getElementById("deleteConfirmInput");
+  const error = document.getElementById("deleteConfirmError");
+  const submit = document.getElementById("deleteConfirmSubmit");
+  const note = document.getElementById("deleteConfirmNote");
+
+  const item = type === "loan" ? "loan" : "account";
+  title.textContent = permanent ? `Delete ${type === "loan" ? "Loan" : "User"} Permanently` : `Delete ${type === "loan" ? "Loan" : "User"}`;
+  message.textContent = permanent
+    ? `This ${item} will be permanently deleted from the entire system. This action cannot be undone.`
+    : `This ${item} will be moved to Deleted ${type === "loan" ? "Loans" : "Users"}. You can restore it later.`;
+  label.textContent = permanent ? "Type CONFIRM to permanently delete" : "Type CONFIRM to continue";
+  note.textContent = permanent
+    ? "Permanent deletion is final. The record cannot be restored."
+    : "Soft delete keeps the record in the Deleted section for recovery.";
+  submit.textContent = permanent ? "Delete Permanently" : `Delete ${type === "loan" ? "Loan" : "User"}`;
+  input.value = "";
+  error.classList.remove("show");
+  document.getElementById("deleteConfirmBackdrop").classList.add("show");
+  setTimeout(() => input.focus(), 50);
 };
 
+window.closeDeleteConfirm = () => {
+  pendingDeleteAction = null;
+  const backdrop = document.getElementById("deleteConfirmBackdrop");
+  const input = document.getElementById("deleteConfirmInput");
+  const error = document.getElementById("deleteConfirmError");
+  if (backdrop) backdrop.classList.remove("show");
+  if (input) input.value = "";
+  if (error) error.classList.remove("show");
+};
+
+window.submitDeleteConfirm = async () => {
+  const input = document.getElementById("deleteConfirmInput");
+  const error = document.getElementById("deleteConfirmError");
+
+  if (!pendingDeleteAction) return;
+
+  if (input.value !== "CONFIRM") {
+    error.textContent = "Please type CONFIRM to continue.";
+    error.classList.add("show");
+    return;
+  }
+
+  const action = pendingDeleteAction;
+  window.closeDeleteConfirm();
+
+  if (action.type === "loan" && !action.permanent) {
+    await runAction("Deleting loan...", "Moving this loan to Deleted Loans.", async () => {
+      const loanRef = doc(db, "loans", action.id);
+      const snap = await getDoc(loanRef);
+      if (!snap.exists()) throw new Error("Loan not found.");
+      await updateDoc(loanRef, {
+        deleted: true,
+        deletedAt: serverTimestamp(),
+        deletedBy: adminId
+      });
+    });
+    return;
+  }
+
+  if (action.type === "loan" && action.permanent) {
+    await runAction("Deleting permanently...", "Removing this loan forever.", async () => {
+      const loanRef = doc(db, "loans", action.id);
+      const snap = await getDoc(loanRef);
+      if (!snap.exists()) throw new Error("Loan record not found.");
+      await deleteDoc(loanRef);
+    });
+    return;
+  }
+
+  if (action.type === "user" && !action.permanent) {
+    await runAction("Deleting user...", "Moving this account to Deleted Users.", async () => {
+      const userRef = doc(db, "users", action.id);
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) throw new Error("User not found.");
+      await updateDoc(userRef, {
+        deleted: true,
+        deletedAt: serverTimestamp(),
+        deletedBy: adminId
+      });
+    });
+    return;
+  }
+
+  if (action.type === "user" && action.permanent) {
+    await runAction("Deleting permanently...", "Removing this account forever.", async () => {
+      const userRef = doc(db, "users", action.id);
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) throw new Error("User record not found.");
+      await deleteDoc(userRef);
+    });
+  }
+};
+
+window.deleteUser = (id) => window.openDeleteConfirm("user", id, false);
+
 window.recoverUser = async (id) => {
-  await runAction("Recovering user...", "Restoring the deleted account from bin.", async () => {
+  await runAction("Restoring user...", "Returning the account to active Users.", async () => {
     const userRef = doc(db, "users", id);
     const userSnap = await getDoc(userRef);
     if (!userSnap.exists()) throw new Error("Deleted record not found.");
@@ -2536,33 +2946,24 @@ window.recoverUser = async (id) => {
   });
 };
 
-window.deleteUserPermanently = async (id) => {
-  await runAction("Deleting permanently...", "Removing this deleted user forever.", async () => {
-    const userRef = doc(db, "users", id);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) throw new Error("User record not found.");
+window.deleteUserPermanently = (id) => window.openDeleteConfirm("user", id, true);
 
-    try {
-      await deleteDoc(userRef);
-    } catch (error) {
-      if (error.code === "permission-denied" || /permission/i.test(error.message)) {
-        await updateDoc(userRef, {
-          deletedPermanent: true,
-          deletedAt: serverTimestamp(),
-          deletedBy: adminId
-        });
-      } else {
-        throw error;
-      }
-    }
+window.deleteLoan = (id) => window.openDeleteConfirm("loan", id, false);
+
+window.restoreLoan = async (id) => {
+  await runAction("Restoring loan...", "Returning the loan to active Borrowers & Loans.", async () => {
+    const loanRef = doc(db, "loans", id);
+    const loanSnap = await getDoc(loanRef);
+    if (!loanSnap.exists()) throw new Error("Deleted loan record not found.");
+    await updateDoc(loanRef, {
+      deleted: false,
+      deletedAt: null,
+      deletedBy: null
+    });
   });
 };
 
-window.deleteLoan = async (id) => {
-  await runAction("Deleting loan...", "Removing this loan from the system.", async () => {
-    await deleteDoc(doc(db, "loans", id));
-  });
-};
+window.deleteLoanPermanently = (id) => window.openDeleteConfirm("loan", id, true);
 
 window.editLoanBalance = async (loanId, currentBalance) => {
   const newBalance = window.prompt(`Edit loan balance (current: ₱${currentBalance}):`, currentBalance);
@@ -2963,5 +3364,196 @@ window.logout = async () => {
   window.location.href = "index.html";
 };
 </script>
+
+<!-- ============ DELETE / RESTORE CONFIRMATION (ADDED) ============ -->
+<div class="delete-confirm-backdrop" id="deleteConfirmBackdrop" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
+  <div class="delete-confirm-modal">
+    <div class="delete-confirm-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></svg>
+    </div>
+    <h3 id="deleteConfirmTitle">Delete</h3>
+    <p id="deleteConfirmMessage"></p>
+    <div class="danger-note" id="deleteConfirmNote"></div>
+    <label for="deleteConfirmInput" id="deleteConfirmLabel">Type CONFIRM to continue</label>
+    <input type="text" id="deleteConfirmInput" autocomplete="off" spellcheck="false" placeholder="CONFIRM">
+    <div class="delete-confirm-error" id="deleteConfirmError">Please type CONFIRM to continue.</div>
+    <div class="delete-confirm-actions">
+      <button type="button" class="button outline" onclick="window.closeDeleteConfirm()">Cancel</button>
+      <button type="button" class="button red" id="deleteConfirmSubmit" onclick="window.submitDeleteConfirm()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ADMIN LOCK FEATURE (ADDED) ============ -->
+
+<div class="admin-lock-modal-backdrop" id="adminLockModalBackdrop">
+  <div class="admin-lock-modal">
+    <h3>🔒 Lock Admin</h3>
+    <p class="hint">Set a password to lock the Admin Dashboard. You'll need this password to unlock it again.</p>
+
+    <label for="adminLockPass1">Set Password</label>
+    <input type="password" id="adminLockPass1" autocomplete="new-password" placeholder="Enter password">
+
+    <label for="adminLockPass2">Confirm Password</label>
+    <input type="password" id="adminLockPass2" autocomplete="new-password" placeholder="Confirm password">
+
+    <div class="admin-lock-error" id="adminLockSetError"></div>
+
+    <div class="admin-lock-actions">
+      <button type="button" class="admin-lock-btn-secondary" onclick="window.closeAdminLockModal();">Cancel</button>
+      <button type="button" class="admin-lock-btn-primary" onclick="window.submitAdminLock();">🔒 Lock Admin</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-locked-overlay" id="adminLockedOverlay">
+  <div class="admin-locked-card">
+    <div class="lock-icon-wrap">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+    </div>
+    <h2>ADMIN LOCKED</h2>
+    <p class="hint">Admin Dashboard is locked. Enter your password to continue.</p>
+    <input type="password" id="adminUnlockInput" autocomplete="current-password" placeholder="Enter Password">
+    <button type="button" onclick="window.attemptAdminUnlock();">🔓 Unlock Admin</button>
+    <div class="admin-locked-error" id="adminUnlockError">Incorrect password. Please try again.</div>
+  </div>
+</div>
+
+<script>
+/* ADDED: Admin Lock / Unlock feature only. Does not touch any existing function, Firebase, or UI logic above. */
+(function () {
+  var LOCK_STATE_KEY = 'adminLockedState';
+  var LOCK_HASH_KEY = 'adminLockHash';
+
+  function $(id) { return document.getElementById(id); }
+
+  async function hashPassword(pw) {
+    try {
+      var enc = new TextEncoder().encode(pw);
+      var buf = await crypto.subtle.digest('SHA-256', enc);
+      return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+    } catch (e) {
+      // Fallback if SubtleCrypto is unavailable (e.g. non-secure context)
+      var hash = 0, i, chr;
+      for (i = 0; i < pw.length; i++) {
+        chr = pw.charCodeAt(i);
+        hash = ((hash << 5) - hash) + chr;
+        hash |= 0;
+      }
+      return 'fb_' + hash;
+    }
+  }
+
+  function resetSetPasswordForm() {
+    $('adminLockPass1').value = '';
+    $('adminLockPass2').value = '';
+    $('adminLockSetError').classList.remove('show');
+    $('adminLockSetError').textContent = '';
+  }
+
+  window.openAdminLockModal = function () {
+    resetSetPasswordForm();
+    $('adminLockModalBackdrop').classList.add('show');
+  };
+
+  window.closeAdminLockModal = function () {
+    $('adminLockModalBackdrop').classList.remove('show');
+    resetSetPasswordForm();
+  };
+
+  window.submitAdminLock = async function () {
+    var p1 = $('adminLockPass1').value;
+    var p2 = $('adminLockPass2').value;
+    var errEl = $('adminLockSetError');
+
+    if (!p1 || !p1.trim() || !p2 || !p2.trim()) {
+      errEl.textContent = 'Password cannot be blank.';
+      errEl.classList.add('show');
+      return;
+    }
+    if (p1 !== p2) {
+      errEl.textContent = 'Passwords do not match.';
+      errEl.classList.add('show');
+      return;
+    }
+
+    var hash = await hashPassword(p1);
+    try {
+      localStorage.setItem(LOCK_HASH_KEY, hash);
+      localStorage.setItem(LOCK_STATE_KEY, 'true');
+    } catch (e) {}
+
+    $('adminLockModalBackdrop').classList.remove('show');
+    resetSetPasswordForm();
+    engageLock();
+  };
+
+  function engageLock() {
+    document.documentElement.classList.add('admin-locked');
+    $('adminUnlockInput').value = '';
+    $('adminUnlockError').classList.remove('show');
+    setTimeout(function () {
+      var input = $('adminUnlockInput');
+      if (input) input.focus();
+    }, 50);
+  }
+
+  window.attemptAdminUnlock = async function () {
+    var entered = $('adminUnlockInput').value;
+    var errEl = $('adminUnlockError');
+    var storedHash = null;
+    try { storedHash = localStorage.getItem(LOCK_HASH_KEY); } catch (e) {}
+
+    if (!entered) {
+      errEl.textContent = 'Please enter your password.';
+      errEl.classList.add('show');
+      return;
+    }
+
+    var enteredHash = await hashPassword(entered);
+
+    if (storedHash && enteredHash === storedHash) {
+      try {
+        localStorage.setItem(LOCK_STATE_KEY, 'false');
+      } catch (e) {}
+      document.documentElement.classList.remove('admin-locked');
+      $('adminUnlockInput').value = '';
+      errEl.classList.remove('show');
+    } else {
+      errEl.textContent = 'Incorrect password. Please try again.';
+      errEl.classList.add('show');
+      $('adminUnlockInput').value = '';
+      $('adminUnlockInput').focus();
+    }
+  };
+
+  // Allow Enter key to submit in both the set-password modal and the unlock screen
+  document.addEventListener('DOMContentLoaded', function () {
+    var p2 = $('adminLockPass2');
+    if (p2) p2.addEventListener('keydown', function (e) { if (e.key === 'Enter') window.submitAdminLock(); });
+
+    var unlockInput = $('adminUnlockInput');
+    if (unlockInput) unlockInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') window.attemptAdminUnlock(); });
+
+    var deleteConfirmInput = $('deleteConfirmInput');
+    if (deleteConfirmInput) deleteConfirmInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') window.submitDeleteConfirm();
+      if (e.key === 'Escape') window.closeDeleteConfirm();
+    });
+
+    // If already locked on load (set by the early <head> script), make sure the overlay UI is ready/focused.
+    var alreadyLocked = false;
+    try { alreadyLocked = localStorage.getItem(LOCK_STATE_KEY) === 'true'; } catch (e) {}
+    if (alreadyLocked) {
+      document.documentElement.classList.add('admin-locked');
+      setTimeout(function () {
+        var input = $('adminUnlockInput');
+        if (input) input.focus();
+      }, 50);
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
