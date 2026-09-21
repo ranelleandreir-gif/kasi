@@ -769,21 +769,21 @@ input:focus,select:focus{border-color:var(--blue);background:#fff;box-shadow:0 0
     </div>
 
     <div class="nav-group-label">Collector workspace</div>
-    <button type="button" id="addLoanerBtn" class="nav-link nav-action" onclick="openAddLoanerModal()">
+    <button type="button" id="addLoanerBtn" class="nav-link nav-active" onclick="openAddLoanerModal()">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
       <span class="nav-label">Add Loaner</span><span class="nav-hint">ADD</span>
     </button>
-    <button type="button" id="requestsTabBtn" class="nav-link nav-action" onclick="showCollectorTab('requests')">
+    <button type="button" id="requestsTabBtn" class="nav-link nav-active" onclick="showCollectorTab('requests')">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
       <span class="nav-label">My Loan Requests</span><span class="nav-hint">VIEW</span><span class="nav-count" id="navRequestCount">0</span>
     </button>
-    <button type="button" id="assignedTabBtn" class="nav-link active" onclick="showCollectorTab('assigned')">
+    <button type="button" id="assignedTabBtn" class="nav-link nav-active" onclick="showCollectorTab('assigned')">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h5"/></svg>
-      Assigned Collections
+      <span class="nav-label">Assigned Collections</span><span class="nav-hint">VIEW</span><span class="nav-count" id="navRequestCount">0</span>
     </button>
-    <button type="button" id="collectTabBtn" class="nav-link" onclick="showCollectorTab('collect')">
+    <button type="button" id="collectTabBtn" class="nav-link nav-active" onclick="showCollectorTab('collect')">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg>
-      Collect &amp; Assign
+      <span class="nav-label">Collect &amp; Assign</span><span class="nav-hint">VIEW</span><span class="nav-count" id="navRequestCount">0</span>
     </button>
 
     <div class="sidebar-summary">
