@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kasipag Cashier</title>
 
+<!-- jsPDF (new feature — additive only, used for the approved loan application PDF) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
@@ -368,6 +370,27 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
 /* ===== Approved Loans / Assign Rider / Delete Request (new feature — additive only) ===== */
 .badge.green{background:var(--teal-soft);color:var(--teal)}
 .badge.red{background:var(--red-soft);color:var(--red)}
+.badge.amber{background:var(--amber-soft);color:var(--amber)}
+
+/* ===== Applicant Photo / Valid ID capture + My Applications / PDF (new feature — additive only) ===== */
+.photo-capture{border:1px dashed var(--border);border-radius:var(--radius-md);padding:16px;background:var(--surface-alt);text-align:center}
+.photo-capture-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.photo-preview-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+.photo-preview-wrap img{max-width:220px;max-height:220px;border-radius:var(--radius-md);border:1px solid var(--border);object-fit:cover;box-shadow:var(--shadow-card)}
+.photo-required-note{font-size:.74rem;color:var(--muted-2);margin-top:8px}
+.selected-id-line{margin-top:8px;font-size:.82rem;color:var(--navy-900);font-weight:700}
+.camera-popup{width:min(480px,calc(100% - 32px));padding:22px;border-radius:20px;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow-pop);text-align:center}
+.camera-popup video, .camera-popup img.camera-shot{width:100%;border-radius:var(--radius-md);background:#000;max-height:360px;object-fit:cover}
+.camera-popup-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.review-photo-row{display:flex;gap:14px;align-items:flex-start;margin-bottom:10px}
+.review-photo-row img{width:90px;height:90px;object-fit:cover;border-radius:var(--radius-sm);border:1px solid var(--border)}
+.pending-banner{display:flex;gap:10px;align-items:flex-start;padding:13px 15px;border-radius:var(--radius-md);background:var(--amber-soft);border:1px solid rgba(184,121,28,.3);color:var(--amber);font-size:.82rem;font-weight:700;margin-bottom:12px}
+.pending-banner span.sub{display:block;color:var(--muted);font-weight:500;margin-top:3px}
+.success-banner{display:flex;gap:10px;align-items:flex-start;padding:13px 15px;border-radius:var(--radius-md);background:var(--teal-soft);border:1px solid rgba(15,157,130,.3);color:var(--teal);font-size:.82rem;font-weight:700;margin-bottom:12px}
+.success-banner span.sub{display:block;color:var(--muted);font-weight:500;margin-top:3px}
+.pdf-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.button.gold{background:var(--gold);color:#fff}
+.button:disabled{opacity:.55;cursor:not-allowed;transform:none!important}
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes popIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -443,8 +466,10 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
       <span id="loanerProgress1" class="done"></span>
       <span id="loanerProgress2"></span>
       <span id="loanerProgress3"></span>
+      <span id="loanerProgress4"></span>
+      <span id="loanerProgress5"></span>
     </div>
-    <div class="loaner-step-label" id="loanerStepLabel">Step 1 of 3 — Borrower Information</div>
+    <div class="loaner-step-label" id="loanerStepLabel">Step 1 of 5 — Borrower Information</div>
 
     <!-- Step 1: Personal Information -->
     <div class="loaner-step" id="loanerStep1">
@@ -504,17 +529,97 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
       </div>
       <div class="loaner-actions">
         <button type="button" class="button outline" onclick="loanerBackToPersonal()">← Back</button>
-        <button type="button" class="button blue" onclick="loanerNextFromLoanDetails()">Next: Review →</button>
+        <button type="button" class="button blue" onclick="loanerNextFromLoanDetails()">Next: Applicant Photo →</button>
       </div>
     </div>
 
-    <!-- Step 3: Review & Submit -->
+    <!-- Step 3: Applicant Photo (new feature — additive only) -->
     <div class="loaner-step hidden" id="loanerStep3">
-      <div id="loanerReviewContent"></div>
+      <p style="color:var(--muted);font-size:.82rem;margin:0 0 4px">The applicant must have a picture on file. Upload one or take a picture using this device's camera.</p>
+      <div class="photo-capture" id="applicantPhotoCapture">
+        <div id="applicantPhotoButtons" class="photo-capture-actions">
+          <button type="button" class="button outline" onclick="document.getElementById('applicantPhotoInput').click()">📁 Upload Photo</button>
+          <button type="button" class="button outline" onclick="openCameraCapture('applicant')">📷 Take Picture</button>
+        </div>
+        <div id="applicantPhotoPreviewWrap" class="photo-preview-wrap hidden">
+          <img id="applicantPhotoPreview" alt="Applicant photo preview">
+          <button type="button" class="button outline" onclick="changeApplicantPhoto()">Change Photo</button>
+        </div>
+        <input type="file" id="applicantPhotoInput" accept="image/png,image/jpeg,image/jpg" style="display:none" onchange="handleApplicantPhotoUpload(event)">
+      </div>
+      <p class="photo-required-note">Required — the application cannot be submitted without an Applicant Photo.</p>
       <div class="loaner-actions">
         <button type="button" class="button outline" onclick="loanerBackToLoanDetails()">← Back</button>
-        <button type="button" class="button green" id="loanerSubmitBtn" onclick="submitLoanerApplication()">Submit Application</button>
+        <button type="button" class="button blue" onclick="loanerNextFromApplicantPhoto()">Next: Valid ID →</button>
       </div>
+    </div>
+
+    <!-- Step 4: Select Valid ID + Valid ID Photo (new feature — additive only) -->
+    <div class="loaner-step hidden" id="loanerStep4">
+      <div class="loaner-field">
+        <label for="loanerValidIdType">Select Valid ID</label>
+        <select id="loanerValidIdType" onchange="onLoanerValidIdTypeChange()">
+          <option value="">Select a valid ID type</option>
+          <option value="National ID / PhilSys ID">National ID / PhilSys ID</option>
+          <option value="Driver's License">Driver's License</option>
+          <option value="Passport">Passport</option>
+          <option value="UMID">UMID</option>
+          <option value="SSS ID">SSS ID</option>
+          <option value="PRC ID">PRC ID</option>
+          <option value="Postal ID">Postal ID</option>
+          <option value="Voter's ID">Voter's ID</option>
+          <option value="Other Government ID">Other Government ID</option>
+        </select>
+        <div class="selected-id-line hidden" id="selectedIdLine"></div>
+      </div>
+      <p style="color:var(--muted);font-size:.82rem;margin:14px 0 4px">Upload or take a picture of the Valid ID.</p>
+      <div class="photo-capture" id="validIdPhotoCapture">
+        <div id="validIdPhotoButtons" class="photo-capture-actions">
+          <button type="button" class="button outline" onclick="document.getElementById('validIdPhotoInput').click()">📁 Upload Photo</button>
+          <button type="button" class="button outline" onclick="openCameraCapture('validid')">📷 Take Picture</button>
+        </div>
+        <div id="validIdPhotoPreviewWrap" class="photo-preview-wrap hidden">
+          <img id="validIdPhotoPreview" alt="Valid ID photo preview">
+          <button type="button" class="button outline" onclick="changeValidIdPhoto()">Change Photo</button>
+        </div>
+        <input type="file" id="validIdPhotoInput" accept="image/png,image/jpeg,image/jpg" style="display:none" onchange="handleValidIdPhotoUpload(event)">
+      </div>
+      <p class="photo-required-note">Required — the application cannot be submitted without a Valid ID Type and Valid ID Photo.</p>
+      <div class="loaner-actions">
+        <button type="button" class="button outline" onclick="loanerBackToApplicantPhoto()">← Back</button>
+        <button type="button" class="button blue" onclick="loanerNextFromValidId()">Next: Review →</button>
+      </div>
+    </div>
+
+    <!-- Step 5: Review & Submit -->
+    <div class="loaner-step hidden" id="loanerStep5">
+      <div id="loanerReviewContent"></div>
+      <div style="margin:10px 0 4px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text);font-weight:600;cursor:pointer">
+          <input type="checkbox" id="loanerConfirmCheck" style="width:auto">
+          I confirm that all the information provided is correct.
+        </label>
+      </div>
+      <div class="loaner-actions">
+        <button type="button" class="button outline" onclick="loanerBackToValidId()">← Back</button>
+        <button type="button" class="button green" id="loanerSubmitBtn" onclick="submitLoanerApplication()">Submit Loan Application</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CAMERA CAPTURE (new feature — additive only) — shared by Applicant Photo & Valid ID Photo ===================== -->
+<div id="cameraOverlay" class="action-overlay" aria-hidden="true">
+  <div class="camera-popup">
+    <h3 id="cameraPopupTitle" style="margin-bottom:12px">Take Picture</h3>
+    <video id="cameraVideo" autoplay playsinline></video>
+    <img id="cameraShotPreview" class="camera-shot hidden" alt="Captured photo">
+    <canvas id="cameraCanvas" class="hidden"></canvas>
+    <div class="camera-popup-actions">
+      <button type="button" class="button outline" id="cameraCancelBtn" onclick="closeCameraCapture()">Cancel</button>
+      <button type="button" class="button blue" id="cameraCaptureBtn" onclick="captureCameraPhoto()">📷 Capture Photo</button>
+      <button type="button" class="button outline hidden" id="cameraRetakeBtn" onclick="retakeCameraPhoto()">↺ Retake Photo</button>
+      <button type="button" class="button green hidden" id="cameraConfirmBtn" onclick="confirmCameraPhoto()">✔ Confirm Photo</button>
     </div>
   </div>
 </div>
@@ -556,6 +661,10 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
     <button type="button" id="addLoanerBtn" class="nav-link nav-action" onclick="openAddLoanerModal()">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
       <span class="nav-label">Add Loaner</span><span class="nav-hint">ADD</span>
+    </button>
+    <button type="button" id="myApplicationsTabBtn" class="nav-link nav-action" onclick="showCashierTab('myApplications')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5M9 13h6M9 17h6"/></svg>
+      <span class="nav-label">My Loan Applications</span><span class="nav-hint">STATUS</span><span class="nav-count" id="navMyApplicationsCount">0</span>
     </button>
     <button type="button" id="collectorRequestsTabBtn" class="nav-link nav-action" onclick="showCashierTab('collectorRequests')">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 20a7 7 0 0 1 14 0"/><circle cx="12" cy="8" r="4"/></svg>
@@ -689,6 +798,13 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
           <div id="deletedLoansList"></div>
         </section>
 
+        <!-- ===================== MY LOAN APPLICATIONS (new feature — additive only) ===================== -->
+        <section class="card hidden" id="myApplicationsSection">
+          <h2>My Loan Applications</h2>
+          <p style="color:var(--muted);font-size:.85rem;margin:-6px 0 14px;">Applications you submitted through Add Loaner. Once Admin approves an application, its PDF becomes available for download and printing here.</p>
+          <div id="myApplicationsList"></div>
+        </section>
+
         <!-- ===================== COLLECTOR LOAN REQUESTS (new feature — additive only) ===================== -->
         <section class="card hidden" id="collectorRequestsSection">
           <h2>Collector Loan Requests</h2>
@@ -724,6 +840,7 @@ window.showCashierTab = function(tab){
     deletedLoans: document.getElementById('deletedLoansSection'),
     approvedLoans: document.getElementById('approvedLoansSection'),
     collectorRequests: document.getElementById('collectorRequestsSection'),
+    myApplications: document.getElementById('myApplicationsSection'),
     balance: document.getElementById('balanceSection')
   };
   const buttons = {
@@ -733,6 +850,7 @@ window.showCashierTab = function(tab){
     deletedLoans: document.getElementById('deletedLoansTabBtn'),
     approvedLoans: document.getElementById('approvedLoansTabBtn'),
     collectorRequests: document.getElementById('collectorRequestsTabBtn'),
+    myApplications: document.getElementById('myApplicationsTabBtn'),
     balance: document.getElementById('balanceTabBtn')
   };
   Object.values(sections).forEach(el => el && el.classList.add('hidden'));
@@ -781,6 +899,7 @@ window.showCashierTab = (tab) => {
   const deletedLoansBtn = document.getElementById("deletedLoansTabBtn");
   const approvedLoansBtn = document.getElementById("approvedLoansTabBtn");
   const collectorRequestsBtn = document.getElementById("collectorRequestsTabBtn");
+  const myApplicationsBtn = document.getElementById("myApplicationsTabBtn");
   const balanceBtn = document.getElementById("balanceTabBtn");
   const collectedSection = document.getElementById("collectedSection");
   const paymentSection = document.getElementById("paymentSection");
@@ -788,6 +907,7 @@ window.showCashierTab = (tab) => {
   const deletedLoansSection = document.getElementById("deletedLoansSection");
   const approvedLoansSection = document.getElementById("approvedLoansSection");
   const collectorRequestsSection = document.getElementById("collectorRequestsSection");
+  const myApplicationsSection = document.getElementById("myApplicationsSection");
   const balanceSection = document.getElementById("balanceSection");
 
   // Hide all sections
@@ -797,6 +917,7 @@ window.showCashierTab = (tab) => {
   deletedLoansSection.classList.add("hidden");
   approvedLoansSection.classList.add("hidden");
   collectorRequestsSection.classList.add("hidden");
+  myApplicationsSection.classList.add("hidden");
   balanceSection.classList.add("hidden");
   collectedBtn.classList.remove("active");
   paymentsBtn.classList.remove("active");
@@ -804,9 +925,13 @@ window.showCashierTab = (tab) => {
   deletedLoansBtn.classList.remove("active");
   approvedLoansBtn.classList.remove("active");
   collectorRequestsBtn.classList.remove("active");
+  myApplicationsBtn.classList.remove("active");
   balanceBtn.classList.remove("active");
 
-  if (tab === "payments") {
+  if (tab === "myApplications") {
+    myApplicationsSection.classList.remove("hidden");
+    myApplicationsBtn.classList.add("active");
+  } else if (tab === "payments") {
     paymentSection.classList.remove("hidden");
     paymentsBtn.classList.add("active");
   } else if (tab === "deleted") {
@@ -833,7 +958,7 @@ window.showCashierTab = (tab) => {
 
 // Keep the existing tab logic intact while ensuring navigation buttons work reliably.
 document.addEventListener("click", (event) => {
-  const button = event.target.closest("#collectedTabBtn, #paymentsTabBtn, #deletedPaymentsTabBtn, #deletedLoansTabBtn, #approvedLoansTabBtn, #collectorRequestsTabBtn, #balanceTabBtn");
+  const button = event.target.closest("#collectedTabBtn, #paymentsTabBtn, #deletedPaymentsTabBtn, #deletedLoansTabBtn, #approvedLoansTabBtn, #collectorRequestsTabBtn, #myApplicationsTabBtn, #balanceTabBtn");
   if (!button) return;
   const tabMap = {
     collectedTabBtn: "collected",
@@ -842,6 +967,7 @@ document.addEventListener("click", (event) => {
     deletedLoansTabBtn: "deletedLoans",
     approvedLoansTabBtn: "approvedLoans",
     collectorRequestsTabBtn: "collectorRequests",
+    myApplicationsTabBtn: "myApplications",
     balanceTabBtn: "balance"
   };
   const tab = tabMap[button.id];
@@ -882,6 +1008,7 @@ onAuthStateChanged(auth, async (user) => {
   loadDeletedLoans();
   loadApprovedLoans();
   loadCollectorLoanRequests();
+  loadMyLoanApplications();
   loadBorrowerBalances();
   showBalancePanel('active');
 
@@ -1309,20 +1436,26 @@ window.deleteLoanPermanently = async (loanId) => {
 
 // ===================== ADD LOANER (new feature — additive only) =====================
 function showLoanerStep(step) {
-  [1, 2, 3].forEach((n) => {
+  [1, 2, 3, 4, 5].forEach((n) => {
     const stepEl = document.getElementById("loanerStep" + n);
     if (stepEl) stepEl.classList.toggle("hidden", n !== step);
     const dot = document.getElementById("loanerProgress" + n);
     if (dot) dot.classList.toggle("done", n <= step);
   });
   const labels = {
-    1: "Step 1 of 3 — Borrower Information",
-    2: "Step 2 of 3 — Loan Details",
-    3: "Step 3 of 3 — Review & Submit"
+    1: "Step 1 of 5 — Borrower Information",
+    2: "Step 2 of 5 — Loan Details",
+    3: "Step 3 of 5 — Applicant Photo",
+    4: "Step 4 of 5 — Valid ID",
+    5: "Step 5 of 5 — Review & Submit"
   };
   const labelEl = document.getElementById("loanerStepLabel");
   if (labelEl) labelEl.innerText = labels[step];
 }
+
+// ===== Applicant Photo / Valid ID state (new feature — additive only) =====
+let loanerApplicantPhotoDataUrl = null;
+let loanerValidIdPhotoDataUrl = null;
 
 function resetLoanerForm() {
   ["loanerFirstName", "loanerLastName", "loanerContact", "loanerEmail", "loanerAddress", "loanerOccupation", "loanerIncome", "loanerAmount", "loanerCustomMonths", "loanerCustomRate"].forEach((id) => {
@@ -1337,6 +1470,18 @@ function resetLoanerForm() {
   if (customRow) customRow.classList.remove("show");
   const preview = document.getElementById("loanerInterestPreview");
   if (preview) preview.style.display = "none";
+
+  loanerApplicantPhotoDataUrl = null;
+  loanerValidIdPhotoDataUrl = null;
+  const validIdTypeEl = document.getElementById("loanerValidIdType");
+  if (validIdTypeEl) validIdTypeEl.selectedIndex = 0;
+  const selectedIdLine = document.getElementById("selectedIdLine");
+  if (selectedIdLine) selectedIdLine.classList.add("hidden");
+  resetPhotoCaptureUI("applicant");
+  resetPhotoCaptureUI("validid");
+  const confirmCheck = document.getElementById("loanerConfirmCheck");
+  if (confirmCheck) confirmCheck.checked = false;
+
   showLoanerStep(1);
 }
 
@@ -1454,11 +1599,185 @@ window.loanerNextFromLoanDetails = () => {
       return;
     }
   }
-  buildLoanerReview();
   showLoanerStep(3);
 };
 
 window.loanerBackToLoanDetails = () => showLoanerStep(2);
+
+window.loanerNextFromApplicantPhoto = () => {
+  if (!loanerApplicantPhotoDataUrl) {
+    alert("Please add an Applicant Photo (upload or take a picture) before continuing.");
+    return;
+  }
+  showLoanerStep(4);
+};
+
+window.loanerBackToApplicantPhoto = () => showLoanerStep(3);
+
+window.onLoanerValidIdTypeChange = () => {
+  const select = document.getElementById("loanerValidIdType");
+  const line = document.getElementById("selectedIdLine");
+  if (!select || !line) return;
+  if (select.value) {
+    line.innerText = `Selected Valid ID: ${select.value}`;
+    line.classList.remove("hidden");
+  } else {
+    line.classList.add("hidden");
+  }
+};
+
+window.loanerNextFromValidId = () => {
+  const idType = document.getElementById("loanerValidIdType").value;
+  if (!idType) {
+    alert("Please select a Valid ID type before continuing.");
+    return;
+  }
+  if (!loanerValidIdPhotoDataUrl) {
+    alert("Please add a Valid ID Photo (upload or take a picture) before continuing.");
+    return;
+  }
+  buildLoanerReview();
+  showLoanerStep(5);
+};
+
+window.loanerBackToValidId = () => showLoanerStep(4);
+
+// ===== Applicant Photo / Valid ID Photo capture handlers (new feature — additive only) =====
+function resetPhotoCaptureUI(target) {
+  const buttons = document.getElementById(target === "applicant" ? "applicantPhotoButtons" : "validIdPhotoButtons");
+  const previewWrap = document.getElementById(target === "applicant" ? "applicantPhotoPreviewWrap" : "validIdPhotoPreviewWrap");
+  if (buttons) buttons.classList.remove("hidden");
+  if (previewWrap) previewWrap.classList.add("hidden");
+}
+
+function applyPhotoPreview(target, dataUrl) {
+  const buttons = document.getElementById(target === "applicant" ? "applicantPhotoButtons" : "validIdPhotoButtons");
+  const previewWrap = document.getElementById(target === "applicant" ? "applicantPhotoPreviewWrap" : "validIdPhotoPreviewWrap");
+  const previewImg = document.getElementById(target === "applicant" ? "applicantPhotoPreview" : "validIdPhotoPreview");
+  if (previewImg) previewImg.src = dataUrl;
+  if (buttons) buttons.classList.add("hidden");
+  if (previewWrap) previewWrap.classList.remove("hidden");
+  if (target === "applicant") loanerApplicantPhotoDataUrl = dataUrl;
+  else loanerValidIdPhotoDataUrl = dataUrl;
+}
+
+window.changeApplicantPhoto = () => resetPhotoCaptureUI("applicant");
+window.changeValidIdPhoto = () => resetPhotoCaptureUI("validid");
+
+window.handleApplicantPhotoUpload = async (event) => {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  if (!file.type || !file.type.startsWith("image/")) {
+    alert("Please select a valid JPG or PNG image file.");
+    return;
+  }
+  try {
+    const dataUrl = await resizeImageToDataUrl(file, 900);
+    applyPhotoPreview("applicant", dataUrl);
+  } catch (error) {
+    alert("Please select a valid image file.");
+  }
+};
+
+window.handleValidIdPhotoUpload = async (event) => {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  if (!file.type || !file.type.startsWith("image/")) {
+    alert("Please select a valid JPG or PNG image file.");
+    return;
+  }
+  try {
+    const dataUrl = await resizeImageToDataUrl(file, 900);
+    applyPhotoPreview("validid", dataUrl);
+  } catch (error) {
+    alert("Please select a valid image file.");
+  }
+};
+
+// ===== Camera capture (new feature — additive only) — shared overlay for Applicant Photo & Valid ID Photo =====
+let cameraStream = null;
+let cameraTarget = null;
+let cameraShotDataUrl = null;
+
+window.openCameraCapture = async (target) => {
+  cameraTarget = target;
+  cameraShotDataUrl = null;
+  const overlay = document.getElementById("cameraOverlay");
+  const video = document.getElementById("cameraVideo");
+  const shotPreview = document.getElementById("cameraShotPreview");
+  const title = document.getElementById("cameraPopupTitle");
+  if (title) title.innerText = target === "applicant" ? "Take Applicant Picture" : "Take Valid ID Picture";
+  video.classList.remove("hidden");
+  shotPreview.classList.add("hidden");
+  document.getElementById("cameraCaptureBtn").classList.remove("hidden");
+  document.getElementById("cameraRetakeBtn").classList.add("hidden");
+  document.getElementById("cameraConfirmBtn").classList.add("hidden");
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert("Camera is not supported on this device/browser. Please use Upload Photo instead.");
+    return;
+  }
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+    video.srcObject = cameraStream;
+    overlay.classList.add("active");
+  } catch (error) {
+    alert("Unable to access camera: " + error.message + ". Please use Upload Photo instead.");
+    cameraTarget = null;
+  }
+};
+
+function stopCameraStream() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach((t) => t.stop());
+    cameraStream = null;
+  }
+}
+
+window.captureCameraPhoto = () => {
+  const video = document.getElementById("cameraVideo");
+  const canvas = document.getElementById("cameraCanvas");
+  const shotPreview = document.getElementById("cameraShotPreview");
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  cameraShotDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+
+  shotPreview.src = cameraShotDataUrl;
+  shotPreview.classList.remove("hidden");
+  video.classList.add("hidden");
+  document.getElementById("cameraCaptureBtn").classList.add("hidden");
+  document.getElementById("cameraRetakeBtn").classList.remove("hidden");
+  document.getElementById("cameraConfirmBtn").classList.remove("hidden");
+};
+
+window.retakeCameraPhoto = () => {
+  cameraShotDataUrl = null;
+  const video = document.getElementById("cameraVideo");
+  const shotPreview = document.getElementById("cameraShotPreview");
+  video.classList.remove("hidden");
+  shotPreview.classList.add("hidden");
+  document.getElementById("cameraCaptureBtn").classList.remove("hidden");
+  document.getElementById("cameraRetakeBtn").classList.add("hidden");
+  document.getElementById("cameraConfirmBtn").classList.add("hidden");
+};
+
+window.confirmCameraPhoto = () => {
+  if (!cameraShotDataUrl || !cameraTarget) return;
+  applyPhotoPreview(cameraTarget, cameraShotDataUrl);
+  window.closeCameraCapture();
+};
+
+window.closeCameraCapture = () => {
+  stopCameraStream();
+  const overlay = document.getElementById("cameraOverlay");
+  if (overlay) overlay.classList.remove("active");
+  cameraTarget = null;
+  cameraShotDataUrl = null;
+};
 
 function buildLoanerReview() {
   const val = (id) => document.getElementById(id).value.trim();
@@ -1467,21 +1786,34 @@ function buildLoanerReview() {
   const { months, rate, totalInterest, totalPayable } = computeLoanerInterest(amount, termType);
   const reviewBox = document.getElementById("loanerReviewContent");
   if (!reviewBox) return;
+  const validIdType = document.getElementById("loanerValidIdType").value;
   reviewBox.innerHTML = `
     <div class="review-group">
-      <h4>Borrower Information</h4>
-      <div class="review-row"><span>First Name</span><strong>${val("loanerFirstName")}</strong></div>
-      <div class="review-row"><span>Last Name</span><strong>${val("loanerLastName")}</strong></div>
-      <div class="review-row"><span>Contact Number</span><strong>${val("loanerContact")}</strong></div>
-      <div class="review-row"><span>Email</span><strong>${val("loanerEmail")}</strong></div>
+      <h4>Applicant Information</h4>
+      <div class="review-photo-row">
+        ${loanerApplicantPhotoDataUrl ? `<img src="${loanerApplicantPhotoDataUrl}" alt="Applicant photo">` : ""}
+        <div style="flex:1">
+          <div class="review-row"><span>First Name</span><strong>${val("loanerFirstName")}</strong></div>
+          <div class="review-row"><span>Last Name</span><strong>${val("loanerLastName")}</strong></div>
+          <div class="review-row"><span>Contact Number</span><strong>${val("loanerContact")}</strong></div>
+          <div class="review-row"><span>Email</span><strong>${val("loanerEmail")}</strong></div>
+        </div>
+      </div>
       <div class="review-row"><span>Address</span><strong>${val("loanerAddress")}</strong></div>
       <div class="review-row"><span>Gender</span><strong>${val("loanerGender")}</strong></div>
       <div class="review-row"><span>Occupation</span><strong>${val("loanerOccupation")}</strong></div>
       <div class="review-row"><span>Income</span><strong>${val("loanerIncome")}</strong></div>
     </div>
     <div class="review-group">
-      <h4>Loan Details</h4>
-      <div class="review-row"><span>Loan Amount</span><strong>₱${amount.toLocaleString()}</strong></div>
+      <h4>Valid ID</h4>
+      <div class="review-photo-row">
+        ${loanerValidIdPhotoDataUrl ? `<img src="${loanerValidIdPhotoDataUrl}" alt="Valid ID photo">` : ""}
+        <div class="review-row" style="flex:1"><span>Valid ID Type</span><strong>${validIdType}</strong></div>
+      </div>
+    </div>
+    <div class="review-group">
+      <h4>Loan Information</h4>
+      <div class="review-row"><span>Amount Borrowed</span><strong>₱${amount.toLocaleString()}</strong></div>
       <div class="review-row"><span>Loan Term</span><strong>${loanerTermLabel(termType, months)}</strong></div>
       <div class="review-row"><span>Monthly Interest Rate</span><strong>${rate}%</strong></div>
       <div class="review-row"><span>Total Interest</span><strong>₱${totalInterest.toLocaleString()}</strong></div>
@@ -1496,7 +1828,23 @@ window.submitLoanerApplication = async () => {
   const lastName = val("loanerLastName");
   const amount = Number(document.getElementById("loanerAmount").value);
   const termType = document.getElementById("loanerTerm").value;
+  const validIdType = document.getElementById("loanerValidIdType").value;
   const { months, rate, totalInterest, totalPayable } = computeLoanerInterest(amount, termType);
+
+  // Guard rails (new feature — additive only): applicant photo + valid ID + confirmation are mandatory.
+  if (!loanerApplicantPhotoDataUrl) {
+    alert("Applicant Photo is required before submitting.");
+    return;
+  }
+  if (!validIdType || !loanerValidIdPhotoDataUrl) {
+    alert("Valid ID Type and Valid ID Photo are required before submitting.");
+    return;
+  }
+  const confirmCheck = document.getElementById("loanerConfirmCheck");
+  if (!confirmCheck || !confirmCheck.checked) {
+    alert("Please confirm that all information provided is correct before submitting.");
+    return;
+  }
 
   const submitBtn = document.getElementById("loanerSubmitBtn");
   if (submitBtn) {
@@ -1534,10 +1882,14 @@ window.submitLoanerApplication = async () => {
       assignedCashierName: "",
       createdByCashierId: cashierId,
       createdByCashierName: cashierName,
+      // New fields — additive only, do not affect existing loan structure/logic:
+      applicantPhotoUrl: loanerApplicantPhotoDataUrl,
+      validIdType: validIdType,
+      validIdPhotoUrl: loanerValidIdPhotoDataUrl,
       createdAt: serverTimestamp()
     });
 
-    alert("Loan application submitted! It is now pending admin approval.");
+    alert("Loan application submitted! It is now PENDING admin approval.");
     window.closeAddLoanerModal();
     resetLoanerForm();
   } catch (error) {
@@ -1545,7 +1897,7 @@ window.submitLoanerApplication = async () => {
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.innerText = "Submit Application";
+      submitBtn.innerText = "Submit Loan Application";
     }
   }
 };
@@ -1707,10 +2059,280 @@ function renderApprovedLoans() {
         <button class="button orange" onclick="openAssignRiderModal('${l.id}')">${l.assignedCollectorId ? "Reassign Rider" : "Assign Rider"}</button>
         ${deletionPending ? "" : `<button class="button red" onclick="requestLoanDeletion('${l.id}')">Request Deletion</button>`}
       </div>
+      ${l.applicantPhotoUrl && l.validIdPhotoUrl ? `
+      <div class="pdf-actions">
+        <button class="button gold" onclick="downloadLoanApplicationPdf('${l.id}')">⬇ Download PDF</button>
+        <button class="button outline" onclick="printLoanApplicationPdf('${l.id}')">🖨 Print PDF</button>
+      </div>` : ""}
     `;
     list.appendChild(item);
   });
 }
+
+// ===================== MY LOAN APPLICATIONS + PDF (new feature — additive only) =====================
+// Shows every Add-Loaner application this cashier submitted, across all statuses, and gates the
+// approved-loan PDF (download/print) strictly behind the EXISTING admin approval status.
+let myLoanApplications = [];
+
+function loadMyLoanApplications() {
+  onSnapshot(collection(db, "loans"), (snap) => {
+    myLoanApplications = [];
+    snap.forEach(d => {
+      const l = d.data();
+      if (l.deleted) return;
+      if (!l.fromLoanApplication) return;
+      if (l.createdByCashierId !== cashierId) return;
+      myLoanApplications.push({ id: d.id, ...l });
+    });
+    myLoanApplications.sort((a, b) => {
+      const at = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+      const bt = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+      return bt - at;
+    });
+    renderMyLoanApplications();
+  });
+}
+
+function renderMyLoanApplications() {
+  const list = document.getElementById("myApplicationsList");
+  if (!list) return;
+  list.innerHTML = "";
+
+  const navCount = document.getElementById("navMyApplicationsCount");
+  if (navCount) navCount.innerText = myLoanApplications.length;
+
+  if (!myLoanApplications.length) {
+    list.innerHTML = `<div class="empty-state">No records found — you haven't submitted any loan applications yet.</div>`;
+    return;
+  }
+
+  myLoanApplications.forEach(l => {
+    const item = document.createElement("div");
+    item.className = "item";
+    const termLabel = loanerTermLabel(l.loanTermType, l.loanTermMonths);
+    const isApproved = l.status === "approved" || l.status === "assigned";
+    const isRejected = l.status === "rejected";
+    const statusBadge = isApproved
+      ? `<span class="badge green">SUCCESS — APPROVED</span>`
+      : isRejected
+        ? `<span class="badge red">DECLINED</span>`
+        : `<span class="badge amber">PENDING</span>`;
+
+    let banner = "";
+    if (isApproved) {
+      banner = `<div class="success-banner">✅ Loan Application Approved<span class="sub">PDF Ready — you can now download or print the approved application.</span></div>`;
+    } else if (isRejected) {
+      banner = `<div class="pending-banner">❌ This loan application was declined.<span class="sub">No final PDF is available for declined applications.</span></div>`;
+    } else {
+      banner = `<div class="pending-banner">🟠 PENDING — Waiting for Admin Approval<span class="sub">This loan application is still pending Admin approval. PDF download and printing will be available after approval.</span></div>`;
+    }
+
+    item.innerHTML = `
+      <div class="item-title">
+        <h3>${l.borrowerName}</h3>
+        ${statusBadge}
+      </div>
+      ${banner}
+      <div style="display:grid; gap:8px; color:#d1d5db;">
+        <div>💰 Loan Amount: <strong>₱${(l.amount || 0).toLocaleString()}</strong></div>
+        <div>📅 Term: <strong>${termLabel}</strong></div>
+        <div>🧾 Total Payable: <strong>₱${(l.totalPayable || l.amount || 0).toLocaleString()}</strong></div>
+        <div>🪪 Valid ID: <strong>${l.validIdType || "N/A"}</strong></div>
+        <div>🏍️ Assigned Rider: <strong>${l.assignedCollectorName || "Unassigned"}</strong></div>
+      </div>
+      ${isApproved && l.applicantPhotoUrl && l.validIdPhotoUrl ? `
+      <div class="pdf-actions">
+        <button class="button gold" onclick="downloadLoanApplicationPdf('${l.id}')">⬇ Download PDF</button>
+        <button class="button outline" onclick="printLoanApplicationPdf('${l.id}')">🖨 Print PDF</button>
+      </div>` : ""}
+    `;
+    list.appendChild(item);
+  });
+}
+
+// ===== PDF generation (new feature — additive only) =====
+// Uses only the loan's EXISTING stored/computed values (amount, term, rate, interest, totalPayable) —
+// no new interest/loan math is introduced here.
+function loadImageAsDataUrl(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext("2d").drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      } catch (e) {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+function formatPdfDate(d) {
+  if (!d) return "N/A";
+  return d.toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+}
+
+async function buildLoanApplicationPdf(loan, loanId) {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert("PDF library failed to load. Please check your internet connection and try again.");
+    return null;
+  }
+  const { jsPDF } = window.jspdf;
+  const docPdf = new jsPDF({ unit: "pt", format: "a4" });
+  const pageW = docPdf.internal.pageSize.getWidth();
+  const pageH = docPdf.internal.pageSize.getHeight();
+  const margin = 40;
+  let y = margin;
+
+  function ensureSpace(needed) {
+    if (y + needed > pageH - margin) {
+      docPdf.addPage();
+      y = margin;
+    }
+  }
+
+  // Header with existing Kasipag logo (do not use a different/new logo)
+  const logoDataUrl = await loadImageAsDataUrl("oklogo.png");
+  if (logoDataUrl) {
+    try { docPdf.addImage(logoDataUrl, "PNG", margin, y, 44, 44); } catch (e) {}
+  }
+  docPdf.setFont("helvetica", "bold");
+  docPdf.setFontSize(16);
+  docPdf.text("KASIPAG MICROFINANCING", margin + 54, y + 20);
+  docPdf.setFont("helvetica", "normal");
+  docPdf.setFontSize(10);
+  docPdf.text("Loan Application — Approved Copy", margin + 54, y + 36);
+  y += 60;
+  docPdf.setDrawColor(200);
+  docPdf.line(margin, y, pageW - margin, y);
+  y += 20;
+
+  const startDate = loan.createdAt && loan.createdAt.toDate ? loan.createdAt.toDate() : null;
+  const months = loan.loanTermMonths || 0;
+  const finalPaymentDate = startDate && months ? new Date(startDate.getFullYear(), startDate.getMonth() + months, startDate.getDate()) : null;
+  const numberOfPayments = months || 0;
+  const paymentAmount = numberOfPayments > 0 ? Math.round(((loan.totalPayable || loan.amount || 0) / numberOfPayments) * 100) / 100 : (loan.totalPayable || loan.amount || 0);
+
+  function sectionTitle(t) {
+    ensureSpace(24);
+    docPdf.setFont("helvetica", "bold");
+    docPdf.setFontSize(12);
+    docPdf.text(t, margin, y);
+    y += 8;
+    docPdf.setDrawColor(220);
+    docPdf.line(margin, y, pageW - margin, y);
+    y += 16;
+    docPdf.setFont("helvetica", "normal");
+    docPdf.setFontSize(10);
+  }
+
+  function row(label, value) {
+    ensureSpace(16);
+    docPdf.setFont("helvetica", "bold");
+    docPdf.text(String(label), margin, y);
+    docPdf.setFont("helvetica", "normal");
+    docPdf.text(String(value), margin + 170, y);
+    y += 16;
+  }
+
+  // Applicant Information
+  sectionTitle("Applicant Information");
+  if (loan.applicantPhotoUrl) {
+    ensureSpace(110);
+    try { docPdf.addImage(loan.applicantPhotoUrl, "JPEG", margin, y, 90, 90); } catch (e) {}
+    const textX = margin + 105;
+    let ty = y + 4;
+    docPdf.setFont("helvetica", "bold"); docPdf.text("Full Name", textX, ty); docPdf.setFont("helvetica", "normal"); docPdf.text(loan.borrowerName || "N/A", textX + 100, ty); ty += 16;
+    docPdf.setFont("helvetica", "bold"); docPdf.text("Contact Number", textX, ty); docPdf.setFont("helvetica", "normal"); docPdf.text(loan.contactNumber || "N/A", textX + 100, ty); ty += 16;
+    docPdf.setFont("helvetica", "bold"); docPdf.text("Email", textX, ty); docPdf.setFont("helvetica", "normal"); docPdf.text(loan.email || "N/A", textX + 100, ty); ty += 16;
+    docPdf.setFont("helvetica", "bold"); docPdf.text("Gender", textX, ty); docPdf.setFont("helvetica", "normal"); docPdf.text(loan.gender || "N/A", textX + 100, ty);
+    y += 100;
+  } else {
+    row("Full Name", loan.borrowerName || "N/A");
+    row("Contact Number", loan.contactNumber || "N/A");
+    row("Email", loan.email || "N/A");
+    row("Gender", loan.gender || "N/A");
+  }
+  row("Address", loan.address || "N/A");
+  row("Occupation", loan.occupation || "N/A");
+  row("Income", loan.income || "N/A");
+  y += 8;
+
+  // Valid ID
+  sectionTitle("Valid ID");
+  if (loan.validIdPhotoUrl) {
+    ensureSpace(110);
+    try { docPdf.addImage(loan.validIdPhotoUrl, "JPEG", margin, y, 140, 90); } catch (e) {}
+    docPdf.setFont("helvetica", "bold");
+    docPdf.text("Valid ID Type", margin + 155, y + 20);
+    docPdf.setFont("helvetica", "normal");
+    docPdf.text(loan.validIdType || "N/A", margin + 155, y + 36);
+    y += 100;
+  } else {
+    row("Valid ID Type", loan.validIdType || "N/A");
+  }
+  y += 8;
+
+  // Loan Summary
+  sectionTitle("Loan Summary");
+  row("Amount Borrowed", `\u20b1${(loan.amount || 0).toLocaleString()}`);
+  row("Interest", `\u20b1${(loan.totalInterest || 0).toLocaleString()}`);
+  row("Total Amount to Pay", `\u20b1${(loan.totalPayable || loan.amount || 0).toLocaleString()}`);
+  row("Payment Amount", `\u20b1${paymentAmount.toLocaleString()}`);
+  row("Number of Payments", String(numberOfPayments || "N/A"));
+  row("Loan Term", loanerTermLabel(loan.loanTermType, loan.loanTermMonths));
+  row("Start Date", formatPdfDate(startDate));
+  row("Final Payment Date", formatPdfDate(finalPaymentDate));
+  row("Assigned Collector/Rider", loan.assignedCollectorName || "Unassigned");
+  row("Application Reference No.", loanId);
+
+  return docPdf;
+}
+
+async function verifyLoanApprovedOrAlert(loanId) {
+  // Security check (new feature — additive only): re-reads the live document so the PDF can
+  // never be produced by only bypassing a UI button — the actual Firestore status is checked.
+  try {
+    const snap = await getDoc(doc(db, "loans", loanId));
+    if (!snap.exists()) {
+      alert("Loan application not found.");
+      return null;
+    }
+    const loan = snap.data();
+    if (loan.status !== "approved" && loan.status !== "assigned") {
+      alert("This loan application is still pending Admin approval. PDF download and printing will be available after approval.");
+      return null;
+    }
+    return loan;
+  } catch (error) {
+    alert("Error: " + error.message);
+    return null;
+  }
+}
+
+window.downloadLoanApplicationPdf = async (loanId) => {
+  const loan = await verifyLoanApprovedOrAlert(loanId);
+  if (!loan) return;
+  const pdf = await buildLoanApplicationPdf(loan, loanId);
+  if (!pdf) return;
+  const safeName = (loan.borrowerName || "Applicant").replace(/[^a-z0-9]+/gi, "_");
+  pdf.save(`Kasipag_Loan_Application_${loanId}_${safeName}.pdf`);
+};
+
+window.printLoanApplicationPdf = async (loanId) => {
+  const loan = await verifyLoanApprovedOrAlert(loanId);
+  if (!loan) return;
+  const pdf = await buildLoanApplicationPdf(loan, loanId);
+  if (!pdf) return;
+  pdf.autoPrint();
+  window.open(pdf.output("bloburl"), "_blank");
+};
 
 window.openAssignRiderModal = async (loanId) => {
   riderAssignLoanId = loanId;
