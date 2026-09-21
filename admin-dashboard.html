@@ -1426,8 +1426,9 @@ html.admin-locked .admin-locked-overlay { display: flex; }
           <span id="adminLoanerProgress1" class="done"></span>
           <span id="adminLoanerProgress2"></span>
           <span id="adminLoanerProgress3"></span>
+          <span id="adminLoanerProgress4"></span>
         </div>
-        <div class="loaner-step-label" id="adminLoanerStepLabel">Step 1 of 3 — Borrower Information</div>
+        <div class="loaner-step-label" id="adminLoanerStepLabel">Step 1 of 4 — Borrower Information</div>
 
         <!-- Step 1: Borrower Information (same fields as Cashier Add Loaner) -->
         <div class="loaner-step" id="adminLoanerStep1">
@@ -1498,12 +1499,21 @@ html.admin-locked .admin-locked-overlay { display: flex; }
           </div>
         </div>
 
-        <!-- Step 3: Review & Submit -->
+        <!-- ADDED Step 3: Applicant Photo, Valid ID selection, Valid ID photo -->
+        <div class="loaner-step hidden" id="adminLoanerStepMedia">
+          <div id="kasipagMediaMount"></div>
+          <div class="loaner-actions">
+            <button type="button" class="button outline" onclick="adminLoanerBackToLoanDetails()">← Back</button>
+            <button type="button" class="button blue" onclick="adminLoanerNextFromMedia()">Next: Review →</button>
+          </div>
+        </div>
+
+        <!-- Step 4: Review Your Loan Application (existing review + confirmation) -->
         <div class="loaner-step hidden" id="adminLoanerStep3">
           <div id="adminLoanerReviewContent"></div>
           <div class="loaner-actions">
-            <button type="button" class="button outline" onclick="adminLoanerBackToLoanDetails()">← Back</button>
-            <button type="button" class="button green" id="adminLoanerSubmitBtn" onclick="submitAdminLoanerApplication()">Add &amp; Assign Loan</button>
+            <button type="button" class="button outline" onclick="adminLoanerBackToMedia()">← Back</button>
+            <button type="button" class="button green" id="adminLoanerSubmitBtn" onclick="submitAdminLoanerApplication()" disabled>Confirm Application</button>
           </div>
         </div>
       </div>
@@ -3117,20 +3127,28 @@ window.markPaid = async (id) => {
 };
 
 // ===================== ADD NEW LOAN (same Add Loaner form/UI/behavior as Cashier) =====================
+// ADDED: the form now has 4 steps (1 Borrower, 2 Loan, 3 Photo & Valid ID, 4 Review). Existing element ids are unchanged;
+// the original Review container (adminLoanerStep3) simply became step 4.
+let adminLoanerCurrentStep = 1;
+const ADMIN_LOANER_STEP_IDS = { 1: "adminLoanerStep1", 2: "adminLoanerStep2", 3: "adminLoanerStepMedia", 4: "adminLoanerStep3" };
+
 function showAdminLoanerStep(step) {
-  [1, 2, 3].forEach((n) => {
-    const stepEl = document.getElementById("adminLoanerStep" + n);
+  adminLoanerCurrentStep = step;
+  [1, 2, 3, 4].forEach((n) => {
+    const stepEl = document.getElementById(ADMIN_LOANER_STEP_IDS[n]);
     if (stepEl) stepEl.classList.toggle("hidden", n !== step);
     const dot = document.getElementById("adminLoanerProgress" + n);
     if (dot) dot.classList.toggle("done", n <= step);
   });
   const labels = {
-    1: "Step 1 of 3 — Borrower Information",
-    2: "Step 2 of 3 — Loan Details",
-    3: "Step 3 of 3 — Review & Submit"
+    1: "Step 1 of 4 — Borrower Information",
+    2: "Step 2 of 4 — Loan Details",
+    3: "Step 3 of 4 — Applicant Photo & Valid ID",
+    4: "Step 4 of 4 — Review & Confirm"
   };
   const labelEl = document.getElementById("adminLoanerStepLabel");
   if (labelEl) labelEl.innerText = labels[step];
+  if (step !== 3 && window.KasipagLoanKit) window.KasipagLoanKit.stopAllCameras();
 }
 
 function resetAdminLoanerForm() {
@@ -3150,6 +3168,10 @@ function resetAdminLoanerForm() {
   if (collectorEl) collectorEl.selectedIndex = 0;
   const cashierEl = document.getElementById("cashierSelect");
   if (cashierEl) cashierEl.selectedIndex = 0;
+  // ADDED: clear Applicant Photo / Valid ID and the confirmation state
+  if (window.KasipagLoanKit) window.KasipagLoanKit.reset();
+  const confirmBtn = document.getElementById("adminLoanerSubmitBtn");
+  if (confirmBtn) confirmBtn.disabled = true;
   showAdminLoanerStep(1);
 }
 window.resetAdminLoanerForm = resetAdminLoanerForm;
@@ -3263,11 +3285,120 @@ window.adminLoanerNextFromLoanDetails = () => {
     alert("Select the Assigned Collector and Assigned Cashier before continuing.");
     return;
   }
-  buildAdminLoanerReview();
-  showAdminLoanerStep(3);
+  showAdminLoanerStep(3); // ADDED: Photo & Valid ID step comes before the review
 };
 
 window.adminLoanerBackToLoanDetails = () => showAdminLoanerStep(2);
+
+// ===================== ADDED: Applicant Photo / Valid ID step, Final Review extras, PDF hand-off =====================
+// Display-only payment schedule. It follows the rule this dashboard already uses for due dates
+// (getLoanDueInfo): monthly installments, first due date one month after approval, same day each month.
+// Nothing here is saved to Firestore and the existing interest/total calculation is not changed.
+function computeAdminLoanerSchedule(months, totalPayable) {
+  const start = new Date();
+  const n = months > 0 ? months : 0;
+  return {
+    paymentFrequency: "Monthly",
+    numPayments: n,
+    paymentAmount: n > 0 ? Math.round((totalPayable / n) * 100) / 100 : 0,
+    startDate: start,
+    firstDueDate: n > 0 ? addMonthsSafe(start, 1) : null,
+    finalPaymentDate: n > 0 ? addMonthsSafe(start, n) : null
+  };
+}
+
+// Reads the form (values + existing calculation) into one object used by the Review page and the PDF.
+function buildAdminLoanerPdfData(ctx) {
+  const val = (id) => document.getElementById(id).value.trim();
+  const amount = Number(document.getElementById("adminLoanerAmount").value);
+  const termType = document.getElementById("adminLoanerTerm").value;
+  const { months, rate, totalInterest, totalPayable } = computeAdminLoanerInterest(amount, termType);
+  const sched = computeAdminLoanerSchedule(months, totalPayable);
+  const media = window.KasipagLoanKit.getState();
+  const firstName = val("adminLoanerFirstName");
+  const lastName = val("adminLoanerLastName");
+  return {
+    applicationId: ctx && ctx.id ? ctx.id : "",
+    fullName: `${firstName} ${lastName}`.trim(),
+    firstName,
+    lastName,
+    contactNumber: val("adminLoanerContact"),
+    email: val("adminLoanerEmail"),
+    address: val("adminLoanerAddress"),
+    gender: val("adminLoanerGender"),
+    occupation: val("adminLoanerOccupation"),
+    income: val("adminLoanerIncome"),
+    validIdType: media.validIdType,
+    applicantPhoto: media.applicantPhoto,
+    validIdPhoto: media.validIdPhoto,
+    amount,
+    totalInterest,
+    totalPayable,
+    monthlyRate: rate,
+    termLabel: adminLoanerTermLabel(termType, months),
+    ...sched,
+    submittedAt: new Date()
+  };
+}
+
+function decorateAdminLoanerReview() {
+  const kit = window.KasipagLoanKit;
+  const box = document.getElementById("adminLoanerReviewContent");
+  if (!kit || !box) return;
+  kit.decorateReview(box, buildAdminLoanerPdfData(null), {
+    onConfirmChange: (checked) => {
+      const btn = document.getElementById("adminLoanerSubmitBtn");
+      if (btn) btn.disabled = !checked;
+    },
+    onEdit: (section) => window.adminLoanerEdit(section)
+  });
+}
+
+window.adminLoanerNextFromMedia = () => {
+  const kit = window.KasipagLoanKit;
+  if (!kit) { alert("The photo / Valid ID module did not load. Please refresh the page."); return; }
+  if (!kit.validateMediaStep()) return;
+  buildAdminLoanerReview();
+  decorateAdminLoanerReview();
+  kit.setEditMode(false);
+  showAdminLoanerStep(4);
+};
+
+window.adminLoanerBackToMedia = () => showAdminLoanerStep(3);
+
+// "Edit Information" on the Review page: jump to the right section, then come back to the Review.
+window.adminLoanerEdit = (section) => {
+  const kit = window.KasipagLoanKit;
+  if (!kit) return;
+  kit.setEditMode(true);
+  if (section === "personal") showAdminLoanerStep(1);
+  else if (section === "loan") showAdminLoanerStep(2);
+  else { showAdminLoanerStep(3); kit.scrollToSection(section === "photo" ? "photo" : "id"); return; }
+  const label = document.getElementById("adminLoanerStepLabel");
+  if (label) label.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
+// Runs the existing step validators in order; stops at the first step that fails, otherwise lands on the Review.
+window.adminLoanerReturnToReview = () => {
+  if (adminLoanerCurrentStep === 1) {
+    window.adminLoanerNextFromPersonal();
+    if (adminLoanerCurrentStep !== 2) return;
+  }
+  if (adminLoanerCurrentStep === 2) {
+    window.adminLoanerNextFromLoanDetails();
+    if (adminLoanerCurrentStep !== 3) return;
+  }
+  if (adminLoanerCurrentStep === 3) window.adminLoanerNextFromMedia();
+};
+
+(function initKasipagLoanKitUI() {
+  const kit = window.KasipagLoanKit;
+  if (!kit) { console.error("KasipagLoanKit failed to load — Applicant Photo / Valid ID step unavailable."); return; }
+  kit.mountMediaStep(document.getElementById("kasipagMediaMount"));
+  ["adminLoanerStep1", "adminLoanerStep2", "adminLoanerStepMedia"].forEach((id) => {
+    kit.installEditBar(document.getElementById(id), () => window.adminLoanerReturnToReview());
+  });
+})();
 
 function buildAdminLoanerReview() {
   const val = (id) => document.getElementById(id).value.trim();
@@ -3323,12 +3454,24 @@ window.submitAdminLoanerApplication = async () => {
     return;
   }
 
+  // ADDED: photo / Valid ID / confirmation checkbox must be complete before the existing submission runs
+  if (!window.KasipagLoanKit) {
+    alert("The photo / Valid ID module did not load. Please refresh the page and try again.");
+    return;
+  }
+  const finalCheck = window.KasipagLoanKit.validateBeforeConfirm();
+  if (!finalCheck.ok) {
+    alert(finalCheck.message);
+    return;
+  }
+
   const submitBtn = document.getElementById("adminLoanerSubmitBtn");
   if (submitBtn) {
     submitBtn.disabled = true;
     submitBtn.innerText = "Adding...";
   }
 
+  let pdfContext = null; // ADDED: filled once the loan document exists (used for the PDF)
   try {
     await runAction("Adding loan...", "Approving the loan and assigning collector and cashier.", async () => {
       const usersSnap = await getDocs(collection(db, "users"));
@@ -3341,7 +3484,7 @@ window.submitAdminLoanerApplication = async () => {
         if (d.id === cashierId) assignedCashierName = u.assignedName || u.name || u.email || "Cashier";
       });
 
-      await addDoc(collection(db, "loans"), {
+      const newLoanRef = await addDoc(collection(db, "loans"), {
         borrowerName: `${firstName} ${lastName}`.trim(),
         firstName,
         lastName,
@@ -3351,6 +3494,8 @@ window.submitAdminLoanerApplication = async () => {
         gender: val("adminLoanerGender"),
         occupation: val("adminLoanerOccupation"),
         income: val("adminLoanerIncome"),
+        // ADDED: applicantPhoto, validIdType, validIdPhoto — extra fields on the same loan document
+        ...window.KasipagLoanKit.getFirestoreFields(),
         amount,
         balance: amount,
         loanType: "solo",
@@ -3380,16 +3525,24 @@ window.submitAdminLoanerApplication = async () => {
         createdAt: serverTimestamp()
       });
 
+      pdfContext = { id: newLoanRef.id }; // ADDED
+
       alert(`Loan approved and assigned to ${assignedCashierName}. Collector: ${collectorName}.`);
     });
 
-    resetAdminLoanerForm();
+    // ADDED: only after a successful save — snapshot the form for the PDF, clear the form, show "Loan Application Ready".
+    // (If saving failed, the form is kept so the photos and details are not lost.)
+    if (pdfContext) {
+      const pdfData = buildAdminLoanerPdfData(pdfContext);
+      resetAdminLoanerForm();
+      window.KasipagLoanKit.showLoanReady(pdfData);
+    }
   } catch (error) {
     alert("Error: " + error.message);
   } finally {
     if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.innerText = "Add & Assign Loan";
+      submitBtn.disabled = !(window.KasipagLoanKit && window.KasipagLoanKit.isConfirmChecked());
+      submitBtn.innerText = "Confirm Application";
     }
   }
 };
@@ -3677,6 +3830,979 @@ window.logout = async () => {
       }, 50);
     }
   });
+})();
+</script>
+
+<!-- ============ KASIPAG LOAN KIT: Applicant Photo / Valid ID / PDF (ADDED) ============ -->
+<script>
+/* ADDED: Kasipag Loan Kit — Applicant Photo, Valid ID, Final Review helpers, PDF generation.
+   Self-contained. Does NOT touch Firebase, Firestore, Auth, or any existing function.
+   The existing Add Loan code calls into window.KasipagLoanKit; nothing here reads or writes Firebase. */
+(function () {
+  "use strict";
+
+  /* ---------------- CONFIG ---------------- */
+  var CONFIG = {
+    // Existing logo file. kasipag.png is tried first; oklogo.png (used by this dashboard's sidebar) is the fallback.
+    logoCandidates: ["kasipag.png", "oklogo.png"],
+    jsPdfUrls: [
+      "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+      "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"
+    ],
+    // Photos are compressed to JPEG so they fit safely inside the existing loan document (Firestore 1 MB doc limit).
+    applicant: { maxDim: 640, quality: 0.8, maxChars: 240000 },
+    validId: { maxDim: 1280, quality: 0.74, maxChars: 380000 },
+    maxUploadBytes: 25 * 1024 * 1024
+  };
+
+  var VALID_ID_TYPES = [
+    "National ID / PhilSys ID", "Driver's License", "Passport", "UMID", "SSS ID",
+    "PRC ID", "Postal ID", "Voter's ID", "Other Government ID"
+  ];
+
+  var MSG = {
+    photo: "Please upload or take your applicant photo.",
+    idType: "Please select a Valid ID.",
+    idPhoto: "Please upload or take a photo of your Valid ID.",
+    confirm: "Please review all information before confirming your application."
+  };
+
+  var state = { applicantPhoto: "", validIdType: "", validIdPhoto: "" };
+  var slots = {};
+  var mediaMounted = false;
+  var editMode = false;
+  var editBars = [];
+  var reviewHooks = { onConfirmChange: null };
+  var lastPdf = null; // { blob, url, fileName }
+
+  var IS_TOUCH = (function () {
+    try { return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/i.test(navigator.platform)); }
+    catch (e) { return false; }
+  })();
+
+  /* ---------------- SMALL HELPERS ---------------- */
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function $(id) { return document.getElementById(id); }
+  function html(str) { var t = document.createElement("template"); t.innerHTML = str.trim(); return t.content.firstChild; }
+
+  function injectStyles() {
+    if ($("kasipagKitStyles")) return;
+    var css = "\n" +
+".kp-error{background:var(--red-soft,#fbeaea);color:var(--red,#c13b3b);border:1px solid rgba(193,59,59,.3);border-radius:10px;padding:10px 14px;font-size:.84rem;font-weight:700;margin-bottom:12px}\n" +
+".kp-error.hidden,.kp-editbar.hidden,.kp-edit-menu.hidden,.kp-hint.hidden{display:none!important}\n" +
+".kp-section{border:1px solid var(--border,#e2e7f0);border-radius:14px;padding:14px;margin-bottom:14px;background:var(--surface,#fff);transition:border-color .2s,box-shadow .2s}\n" +
+".kp-section.kp-invalid{border-color:var(--red,#c13b3b);box-shadow:0 0 0 3px rgba(193,59,59,.12)}\n" +
+".kp-sec-head{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px}\n" +
+".kp-sec-head h4{font-size:.95rem;margin:0}\n" +
+".kp-sec-head p{margin:2px 0 0;font-size:.78rem;color:var(--muted,#5c6a86)}\n" +
+".kp-num{flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:var(--blue,#2f6fed);color:#fff;font-size:.75rem;font-weight:800;display:grid;place-items:center}\n" +
+".kp-card{position:relative}\n" +
+".kp-card.kp-disabled .kp-slot-body{opacity:.45;pointer-events:none;filter:grayscale(.4)}\n" +
+".kp-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}\n" +
+".kp-choice{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 10px;border:1.5px dashed var(--border,#e2e7f0);border-radius:12px;background:var(--surface-alt,#f7f9fc);color:var(--navy-800,#12294e);cursor:pointer;font-family:inherit;transition:border-color .15s,background .15s,transform .15s}\n" +
+".kp-choice:hover{border-color:var(--blue,#2f6fed);background:var(--blue-soft,#e8effe);transform:translateY(-1px)}\n" +
+".kp-choice .kp-ico{font-size:1.6rem;line-height:1}\n" +
+".kp-choice strong{font-size:.88rem}\n" +
+".kp-choice small{color:var(--muted,#5c6a86);font-size:.72rem}\n" +
+".kp-preview{display:grid;place-items:center;background:var(--surface-alt,#f7f9fc);border:1px solid var(--border,#e2e7f0);border-radius:12px;padding:8px}\n" +
+".kp-preview img{max-width:100%;max-height:260px;border-radius:8px;display:block;object-fit:contain}\n" +
+".kp-video-wrap{position:relative;background:#0b1e3d;border-radius:12px;overflow:hidden;display:grid;place-items:center;min-height:220px}\n" +
+".kp-video{width:100%;max-height:60vh;display:block;background:#0b1e3d}\n" +
+".kp-video.kp-mirror{transform:scaleX(-1)}\n" +
+".kp-video-status{position:absolute;inset:auto 0 10px 0;text-align:center;color:#fff;font-size:.78rem;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.6)}\n" +
+".kp-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}\n" +
+".kp-actions .button{flex:1 1 130px;justify-content:center}\n" +
+".kp-link{background:none;border:none;color:var(--blue,#2f6fed);font-weight:700;font-size:.8rem;cursor:pointer;margin-top:8px;padding:4px 0;font-family:inherit}\n" +
+".kp-msg{margin-top:8px;font-size:.8rem;color:var(--amber,#b8791c);font-weight:600}\n" +
+".kp-id-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}\n" +
+".kp-id-card{padding:11px 8px;border:1.5px solid var(--border,#e2e7f0);border-radius:10px;background:var(--surface,#fff);color:var(--navy-800,#12294e);font-family:inherit;font-size:.8rem;font-weight:700;cursor:pointer;text-align:center;transition:border-color .15s,background .15s}\n" +
+".kp-id-card:hover{border-color:var(--blue,#2f6fed)}\n" +
+".kp-id-card[aria-checked=true]{border-color:var(--blue,#2f6fed);background:var(--blue-soft,#e8effe);box-shadow:0 0 0 2px rgba(47,111,237,.18)}\n" +
+".kp-selected{margin-top:10px;font-size:.84rem;color:var(--muted,#5c6a86)}\n" +
+".kp-selected strong{color:var(--navy-900,#0b1e3d)}\n" +
+".kp-idtype-line{font-size:.84rem;color:var(--muted,#5c6a86);margin-bottom:10px}\n" +
+".kp-idtype-line strong{color:var(--navy-900,#0b1e3d)}\n" +
+".kp-editbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;background:var(--gold-soft,#faf1dd);border:1px solid rgba(199,154,60,.45);border-radius:12px;padding:10px 12px;font-size:.82rem;font-weight:700;color:var(--amber,#b8791c)}\n" +
+".kp-review-imgwrap{display:grid;place-items:center;padding:8px 0 4px}\n" +
+".kp-review-imgwrap img{max-width:150px;max-height:190px;border-radius:10px;border:1px solid var(--border,#e2e7f0);object-fit:cover}\n" +
+".kp-review-imgwrap.kp-wide img{max-width:100%;max-height:260px;object-fit:contain;background:var(--surface-alt,#f7f9fc)}\n" +
+".kp-confirm{border-top:1px solid var(--border,#e2e7f0);margin-top:6px;padding-top:14px;display:grid;gap:12px}\n" +
+".kp-edit-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}\n" +
+".kp-check{display:flex;gap:10px;align-items:flex-start;font-size:.88rem;font-weight:700;color:var(--navy-900,#0b1e3d);cursor:pointer;background:var(--surface-alt,#f7f9fc);border:1px solid var(--border,#e2e7f0);border-radius:12px;padding:12px}\n" +
+".kp-check input{width:20px;height:20px;margin:0;flex:0 0 auto;accent-color:var(--teal,#0f9d82)}\n" +
+".kp-hint{font-size:.78rem;color:var(--amber,#b8791c);font-weight:600}\n" +
+".kp-modal-backdrop{position:fixed;inset:0;background:rgba(11,30,61,.58);display:none;align-items:center;justify-content:center;z-index:950;padding:18px}\n" +
+".kp-modal-backdrop.show{display:flex}\n" +
+".kp-modal{background:var(--surface,#fff);border-radius:20px;box-shadow:var(--shadow-pop,0 24px 60px rgba(11,30,61,.28));padding:26px 22px 20px;width:100%;max-width:420px;text-align:center}\n" +
+".kp-modal-icon{width:56px;height:56px;border-radius:50%;margin:0 auto 12px;display:grid;place-items:center;font-size:1.6rem;font-weight:800;background:var(--teal-soft,#e3f7f2);color:var(--teal,#0f9d82)}\n" +
+".kp-modal-icon.kp-err{background:var(--red-soft,#fbeaea);color:var(--red,#c13b3b)}\n" +
+".kp-modal-icon.kp-load{background:var(--blue-soft,#e8effe);color:var(--blue,#2f6fed)}\n" +
+".kp-spin{width:26px;height:26px;border:3px solid rgba(47,111,237,.25);border-top-color:var(--blue,#2f6fed);border-radius:50%;animation:kpspin .8s linear infinite}\n" +
+"@keyframes kpspin{to{transform:rotate(360deg)}}\n" +
+".kp-modal h3{font-size:1.15rem;margin-bottom:6px}\n" +
+".kp-modal p{margin:0 0 6px;font-size:.86rem;color:var(--muted,#5c6a86)}\n" +
+".kp-file{margin:10px 0 14px;padding:8px 10px;border-radius:10px;background:var(--surface-alt,#f7f9fc);border:1px solid var(--border,#e2e7f0);font-size:.74rem;color:var(--navy-800,#12294e);font-weight:700;word-break:break-all}\n" +
+".kp-modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}\n" +
+".kp-modal-actions .button{justify-content:center}\n" +
+".kp-modal-foot{display:flex;justify-content:center;gap:16px;margin-top:12px}\n" +
+".loaner-actions .button:disabled,.kp-modal .button:disabled,.kp-actions .button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}\n" +
+"@media (max-width:600px){.kp-id-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.kp-choices{grid-template-columns:1fr 1fr}.kp-edit-menu{grid-template-columns:1fr}.kp-modal-actions{grid-template-columns:1fr}}\n";
+    var st = document.createElement("style");
+    st.id = "kasipagKitStyles";
+    st.textContent = css;
+    document.head.appendChild(st);
+  }
+
+  /* ---------------- IMAGE PIPELINE ---------------- */
+  function loadImageFromBlob(blob) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(blob);
+      var img = new Image();
+      img.onload = function () { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("Could not read that image.")); };
+      img.src = url;
+    });
+  }
+
+  // Draws `source` (Image or Video) to a canvas and shrinks quality/size until it fits maxChars.
+  function compressToJpeg(source, sw, sh, cfg) {
+    var scale = Math.min(1, cfg.maxDim / Math.max(sw, sh));
+    var quality = cfg.quality;
+    var out = "";
+    for (var attempt = 0; attempt < 8; attempt++) {
+      var w = Math.max(1, Math.round(sw * scale));
+      var h = Math.max(1, Math.round(sh * scale));
+      var canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      var ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(source, 0, 0, w, h);
+      out = canvas.toDataURL("image/jpeg", quality);
+      if (out.length <= cfg.maxChars) return out;
+      if (quality > 0.5) quality -= 0.1; else scale *= 0.8;
+    }
+    return out;
+  }
+
+  async function compressFile(file, cfg) {
+    var img = await loadImageFromBlob(file);
+    return compressToJpeg(img, img.naturalWidth || img.width, img.naturalHeight || img.height, cfg);
+  }
+
+  function isAcceptedImage(file) {
+    if (!file) return false;
+    if (/^image\/(jpeg|png)$/i.test(file.type || "")) return true;
+    return !file.type && /\.(jpe?g|png)$/i.test(file.name || "");
+  }
+
+  /* ---------------- PHOTO SLOT (Upload / Take Picture / Retake / Change) ---------------- */
+  function createSlot(opts) {
+    var root = document.createElement("div");
+    root.className = "kp-card";
+    var body = document.createElement("div");
+    body.className = "kp-slot-body";
+    root.appendChild(body);
+
+    var uploadInput = document.createElement("input");
+    uploadInput.type = "file";
+    uploadInput.accept = ".jpg,.jpeg,.png,image/jpeg,image/png";
+    uploadInput.hidden = true;
+    var nativeInput = document.createElement("input");
+    nativeInput.type = "file";
+    nativeInput.accept = "image/*";
+    nativeInput.setAttribute("capture", opts.facing === "user" ? "user" : "environment");
+    nativeInput.hidden = true;
+    root.appendChild(uploadInput);
+    root.appendChild(nativeInput);
+
+    var mode = "choose"; // choose | camera | review | done
+    var value = "";
+    var pending = "";
+    var stream = null;
+    var facing = opts.facing;
+    var message = "";
+    var showNativeBtn = false;
+    var disabled = false;
+    var camToken = 0;
+
+    function stopStream() {
+      camToken++;
+      if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+    }
+
+    function render() {
+      root.classList.toggle("kp-disabled", disabled);
+      var h = "";
+      var msg = message ? '<div class="kp-msg">' + esc(message) + "</div>" : "";
+      if (mode === "done") {
+        h = '<div class="kp-preview"><img src="' + value + '" alt="' + esc(opts.title) + ' preview"></div>' +
+            '<div class="kp-actions"><button type="button" class="button outline" data-act="change">Change Photo</button></div>' + msg;
+      } else if (mode === "choose") {
+        h = '<div class="kp-choices">' +
+            '<button type="button" class="kp-choice" data-act="upload"><span class="kp-ico">📁</span><strong>Upload Photo</strong><small>JPG, JPEG or PNG</small></button>' +
+            '<button type="button" class="kp-choice" data-act="camera"><span class="kp-ico">📷</span><strong>Take Picture</strong><small>Use your device camera</small></button>' +
+            "</div>" + msg +
+            (showNativeBtn ? '<button type="button" class="kp-link" data-act="native">Open the phone camera app instead</button>' : "") +
+            (value ? '<button type="button" class="kp-link" data-act="keep">Keep current photo</button>' : "");
+      } else if (mode === "camera") {
+        h = '<div class="kp-video-wrap"><video class="kp-video' + (facing === "user" ? " kp-mirror" : "") + '" playsinline muted autoplay></video>' +
+            '<div class="kp-video-status" data-role="status">Starting camera…</div></div>' +
+            '<div class="kp-actions">' +
+            '<button type="button" class="button green" data-act="capture" disabled>📸 Capture Photo</button>' +
+            (IS_TOUCH ? '<button type="button" class="button outline" data-act="flip">Switch Camera</button>' : "") +
+            '<button type="button" class="button outline" data-act="cancel">Cancel</button></div>';
+      } else if (mode === "review") {
+        h = '<div class="kp-preview"><img src="' + pending + '" alt="Captured photo preview"></div>' +
+            '<div class="kp-actions"><button type="button" class="button green" data-act="use">✔ Use This Photo</button>' +
+            '<button type="button" class="button outline" data-act="retake">Retake Photo</button></div>';
+      }
+      body.innerHTML = h;
+    }
+
+    function setMessage(m) { message = m || ""; }
+
+    function accept(dataUrl) {
+      value = dataUrl; pending = ""; message = ""; showNativeBtn = false; mode = "done";
+      render();
+      opts.onChange(value);
+    }
+
+    async function handleFile(file) {
+      if (!file) return;
+      if (!isAcceptedImage(file)) { setMessage("Please choose a JPG, JPEG or PNG image."); if (mode !== "choose") mode = value ? "done" : "choose"; render(); return; }
+      if (file.size > CONFIG.maxUploadBytes) { setMessage("That image is too large. Please choose a smaller one."); render(); return; }
+      try {
+        accept(await compressFile(file, opts.cfg));
+      } catch (e) {
+        setMessage("Could not read that image. Please try another photo.");
+        render();
+      }
+    }
+
+    uploadInput.addEventListener("change", function () { var f = uploadInput.files && uploadInput.files[0]; uploadInput.value = ""; handleFile(f); });
+    nativeInput.addEventListener("change", function () { var f = nativeInput.files && nativeInput.files[0]; nativeInput.value = ""; handleFile(f); });
+
+    function fallbackAfterCameraError(msg) {
+      stopStream();
+      mode = "choose";
+      message = msg;
+      showNativeBtn = IS_TOUCH;
+      render();
+    }
+
+    async function startCamera() {
+      stopStream();
+      message = ""; showNativeBtn = false;
+      if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        fallbackAfterCameraError("The camera isn't available in this browser. Please use Upload Photo" + (IS_TOUCH ? " or the phone camera app." : "."));
+        return;
+      }
+      mode = "camera"; render();
+      var token = ++camToken;
+      var s;
+      try {
+        s = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: facing }, width: { ideal: 1600 }, height: { ideal: 1200 } },
+          audio: false
+        });
+      } catch (err) {
+        if (token !== camToken) return;
+        var denied = err && (err.name === "NotAllowedError" || err.name === "SecurityError");
+        fallbackAfterCameraError(denied
+          ? "Camera permission was blocked. Allow camera access in your browser settings, or use Upload Photo."
+          : "Couldn't open the camera. Please use Upload Photo" + (IS_TOUCH ? " or the phone camera app." : "."));
+        return;
+      }
+      if (token !== camToken || mode !== "camera") { s.getTracks().forEach(function (t) { t.stop(); }); return; }
+      stream = s;
+      var video = body.querySelector("video");
+      if (!video) { stopStream(); return; }
+      video.srcObject = s;
+      var ready = function () {
+        var st = body.querySelector('[data-role="status"]');
+        if (st) st.textContent = "";
+        var cap = body.querySelector('[data-act="capture"]');
+        if (cap) cap.disabled = false;
+      };
+      if (video.readyState >= 2) ready(); else video.addEventListener("loadeddata", ready, { once: true });
+      try { await video.play(); } catch (e) { /* autoplay will start once permitted */ }
+    }
+
+    function capture() {
+      var video = body.querySelector("video");
+      if (!video || !video.videoWidth) return;
+      var data = compressToJpeg(video, video.videoWidth, video.videoHeight, opts.cfg);
+      stopStream();
+      pending = data; mode = "review"; render();
+    }
+
+    body.addEventListener("click", function (ev) {
+      var btn = ev.target.closest("[data-act]");
+      if (!btn || disabled) return;
+      var act = btn.getAttribute("data-act");
+      if (act === "upload") { message = ""; uploadInput.click(); }
+      else if (act === "camera" || act === "retake") { pending = ""; startCamera(); }
+      else if (act === "native") { nativeInput.click(); }
+      else if (act === "capture") { capture(); }
+      else if (act === "flip") { facing = facing === "user" ? "environment" : "user"; startCamera(); }
+      else if (act === "cancel") { stopStream(); mode = value ? "done" : "choose"; message = ""; render(); }
+      else if (act === "use") { accept(pending); }
+      else if (act === "change") { message = ""; mode = "choose"; render(); }
+      else if (act === "keep") { message = ""; mode = "done"; render(); }
+    });
+
+    render();
+
+    return {
+      el: root,
+      get value() { return value; },
+      clear: function () { stopStream(); value = ""; pending = ""; message = ""; showNativeBtn = false; mode = "choose"; render(); },
+      cancelCamera: function () { if (mode === "camera") { stopStream(); mode = value ? "done" : "choose"; render(); } },
+      setDisabled: function (d) { disabled = !!d; if (disabled) { stopStream(); if (mode === "camera") { mode = value ? "done" : "choose"; render(); } } root.classList.toggle("kp-disabled", disabled); },
+      refresh: render
+    };
+  }
+
+  /* ---------------- MEDIA STEP (Applicant Photo → Select Valid ID → Valid ID Photo) ---------------- */
+  function updateIdSelectionUI() {
+    var cards = document.querySelectorAll(".kp-id-card");
+    cards.forEach(function (c) { c.setAttribute("aria-checked", String(c.getAttribute("data-id") === state.validIdType)); });
+    var sel = $("kpSelectedId");
+    if (sel) sel.innerHTML = state.validIdType ? "Selected Valid ID: <strong>" + esc(state.validIdType) + "</strong>" : "No Valid ID selected yet.";
+    var line = $("kpIdTypeLine");
+    if (line) line.innerHTML = state.validIdType ? "Valid ID Type: <strong>" + esc(state.validIdType) + "</strong>" : "Select a Valid ID above first, then add its photo.";
+    if (slots.id) slots.id.setDisabled(!state.validIdType);
+  }
+
+  function clearMediaError() {
+    var e = $("kpError");
+    if (e) { e.textContent = ""; e.classList.add("hidden"); }
+    document.querySelectorAll(".kp-section.kp-invalid").forEach(function (s) { s.classList.remove("kp-invalid"); });
+  }
+
+  function mountMediaStep(container) {
+    if (!container || mediaMounted) return;
+    injectStyles();
+    mediaMounted = true;
+    container.innerHTML =
+      '<div class="kp-error hidden" id="kpError" role="alert"></div>' +
+      '<section class="kp-section" id="kpSecApplicant">' +
+        '<div class="kp-sec-head"><span class="kp-num">1</span><div><h4>Applicant Photo</h4><p>Required. Upload a clear photo of the applicant or take one now.</p></div></div>' +
+        '<div data-slot="applicant"></div>' +
+      "</section>" +
+      '<section class="kp-section" id="kpSecIdType">' +
+        '<div class="kp-sec-head"><span class="kp-num">2</span><div><h4>Select Valid ID</h4><p>Choose which government ID will be used.</p></div></div>' +
+        '<div class="kp-id-grid" role="radiogroup" aria-label="Valid ID type">' +
+          VALID_ID_TYPES.map(function (t) { return '<button type="button" class="kp-id-card" role="radio" aria-checked="false" data-id="' + esc(t) + '">' + esc(t) + "</button>"; }).join("") +
+        "</div>" +
+        '<div class="kp-selected" id="kpSelectedId"></div>' +
+      "</section>" +
+      '<section class="kp-section" id="kpSecIdPhoto">' +
+        '<div class="kp-sec-head"><span class="kp-num">3</span><div><h4>Valid ID Photo</h4><p>Required. The photo must be of the Valid ID selected above.</p></div></div>' +
+        '<div class="kp-idtype-line" id="kpIdTypeLine"></div>' +
+        '<div data-slot="id"></div>' +
+      "</section>";
+
+    slots.applicant = createSlot({
+      title: "Applicant photo", facing: "user", cfg: CONFIG.applicant,
+      onChange: function (v) { state.applicantPhoto = v; clearMediaError(); }
+    });
+    slots.id = createSlot({
+      title: "Valid ID photo", facing: "environment", cfg: CONFIG.validId,
+      onChange: function (v) { state.validIdPhoto = v; clearMediaError(); }
+    });
+    container.querySelector('[data-slot="applicant"]').appendChild(slots.applicant.el);
+    container.querySelector('[data-slot="id"]').appendChild(slots.id.el);
+
+    container.querySelector(".kp-id-grid").addEventListener("click", function (ev) {
+      var b = ev.target.closest(".kp-id-card");
+      if (!b) return;
+      state.validIdType = b.getAttribute("data-id");
+      clearMediaError();
+      updateIdSelectionUI();
+    });
+    updateIdSelectionUI();
+
+    // Turn the camera off if the step is scrolled/hidden away (tab switch, step change).
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (entries) { if (!entries[0].isIntersecting) stopAllCameras(); }).observe(container);
+    }
+    document.addEventListener("visibilitychange", function () { if (document.hidden) stopAllCameras(); });
+  }
+
+  function stopAllCameras() {
+    Object.keys(slots).forEach(function (k) { slots[k].cancelCamera(); });
+  }
+
+  function validateMedia() {
+    if (!state.applicantPhoto) return { ok: false, message: MSG.photo, target: "kpSecApplicant" };
+    if (!state.validIdType) return { ok: false, message: MSG.idType, target: "kpSecIdType" };
+    if (!state.validIdPhoto) return { ok: false, message: MSG.idPhoto, target: "kpSecIdPhoto" };
+    return { ok: true };
+  }
+
+  // Validates and shows the message inline on the photo/ID step. Returns true when OK.
+  function validateMediaStep() {
+    clearMediaError();
+    var r = validateMedia();
+    if (r.ok) return true;
+    var box = $("kpError");
+    if (box) { box.textContent = r.message; box.classList.remove("hidden"); }
+    var sec = $(r.target);
+    if (sec) { sec.classList.add("kp-invalid"); sec.scrollIntoView({ behavior: "smooth", block: "center" }); }
+    return false;
+  }
+
+  function scrollToSection(which) {
+    var sec = $(which === "photo" ? "kpSecApplicant" : "kpSecIdType");
+    if (sec) setTimeout(function () { sec.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60);
+  }
+
+  /* ---------------- REVIEW HELPERS ---------------- */
+  function isConfirmChecked() {
+    var c = $("kpConfirmCheck");
+    return !!(c && c.checked);
+  }
+
+  // Final gate used right before submission.
+  function validateBeforeConfirm() {
+    var r = validateMedia();
+    if (!r.ok) return { ok: false, message: r.message };
+    if (!isConfirmChecked()) return { ok: false, message: MSG.confirm };
+    return { ok: true };
+  }
+
+  function money2(n) {
+    return "₱" + (Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function longDate(d) {
+    return d ? d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "N/A";
+  }
+
+  // Adds Applicant Photo, Valid ID, payment-schedule rows, Edit Information and the confirmation checkbox
+  // to the review markup the existing code already built. Existing rows are left untouched.
+  function decorateReview(box, d, hooks) {
+    if (!box) return;
+    reviewHooks = hooks || {};
+    var groups = box.querySelectorAll(".review-group");
+    var photoGroup = html('<div class="review-group"><h4>Applicant Photo</h4><div class="kp-review-imgwrap"><img src="' + state.applicantPhoto + '" alt="Applicant photo"></div></div>');
+    var idGroup = html('<div class="review-group"><h4>Valid ID</h4>' +
+      '<div class="review-row"><span>Selected Valid ID Type</span><strong>' + esc(state.validIdType) + "</strong></div>" +
+      '<div class="kp-review-imgwrap kp-wide"><img src="' + state.validIdPhoto + '" alt="Valid ID photo"></div></div>');
+    var schedGroup = html('<div class="review-group"><h4>Payment Schedule</h4>' +
+      '<div class="review-row"><span>Payment Frequency</span><strong>' + esc(d.paymentFrequency) + "</strong></div>" +
+      '<div class="review-row"><span>Payment Amount</span><strong>' + money2(d.paymentAmount) + "</strong></div>" +
+      '<div class="review-row"><span>Number of Payments</span><strong>' + esc(d.numPayments) + "</strong></div>" +
+      '<div class="review-row"><span>Start Date</span><strong>' + esc(longDate(d.startDate)) + "</strong></div>" +
+      '<div class="review-row"><span>Due Date (first payment)</span><strong>' + esc(longDate(d.firstDueDate)) + "</strong></div>" +
+      '<div class="review-row"><span>Final Payment Date</span><strong>' + esc(longDate(d.finalPaymentDate)) + "</strong></div></div>");
+
+    if (groups[0]) { box.insertBefore(photoGroup, groups[0]); groups[0].after(idGroup); } else { box.appendChild(photoGroup); box.appendChild(idGroup); }
+    if (groups[1]) groups[1].after(schedGroup); else box.appendChild(schedGroup);
+
+    var confirm = html(
+      '<div class="kp-confirm">' +
+        "<div>" +
+          '<button type="button" class="button outline" id="kpEditBtn">✏ Edit Information</button>' +
+          '<div class="kp-edit-menu hidden" id="kpEditMenu">' +
+            '<button type="button" class="button outline" data-edit="personal">Personal Information</button>' +
+            '<button type="button" class="button outline" data-edit="photo">Applicant Photo</button>' +
+            '<button type="button" class="button outline" data-edit="id">Valid ID Type &amp; Photo</button>' +
+            '<button type="button" class="button outline" data-edit="loan">Loan Information</button>' +
+          "</div>" +
+        "</div>" +
+        '<label class="kp-check"><input type="checkbox" id="kpConfirmCheck"><span>I confirm that all the information I provided is correct.</span></label>' +
+        '<div class="kp-hint" id="kpConfirmHint">' + esc(MSG.confirm) + "</div>" +
+      "</div>");
+    box.appendChild(confirm);
+
+    confirm.querySelector("#kpEditBtn").addEventListener("click", function () { $("kpEditMenu").classList.toggle("hidden"); });
+    confirm.querySelector("#kpEditMenu").addEventListener("click", function (ev) {
+      var b = ev.target.closest("[data-edit]");
+      if (b && reviewHooks.onEdit) reviewHooks.onEdit(b.getAttribute("data-edit"));
+    });
+    var check = confirm.querySelector("#kpConfirmCheck");
+    check.addEventListener("change", function () {
+      $("kpConfirmHint").classList.toggle("hidden", check.checked);
+      if (reviewHooks.onConfirmChange) reviewHooks.onConfirmChange(check.checked);
+    });
+    if (reviewHooks.onConfirmChange) reviewHooks.onConfirmChange(false);
+  }
+
+  /* ---------------- EDIT MODE BAR ---------------- */
+  function installEditBar(stepEl, onReturn) {
+    if (!stepEl) return;
+    injectStyles();
+    var bar = html('<div class="kp-editbar hidden"><span>✏ Editing from the review page</span><button type="button" class="button green">Save &amp; Back to Review</button></div>');
+    bar.querySelector("button").addEventListener("click", onReturn);
+    stepEl.insertBefore(bar, stepEl.firstChild);
+    editBars.push(bar);
+    bar.classList.toggle("hidden", !editMode);
+  }
+  function setEditMode(on) {
+    editMode = !!on;
+    editBars.forEach(function (b) { b.classList.toggle("hidden", !editMode); });
+  }
+
+  function reset() {
+    stopAllCameras();
+    state.applicantPhoto = ""; state.validIdType = ""; state.validIdPhoto = "";
+    Object.keys(slots).forEach(function (k) { slots[k].clear(); });
+    clearMediaError();
+    updateIdSelectionUI();
+    setEditMode(false);
+  }
+
+  /* ---------------- PDF GENERATION ---------------- */
+  var jsPdfPromise = null;
+  function loadScript(url) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = url; s.async = true;
+      s.onload = resolve;
+      s.onerror = function () { s.remove(); reject(new Error("Failed to load " + url)); };
+      document.head.appendChild(s);
+    });
+  }
+  function loadJsPdf() {
+    if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+    if (!jsPdfPromise) {
+      jsPdfPromise = (async function () {
+        var lastErr;
+        for (var i = 0; i < CONFIG.jsPdfUrls.length; i++) {
+          try { await loadScript(CONFIG.jsPdfUrls[i]); if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF; }
+          catch (e) { lastErr = e; }
+        }
+        throw new Error("The PDF library could not be loaded. Please check your internet connection and try again.");
+      })().catch(function (e) { jsPdfPromise = null; throw e; });
+    }
+    return jsPdfPromise;
+  }
+
+  function blobToDataUrl(blob) {
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onload = function () { resolve(r.result); };
+      r.onerror = function () { reject(r.error); };
+      r.readAsDataURL(blob);
+    });
+  }
+  function imageSize(dataUrl) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () { resolve({ w: img.naturalWidth || img.width, h: img.naturalHeight || img.height }); };
+      img.onerror = function () { reject(new Error("image decode failed")); };
+      img.src = dataUrl;
+    });
+  }
+  async function prepImage(dataUrl) {
+    if (!dataUrl) return null;
+    try {
+      var sz = await imageSize(dataUrl);
+      var fmt = /^data:image\/png/i.test(dataUrl) ? "PNG" : "JPEG";
+      return { data: dataUrl, w: sz.w, h: sz.h, fmt: fmt };
+    } catch (e) { return null; }
+  }
+  async function loadLogo() {
+    for (var i = 0; i < CONFIG.logoCandidates.length; i++) {
+      try {
+        var res = await fetch(CONFIG.logoCandidates[i], { cache: "force-cache" });
+        if (!res.ok) continue;
+        var blob = await res.blob();
+        if (blob.type && blob.type.indexOf("image/") !== 0) continue;
+        var img = await prepImage(await blobToDataUrl(blob));
+        if (img) return img;
+      } catch (e) { /* try next candidate */ }
+    }
+    return null; // header falls back to text only
+  }
+
+  // jsPDF's built-in fonts are Latin-1 only (no ₱ glyph). Keep text safe so nothing prints as garbage.
+  function pdfSafe(v) {
+    var s = String(v == null || v === "" ? "" : v);
+    s = s.replace(/₱/g, "PHP ").replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[\u2013\u2014]/g, "-").replace(/\u2026/g, "...");
+    try { s = s.normalize("NFC"); } catch (e) {}
+    return s.replace(/[\r\n\t]+/g, " ").replace(/[^\u0020-\u007E\u00A0-\u00FF]/g, "?");
+  }
+  function php(n) {
+    return "PHP " + (Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function fileSafe(s) {
+    var out = String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    return out || "Applicant";
+  }
+  function buildFileName(d) {
+    var name = fileSafe(d.fullName);
+    return d.applicationId
+      ? "Kasipag_Loan_Application_" + fileSafe(d.applicationId) + "_" + name + ".pdf"
+      : "Kasipag_Loan_Application_" + name + ".pdf";
+  }
+
+  async function generatePdf(d) {
+    var JsPDF = await loadJsPdf();
+    var imgs = await Promise.all([loadLogo(), prepImage(d.applicantPhoto), prepImage(d.validIdPhoto)]);
+    var logo = imgs[0], photo = imgs[1], idImg = imgs[2];
+
+    var doc = new JsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+    var W = 210, H = 297, M = 14, CW = W - 2 * M, FOOT = H - 20;
+    var NAVY = [11, 30, 61], BLUE = [47, 111, 237], GOLD = [199, 154, 60], GRAY = [92, 106, 134],
+        LIGHT = [242, 245, 250], BORDER = [216, 223, 234], TEAL = [15, 157, 130], TEALSOFT = [227, 247, 242], WHITE = [255, 255, 255];
+    var y = 0;
+    var when = d.submittedAt || new Date();
+    var whenText = when.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+
+    doc.setProperties({
+      title: "Kasipag Loan Application - " + pdfSafe(d.fullName),
+      subject: "Loan Application", author: "Kasipag Microfinancing", creator: "Kasipag Microfinancing"
+    });
+
+    function txt(rgb) { doc.setTextColor(rgb[0], rgb[1], rgb[2]); }
+    function fill(rgb) { doc.setFillColor(rgb[0], rgb[1], rgb[2]); }
+    function stroke(rgb) { doc.setDrawColor(rgb[0], rgb[1], rgb[2]); }
+    function font(style, size) { doc.setFont("helvetica", style); doc.setFontSize(size); }
+    function fit(w, h, bw, bh) { var s = Math.min(bw / w, bh / h); return { w: w * s, h: h * s }; }
+
+    function header(first) {
+      var tx = M;
+      if (first) {
+        if (logo) {
+          var s = fit(logo.w, logo.h, 26, 26);
+          doc.addImage(logo.data, logo.fmt, M, 10 + (26 - s.h) / 2, s.w, s.h);
+          tx = M + s.w + 5;
+        }
+        font("bold", 19); txt(NAVY); doc.text("KASIPAG MICROFINANCING", tx, 21.5);
+        font("bold", 10); txt(BLUE); doc.text("LOAN APPLICATION FORM", tx, 28.5);
+        font("normal", 7); txt(GRAY);
+        doc.text("APPLICATION ID", W - M, 14, { align: "right" });
+        doc.text("DATE SUBMITTED", W - M, 26, { align: "right" });
+        font("bold", 8.5); txt(NAVY);
+        doc.text(pdfSafe(d.applicationId) || "-", W - M, 19, { align: "right" });
+        font("bold", 8); doc.text(pdfSafe(whenText), W - M, 31, { align: "right" });
+        stroke(GOLD); doc.setLineWidth(0.9); doc.line(M, 40, W - M, 40);
+        y = 48;
+      } else {
+        if (logo) {
+          var s2 = fit(logo.w, logo.h, 12, 12);
+          doc.addImage(logo.data, logo.fmt, M, 8 + (12 - s2.h) / 2, s2.w, s2.h);
+          tx = M + s2.w + 4;
+        }
+        font("bold", 12); txt(NAVY); doc.text("KASIPAG MICROFINANCING", tx, 16);
+        font("normal", 7.5); txt(GRAY); doc.text("Application ID: " + (pdfSafe(d.applicationId) || "-"), W - M, 16, { align: "right" });
+        stroke(GOLD); doc.setLineWidth(0.7); doc.line(M, 23, W - M, 23);
+        y = 31;
+      }
+    }
+    function newPage() { doc.addPage(); header(false); }
+    function ensure(h) { if (y + h > FOOT) newPage(); }
+
+    function sectionTitle(t, gap) {
+      if (gap) y += gap;
+      ensure(16);
+      fill(BLUE); doc.rect(M, y, 1.6, 6, "F");
+      font("bold", 10.5); txt(NAVY); doc.text(pdfSafe(t), M + 4, y + 4.7);
+      stroke(BORDER); doc.setLineWidth(0.3); doc.line(M, y + 8, W - M, y + 8);
+      y += 12.5;
+    }
+
+    // Wraps on spaces, and hard-breaks any single "word" (e.g. a very long email) that is still wider than the column.
+    function wrap(text, w) {
+      var out = [];
+      doc.splitTextToSize(text, w).forEach(function (ln) {
+        if (doc.getTextWidth(ln) <= w) { out.push(ln); return; }
+        var cur = "";
+        for (var i = 0; i < ln.length; i++) {
+          if (cur && doc.getTextWidth(cur + ln[i]) > w) { out.push(cur); cur = ln[i]; } else cur += ln[i];
+        }
+        if (cur) out.push(cur);
+      });
+      return out;
+    }
+    function measure(value, w) {
+      font("bold", 10);
+      var lines = wrap(pdfSafe(value) || "N/A", w);
+      return { lines: lines, h: 4.6 + lines.length * 4.7 + 2.4 };
+    }
+    function drawCell(x, yy, w, label, lines) {
+      font("normal", 7); txt(GRAY); doc.text(pdfSafe(label).toUpperCase(), x, yy + 3);
+      font("bold", 10); txt(NAVY);
+      for (var i = 0; i < lines.length; i++) doc.text(lines[i], x, yy + 8 + i * 4.7);
+    }
+    function kvGrid(items, x0, width) {
+      var gap = 6, colW = (width - gap) / 2, i = 0;
+      while (i < items.length) {
+        var row = [];
+        if (items[i].full) { row.push({ it: items[i], x: x0, w: width }); i++; }
+        else {
+          row.push({ it: items[i], x: x0, w: colW }); i++;
+          if (i < items.length && !items[i].full) { row.push({ it: items[i], x: x0 + colW + gap, w: colW }); i++; }
+        }
+        var rh = 0;
+        row.forEach(function (c) { var m = measure(c.it.value, c.w); c.lines = m.lines; rh = Math.max(rh, m.h); });
+        ensure(rh);
+        row.forEach(function (c) { drawCell(c.x, y, c.w, c.it.label, c.lines); });
+        y += rh;
+      }
+    }
+
+    function framedImage(img, x, yy, bw, bh, emptyText) {
+      fill(LIGHT); stroke(BORDER); doc.setLineWidth(0.3); doc.rect(x, yy, bw, bh, "FD");
+      if (img) {
+        var s = fit(img.w, img.h, bw - 2, bh - 2);
+        doc.addImage(img.data, img.fmt, x + (bw - s.w) / 2, yy + (bh - s.h) / 2, s.w, s.h);
+      } else {
+        font("normal", 8); txt(GRAY); doc.text(emptyText || "No image", x + bw / 2, yy + bh / 2, { align: "center" });
+      }
+    }
+    function fitText(text, maxW, size, min) {
+      var s = size; font("bold", s);
+      while (s > min && doc.getTextWidth(text) > maxW) { s -= 0.5; font("bold", s); }
+      return s;
+    }
+
+    /* ---- Page 1 ---- */
+    header(true);
+
+    // APPLICANT INFORMATION (photo on the right)
+    ensure(12.5 + 58);
+    sectionTitle("APPLICANT INFORMATION");
+    var PW = 36, PH = 46, px = W - M - PW, pTop = y;
+    framedImage(photo, px, pTop, PW, PH, "No photo");
+    font("normal", 6.5); txt(GRAY); doc.text("APPLICANT PHOTO", px + PW / 2, pTop + PH + 3.8, { align: "center" });
+    kvGrid([
+      { label: "Full Name", value: d.fullName, full: true },
+      { label: "First Name", value: d.firstName },
+      { label: "Last Name", value: d.lastName },
+      { label: "Contact Number", value: d.contactNumber },
+      { label: "Email", value: d.email },
+      { label: "Address", value: d.address, full: true },
+      { label: "Gender", value: d.gender },
+      { label: "Occupation", value: d.occupation },
+      { label: "Income", value: d.income }
+    ], M, CW - PW - 8);
+    y = Math.max(y, pTop + PH + 8);
+
+    // VALID ID INFORMATION
+    ensure(12.5 + 60 + 5);
+    sectionTitle("VALID ID INFORMATION", 5);
+    var IW = 90, IH = 57, idTop = y;
+    framedImage(idImg, M, idTop, IW, IH, "No Valid ID photo");
+    var rx = M + IW + 8, rw = W - M - rx;
+    font("bold", 10);
+    drawCell(rx, idTop, rw, "Valid ID Type", wrap(pdfSafe(d.validIdType), rw));
+    font("normal", 8); txt(GRAY);
+    var note = doc.splitTextToSize("Photo of the Valid ID presented by the applicant with this loan application.", rw);
+    for (var ni = 0; ni < note.length; ni++) doc.text(note[ni], rx, idTop + 22 + ni * 4);
+    y = idTop + IH + 8;
+
+    // LOAN SUMMARY (large)
+    ensure(56);
+    var sTop = y;
+    fill(NAVY); doc.rect(M, sTop, CW, 9, "F");
+    font("bold", 10.5); txt(WHITE); doc.text("LOAN SUMMARY", M + 5, sTop + 6.2);
+    fill(LIGHT); stroke(BORDER); doc.setLineWidth(0.3); doc.rect(M, sTop + 9, CW, 46, "FD");
+    var c3 = CW / 3;
+    var top3 = [
+      { label: "Amount Borrowed", value: php(d.amount) },
+      { label: "Interest", value: php(d.totalInterest) },
+      { label: "Total Amount to Pay", value: php(d.totalPayable), hi: true }
+    ];
+    top3.forEach(function (c, i) {
+      var cx = M + i * c3;
+      if (c.hi) { fill(TEALSOFT); doc.rect(cx + 0.3, sTop + 9.3, c3 - 0.6, 24.4, "F"); }
+      font("normal", 7.5); txt(GRAY); doc.text(c.label.toUpperCase(), cx + 5, sTop + 16.5);
+      var sz = fitText(c.value, c3 - 9, 15, 9);
+      font("bold", sz); txt(c.hi ? TEAL : NAVY); doc.text(c.value, cx + 5, sTop + 26.5);
+    });
+    stroke(BORDER); doc.line(M + 4, sTop + 35, W - M - 4, sTop + 35);
+    var c4 = CW / 4;
+    var low4 = [
+      { label: "Payment Amount", value: php(d.paymentAmount) },
+      { label: "Loan Term", value: d.termLabel },
+      { label: "Start Date", value: longDate(d.startDate) },
+      { label: "Final Due Date", value: longDate(d.finalPaymentDate) }
+    ];
+    low4.forEach(function (c, i) {
+      var cx = M + i * c4;
+      font("normal", 7); txt(GRAY); doc.text(c.label.toUpperCase(), cx + 5, sTop + 41.5);
+      var v = pdfSafe(c.value);
+      var sz2 = fitText(v, c4 - 7, 10, 7);
+      font("bold", sz2); txt(NAVY); doc.text(v, cx + 5, sTop + 48.5);
+    });
+    y = sTop + 55 + 8;
+
+    // LOAN INFORMATION (kept together on one page)
+    ensure(12.5 + 6 * 12);
+    sectionTitle("LOAN INFORMATION");
+    kvGrid([
+      { label: "Loan Amount / Amount Borrowed", value: php(d.amount) },
+      { label: "Interest Rate", value: (d.monthlyRate != null ? d.monthlyRate + "% per month" : "N/A") },
+      { label: "Interest Amount", value: php(d.totalInterest) },
+      { label: "Loan Term", value: d.termLabel },
+      { label: "Payment Frequency", value: d.paymentFrequency },
+      { label: "Amount Per Payment", value: php(d.paymentAmount) },
+      { label: "Number of Payments", value: String(d.numPayments) },
+      { label: "Loan Start Date", value: longDate(d.startDate) },
+      { label: "Due Date (First Payment)", value: longDate(d.firstDueDate) },
+      { label: "Final Payment Date", value: longDate(d.finalPaymentDate) },
+      { label: "Total Amount to Pay", value: php(d.totalPayable) },
+      { label: "Application ID", value: d.applicationId || "N/A" }
+    ], M, CW);
+    y += 4;
+
+    // CONFIRMATION + SIGNATURE
+    ensure(12.5 + 40);
+    sectionTitle("APPLICANT CONFIRMATION");
+    font("normal", 9.5); txt(NAVY);
+    doc.text("[X]  I confirm that all the information I provided is correct.", M, y + 2);
+    font("normal", 8); txt(GRAY);
+    doc.text("Confirmed on " + pdfSafe(whenText), M, y + 8);
+    var sy = y + 28;
+    stroke(NAVY); doc.setLineWidth(0.3);
+    doc.line(M, sy, M + 90, sy);
+    doc.line(M + 104, sy, W - M, sy);
+    font("normal", 7.5); txt(GRAY);
+    doc.text("Applicant's Signature over Printed Name", M, sy + 4.5);
+    doc.text("Date", M + 104, sy + 4.5);
+    y = sy + 12;
+
+    // Footer + page numbers on every page
+    var n = doc.getNumberOfPages();
+    for (var p = 1; p <= n; p++) {
+      doc.setPage(p);
+      stroke(BORDER); doc.setLineWidth(0.3); doc.line(M, H - 14, W - M, H - 14);
+      font("normal", 7.5); txt(GRAY);
+      doc.text("Kasipag Microfinancing  |  Loan Application" + (d.applicationId ? "  |  ID: " + pdfSafe(d.applicationId) : ""), M, H - 9);
+      doc.text("Page " + p + " of " + n, W - M, H - 9, { align: "right" });
+    }
+
+    var blob = doc.output("blob");
+    return { blob: blob, fileName: buildFileName(d) };
+  }
+
+  /* ---------------- "LOAN APPLICATION READY" MODAL ---------------- */
+  var modalCtx = { data: null };
+
+  function ensureModal() {
+    if ($("kpReadyModal")) return $("kpReadyModal");
+    injectStyles();
+    var m = html(
+      '<div class="kp-modal-backdrop" id="kpReadyModal" role="dialog" aria-modal="true" aria-labelledby="kpReadyTitle">' +
+        '<div class="kp-modal">' +
+          '<div class="kp-modal-icon" id="kpReadyIcon">✓</div>' +
+          '<h3 id="kpReadyTitle">Loan Application Ready</h3>' +
+          '<p id="kpReadyText"></p>' +
+          '<div class="kp-file" id="kpReadyFile"></div>' +
+          '<div class="kp-modal-actions" id="kpReadyActions">' +
+            '<button type="button" class="button blue" id="kpDownloadBtn">⬇ Download PDF</button>' +
+            '<button type="button" class="button green" id="kpPrintBtn">🖨 Print PDF</button>' +
+          "</div>" +
+          '<div class="kp-modal-foot"><button type="button" class="kp-link" id="kpOpenBtn">Open PDF</button>' +
+          '<button type="button" class="kp-link" id="kpCloseBtn">Close</button></div>' +
+        "</div></div>");
+    document.body.appendChild(m);
+    $("kpDownloadBtn").addEventListener("click", downloadPdf);
+    $("kpPrintBtn").addEventListener("click", printPdf);
+    $("kpOpenBtn").addEventListener("click", openPdf);
+    $("kpCloseBtn").addEventListener("click", closeModal);
+    m.addEventListener("click", function (ev) { if (ev.target === m) closeModal(); });
+    return m;
+  }
+
+  function setModal(kind, extra) {
+    var icon = $("kpReadyIcon"), title = $("kpReadyTitle"), text = $("kpReadyText"), file = $("kpReadyFile"), actions = $("kpReadyActions");
+    icon.className = "kp-modal-icon";
+    var dl = $("kpDownloadBtn"), pr = $("kpPrintBtn"), op = $("kpOpenBtn");
+    if (kind === "loading") {
+      icon.classList.add("kp-load"); icon.innerHTML = '<div class="kp-spin"></div>';
+      title.textContent = "Application Submitted";
+      text.textContent = "Generating your Kasipag PDF…";
+      file.style.display = "none"; dl.disabled = pr.disabled = true; op.style.display = "none";
+      dl.textContent = "⬇ Download PDF";
+    } else if (kind === "ready") {
+      icon.textContent = "✓";
+      title.textContent = "Loan Application Ready";
+      text.textContent = "PDF Ready";
+      file.textContent = extra.fileName; file.style.display = "";
+      dl.disabled = pr.disabled = false; op.style.display = "";
+      dl.textContent = "⬇ Download PDF";
+    } else {
+      icon.classList.add("kp-err"); icon.textContent = "!";
+      title.textContent = "Application Submitted";
+      text.textContent = "Your application was saved, but the PDF could not be created. " + (extra && extra.message ? extra.message : "");
+      file.style.display = "none"; op.style.display = "none";
+      dl.disabled = false; pr.disabled = true; dl.textContent = "Try Again";
+    }
+  }
+
+  function closeModal() {
+    var m = $("kpReadyModal");
+    if (m) m.classList.remove("show");
+    if (lastPdf) { try { URL.revokeObjectURL(lastPdf.url); } catch (e) {} lastPdf = null; }
+    modalCtx.data = null;
+  }
+
+  async function showLoanReady(data) {
+    var m = ensureModal();
+    modalCtx.data = data;
+    if (lastPdf) { try { URL.revokeObjectURL(lastPdf.url); } catch (e) {} lastPdf = null; }
+    setModal("loading");
+    m.classList.add("show");
+    try {
+      var res = await generatePdf(data);
+      lastPdf = { blob: res.blob, url: URL.createObjectURL(res.blob), fileName: res.fileName };
+      setModal("ready", { fileName: res.fileName });
+    } catch (err) {
+      console.error("Kasipag PDF error:", err);
+      setModal("error", { message: err && err.message ? err.message : "" });
+    }
+  }
+
+  function downloadPdf() {
+    if (!lastPdf) { if (modalCtx.data) showLoanReady(modalCtx.data); return; } // "Try Again"
+    var a = document.createElement("a");
+    a.href = lastPdf.url; a.download = lastPdf.fileName;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function openPdf() { if (lastPdf) window.open(lastPdf.url, "_blank"); }
+  function printPdf() {
+    if (!lastPdf) return;
+    if (IS_TOUCH) { window.open(lastPdf.url, "_blank"); return; } // phones print from the PDF viewer
+    var f = document.createElement("iframe");
+    f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+    f.onload = function () {
+      try { f.contentWindow.focus(); f.contentWindow.print(); }
+      catch (e) { window.open(lastPdf.url, "_blank"); }
+      setTimeout(function () { f.remove(); }, 60000);
+    };
+    f.src = lastPdf.url;
+    document.body.appendChild(f);
+  }
+
+  /* ---------------- PUBLIC API ---------------- */
+  window.KasipagLoanKit = {
+    VALID_ID_TYPES: VALID_ID_TYPES,
+    mountMediaStep: mountMediaStep,
+    validateMediaStep: validateMediaStep,
+    validateBeforeConfirm: validateBeforeConfirm,
+    isConfirmChecked: isConfirmChecked,
+    getState: function () { return { applicantPhoto: state.applicantPhoto, validIdType: state.validIdType, validIdPhoto: state.validIdPhoto }; },
+    // Extra fields stored on the SAME loan document created by the existing workflow.
+    getFirestoreFields: function () { return { applicantPhoto: state.applicantPhoto, validIdType: state.validIdType, validIdPhoto: state.validIdPhoto }; },
+    decorateReview: decorateReview,
+    installEditBar: installEditBar,
+    setEditMode: setEditMode,
+    scrollToSection: scrollToSection,
+    stopAllCameras: stopAllCameras,
+    reset: reset,
+    generatePdf: generatePdf,
+    showLoanReady: showLoanReady,
+    _buildFileName: buildFileName
+  };
 })();
 </script>
 
