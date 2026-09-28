@@ -1017,22 +1017,24 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 function buildLoanCard(l, id) {
+  const pendingAmount = Number(l.pendingPaymentAmount || 0);
   return `
     <div class="item">
       <div class="item-title">
         <h3>${l.borrowerName}</h3>
-        <span class="badge">${l.status.toUpperCase()}</span>
+        <span class="badge">${l.status === "collected" ? "PENDING RECEIPT" : l.status.toUpperCase()}</span>
       </div>
       <div style="display:grid; gap:8px; color:#d1d5db;">
-        <div>� Remaining Balance: <strong>₱${l.balance}</strong></div>
+        <div>💰 Current Loan Balance: <strong>₱${Number(l.balance || 0).toLocaleString()}</strong></div>
         <div>🚚 Collector: <strong>${l.assignedCollectorName || "N/A"}</strong></div>
         <div>Cashier: <strong>${l.assignedCashierName || "Unassigned"}</strong></div>
         <div>Address: <strong>${l.address || "N/A"}</strong></div>
         <div>Type: <strong>${l.loanType || 'solo'}</strong> ${l.memberNames && l.memberNames.length > 0 ? `| Members: ${l.memberNames.join(', ')}` : ''}</div>
+        ${l.status === "collected" ? `<div style="color:#f4b84a;font-weight:800;">💵 Cash received by collector: <strong>₱${pendingAmount.toLocaleString()}</strong> — balance has NOT been deducted yet.</div>` : ''}
       </div>
       <div class="input-group">
-        <input type="number" placeholder="Enter payment amount" id="pay-${id}" min="0" max="${l.balance}" />
-        <button class="button green" onclick="payLoan('${id}','${l.borrowerName}',${l.balance})">✔ Confirm Payment</button>
+        <input type="number" placeholder="${pendingAmount ? `Received amount: ₱${pendingAmount}` : 'Enter payment amount'}" value="${pendingAmount || ''}" id="pay-${id}" min="0" max="${Number(l.balance || 0)}" />
+        <button class="button green" onclick="payLoan('${id}','${String(l.borrowerName || '').replace(/'/g, "\\'")}',${Number(l.balance || 0)})">✔ Receive & Confirm</button>
       </div>
       <div class="card-actions" style="margin-top: 12px;">
         <button class="button red" onclick="deleteLoanRecord('${id}')">Delete Loan</button>
@@ -1071,54 +1073,98 @@ function loadLoans() {
 
 window.payLoan = async (loanId, borrowerName, currentBalance) => {
   const input = document.getElementById("pay-" + loanId);
-  const amountPaid = Number(input.value);
+  const amountPaid = Number(input?.value);
 
   if (!amountPaid || amountPaid <= 0) {
-    alert("Enter valid amount");
+    alert("Enter the amount actually received by the cashier.");
     return;
   }
-
-  if (amountPaid > currentBalance) {
-    alert(`Cannot pay more than balance (₱${currentBalance})`);
+  if (amountPaid > Number(currentBalance || 0)) {
+    alert(`Cannot deduct more than the current balance (₱${Number(currentBalance || 0).toLocaleString()})`);
     return;
   }
-
-  const newBalance = currentBalance - amountPaid;
 
   try {
     const loanRef = doc(db, "loans", loanId);
-    
-    // Create payment record and mark as processed for any payment (full or partial)
-    const updateData = {
-      balance: newBalance,
-      lastPaymentAt: serverTimestamp(),
-      lastPaymentBy: cashierId
-    };
+    const loanSnap = await getDoc(loanRef);
+    if (!loanSnap.exists()) { alert("Loan record not found."); return; }
+    const loan = loanSnap.data();
 
-    if (newBalance === 0) {
-      updateData.status = "paid";
-      updateData.confirmedAt = serverTimestamp();
-      updateData.confirmedById = cashierId;
-    } else {
-      updateData.status = "collected"; // Keep as collected for partial payments
-      updateData.confirmedAt = serverTimestamp(); // Mark as processed
-      updateData.confirmedById = cashierId;
+    // For the new Collector -> Cashier flow, the cashier must receive the
+    // exact pending collection before the loan balance can change.
+    const pendingPaymentId = loan.pendingPaymentId || null;
+    if (loan.status === "collected" && pendingPaymentId) {
+      const pendingRef = doc(db, "payments", pendingPaymentId);
+      const pendingSnap = await getDoc(pendingRef);
+      if (!pendingSnap.exists()) {
+        alert("The collector's pending payment record could not be found. No balance was changed.");
+        return;
+      }
+      const pending = pendingSnap.data();
+      if (pending.paymentStatus !== "pending_cashier_receipt") {
+        alert("This payment has already been received or processed.");
+        return;
+      }
+      const expectedAmount = Number(pending.amountPaid || 0);
+      if (Math.abs(amountPaid - expectedAmount) > 0.009) {
+        alert(`The collector reported ₱${expectedAmount.toLocaleString()} received. Please enter that same amount to confirm.`);
+        return;
+      }
+
+      const newBalance = Math.max(Math.round((Number(loan.balance || 0) - amountPaid) * 100) / 100, 0);
+      const updateData = {
+        balance: newBalance,
+        lastPaymentAt: serverTimestamp(),
+        lastPaymentBy: cashierId,
+        lastPaymentByName: cashierName,
+        confirmedAt: serverTimestamp(),
+        confirmedById: cashierId,
+        confirmedByName: cashierName,
+        receivedAmount: amountPaid,
+        pendingPaymentId: null,
+        pendingPaymentAmount: null,
+        pendingPaymentStatus: null,
+        pendingPaymentAt: null,
+        pendingPenaltyAmount: null,
+        status: newBalance <= 0 ? "paid" : "assigned"
+      };
+      await updateDoc(loanRef, updateData);
+
+      await updateDoc(pendingRef, {
+        paymentStatus: "confirmed",
+        receiptStatus: "received",
+        cashierId,
+        cashierName,
+        receivedAt: serverTimestamp(),
+        confirmedAt: serverTimestamp(),
+        remainingBalance: newBalance
+      });
+
+      input.value = "";
+      alert(`✅ Payment RECEIVED and CONFIRMED. Deducted: ₱${amountPaid.toLocaleString()}. Remaining balance: ₱${newBalance.toLocaleString()}`);
+      return;
     }
 
-    await updateDoc(loanRef, updateData);
-
-    await addDoc(collection(db, "payments"), {
-      loanId,
-      borrowerName,
-      amountPaid,
-      remainingBalance: newBalance,
-      cashierId,
-      cashierName,
-      createdAt: serverTimestamp()
+    // Legacy/older collected records without pendingPaymentId: keep the existing
+    // cashier confirmation behavior, but still make the deduction here (never in Collector).
+    const newBalance = Math.max(Math.round((Number(loan.balance || currentBalance || 0) - amountPaid) * 100) / 100, 0);
+    await updateDoc(loanRef, {
+      balance: newBalance,
+      lastPaymentAt: serverTimestamp(),
+      lastPaymentBy: cashierId,
+      lastPaymentByName: cashierName,
+      confirmedAt: serverTimestamp(),
+      confirmedById: cashierId,
+      confirmedByName: cashierName,
+      status: newBalance <= 0 ? "paid" : "assigned"
     });
-
+    await addDoc(collection(db, "payments"), {
+      loanId, borrowerName, amountPaid, remainingBalance: newBalance,
+      cashierId, cashierName, paymentStatus: "confirmed", receiptStatus: "received",
+      createdAt: serverTimestamp(), confirmedAt: serverTimestamp()
+    });
     input.value = "";
-    alert(`✅ Payment confirmed! Remaining: ₱${newBalance}`);
+    alert(`✅ Payment confirmed. Remaining balance: ₱${newBalance.toLocaleString()}`);
   } catch (error) {
     alert("Error: " + error.message);
   }

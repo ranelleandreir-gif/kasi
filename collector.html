@@ -2167,37 +2167,30 @@ window.confirmCollectPayment = async () => {
     return;
   }
 
+  if (amountPaid > Number(data.balance || 0)) {
+    alert(`Cannot collect more than the current balance (${peso(Number(data.balance || 0))}).`);
+    return;
+  }
+
+  if (data.status === "collected" || data.pendingPaymentId) {
+    alert("This payment is already pending cashier receipt. Please wait for the cashier to receive and confirm it.");
+    return;
+  }
+
   const sched = computeSchedule(data);
   const penaltyPaid = Math.min(amountPaid, sched.penalty);
-  const principalPaid = Math.min(Math.max(amountPaid - penaltyPaid, 0), data.balance);
-  const newBalance = Math.max(Math.round((data.balance - principalPaid) * 100) / 100, 0);
-
-  const newDueDate = new Date(sched.dueDate);
-  newDueDate.setMonth(newDueDate.getMonth() + 1);
-
   const btn = document.getElementById("cpConfirmBtn");
-  if (btn) { btn.disabled = true; btn.innerText = "Saving..."; }
+  if (btn) { btn.disabled = true; btn.innerText = "Recording as Pending..."; }
 
   try {
-    const updateData = {
-      balance: newBalance,
-      lastPaymentAt: serverTimestamp(),
-      lastPaymentBy: collectorId,
-      lastPaymentByName: collectorName,
-      nextDueDate: newBalance > 0 ? Timestamp.fromDate(newDueDate) : null
-    };
-    if (newBalance <= 0) {
-      updateData.status = "paid";
-    }
-    await updateDoc(doc(db, "loans", loanId), updateData);
-
-    // Reuses the SAME "payments" collection the Cashier's payment workflow writes to,
-    // so this reflects automatically wherever payments/loans are already displayed.
-    await addDoc(collection(db, "payments"), {
+    // IMPORTANT: Collector does NOT change the loan balance.
+    // The same existing loan document is only marked as collected/pending so
+    // Cashier can receive and confirm the actual money before balance changes.
+    const paymentRef = await addDoc(collection(db, "payments"), {
       loanId,
       borrowerName: data.borrowerName,
       amountPaid,
-      remainingBalance: newBalance,
+      remainingBalance: Number(data.balance || 0),
       penaltyApplied: sched.penalty > 0,
       penaltyAmount: penaltyPaid,
       recordedByRole: "collector",
@@ -2205,15 +2198,82 @@ window.confirmCollectPayment = async () => {
       collectorName,
       cashierId: data.assignedCashierId || null,
       cashierName: data.assignedCashierName || "",
+      paymentStatus: "pending_cashier_receipt",
+      receiptStatus: "pending_cashier_receipt",
       createdAt: serverTimestamp()
     });
 
+    await updateDoc(doc(db, "loans", loanId), {
+      status: "collected",
+      collectedAt: serverTimestamp(),
+      collectedById: collectorId,
+      collectedByName: collectorName,
+      pendingPaymentId: paymentRef.id,
+      pendingPaymentAmount: amountPaid,
+      pendingPaymentStatus: "pending_cashier_receipt",
+      pendingPaymentAt: serverTimestamp(),
+      pendingPenaltyAmount: penaltyPaid
+      // balance intentionally unchanged until Cashier confirms
+    });
+
     window.closeCollectPaymentModal();
-    alert(`✅ Payment recorded! Remaining balance: ${peso(newBalance)}`);
+    alert(`✅ Payment received from borrower and marked PENDING. Balance will only change after Cashier receives and confirms the cash.`);
   } catch (error) {
     alert("Error: " + error.message);
   } finally {
     if (btn) { btn.disabled = false; btn.innerText = "✔ Confirm Payment"; }
+  }
+};
+
+window.generateCollectorEReceipt = async (loanId) => {
+  const data = loansCache[loanId];
+  if (!data) { alert("Payment record is not available yet."); return; }
+  const amount = Number(data.pendingPaymentAmount || 0);
+  if (!amount) { alert("No pending payment found for this borrower."); return; }
+  const paymentId = data.pendingPaymentId || "N/A";
+  const created = data.pendingPaymentAt && data.pendingPaymentAt.toDate ? data.pendingPaymentAt.toDate() : new Date();
+  const dateText = created.toLocaleString();
+
+  try {
+    const { jsPDF } = window.jspdf || {};
+    if (!jsPDF) throw new Error("Receipt generator did not load.");
+    const pdf = new jsPDF({ unit: "mm", format: "a5" });
+    pdf.setFontSize(18); pdf.setFont(undefined, "bold");
+    pdf.text("KASIPAG MICROFINANCING INC.", 15, 18);
+    pdf.setFontSize(12); pdf.setFont(undefined, "normal");
+    pdf.text("COLLECTOR E-RECEIPT", 15, 27);
+    pdf.line(15, 31, 133, 31);
+    pdf.setFontSize(10);
+    const rows = [
+      ["Receipt / Payment ID", paymentId],
+      ["Borrower", data.borrowerName || "N/A"],
+      ["Collector", collectorName || "N/A"],
+      ["Amount Received", peso(amount)],
+      ["Payment Status", "PENDING CASHIER RECEIPT"],
+      ["Loan Balance Before Confirmation", peso(Number(data.balance || 0))],
+      ["Date / Time", dateText]
+    ];
+    let y = 42;
+    rows.forEach(([label, value]) => {
+      pdf.setFont(undefined, "bold"); pdf.text(label + ":", 15, y);
+      pdf.setFont(undefined, "normal");
+      const lines = pdf.splitTextToSize(String(value), 75);
+      pdf.text(lines, 58, y); y += Math.max(8, lines.length * 5);
+    });
+    pdf.setFontSize(9);
+    pdf.text("This receipt confirms that the collector received the stated payment.", 15, y + 6);
+    pdf.text("Final balance deduction is subject to Cashier receipt and confirmation.", 15, y + 12);
+    const filename = `Kasipag_EReceipt_${paymentId}.pdf`;
+    const blob = pdf.output("blob");
+    const file = new File([blob], filename, { type: "application/pdf" });
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ title: "Kasipag E-Receipt", text: `Payment receipt for ${data.borrowerName}`, files: [file] });
+    } else {
+      pdf.save(filename);
+      alert("E-receipt generated. The PDF was downloaded and can now be sent to the borrower.");
+    }
+  } catch (error) {
+    alert("Unable to create/share e-receipt: " + error.message);
   }
 };
 
@@ -2234,7 +2294,7 @@ function loadTasks() {
       // Show every active loan already assigned to this collector, even if its
       // first payment is not due yet. This uses the EXISTING Firebase fields only.
       // Pending/rejected loans are still excluded until they are approved/assigned.
-      const collectorStatuses = ["approved", "assigned", "unpaid"];
+      const collectorStatuses = ["approved", "assigned", "unpaid", "collected"];
       if (data.assignedCollectorId === collectorId && Number(data.balance) > 0 && collectorStatuses.includes(data.status)) {
         collectorLoans.push({ id: d.id, ...data });
         loansCache[d.id] = { id: d.id, ...data };
@@ -2259,6 +2319,29 @@ function loadTasks() {
       const termInfo = data.loanTermType
         ? `<div>Term: <strong>${collectorLoanTermLabel(data)}</strong> · Interest: <strong>${data.monthlyInterestRate || 0}%/mo</strong></div>`
         : "";
+
+      if (data.status === "collected" && data.pendingPaymentId) {
+        const pendingCard = document.createElement("div");
+        pendingCard.className = "item";
+        pendingCard.innerHTML = `
+          <div class="item-title">
+            <h3>${data.borrowerName}</h3>
+            <span class="badge orange">PENDING CASHIER RECEIPT</span>
+          </div>
+          <div class="detail-grid">
+            <div>📍 ${data.address || "No address"}</div>
+            <div>Collector: <strong>${data.collectedByName || collectorName}</strong></div>
+            <div>Cashier: <strong>${data.assignedCashierName || "Not assigned"}</strong></div>
+            <div>Amount received by collector: <strong>${peso(Number(data.pendingPaymentAmount || 0))}</strong></div>
+            <div>Loan balance: <strong>${peso(Number(data.balance || 0))}</strong> <span style="color:var(--amber)">(not deducted yet)</span></div>
+          </div>
+          <div class="card-actions" style="margin-top:12px;">
+            <button class="button blue" onclick="generateCollectorEReceipt('${data.id}')">🧾 E-Receipt / Send</button>
+          </div>
+        `;
+        assignedList.appendChild(pendingCard);
+        return;
+      }
 
       if (data.status === "approved" || data.status === "assigned") {
         // ===== ASSIGNED COLLECTIONS TAB =====

@@ -2165,6 +2165,7 @@ function renderLoanFolder(title, list, parent) {
     const paymentDateText = l.balance === 0
       ? (confirmedAtText ? `Paid: ${confirmedAtText}` : "")
       : (lastPaymentAtText ? `Last payment: ${lastPaymentAtText}` : "");
+    const pendingCollectorPayment = Number(l.pendingPaymentAmount || 0) > 0 && l.pendingPaymentId;
     const isGroup = l.loanType === "group" && l.memberNames && l.memberNames.length > 0;
     const statusKey = l.balance === 0 ? "paid" : l.status;
 
@@ -2196,7 +2197,9 @@ function renderLoanFolder(title, list, parent) {
         <div class="cell-sub due-status-text">${dueInfo.label}</div>
       </td>
       <td>
-        <span class="status-chip loan-payment-status ${dueStatusClass}">${dueInfo.label}</span>
+        ${pendingCollectorPayment
+          ? `<span class="status-chip" style="background:var(--amber-soft);color:var(--amber);">PENDING CASHIER RECEIPT · ${money(Number(l.pendingPaymentAmount || 0))}</span>`
+          : `<span class="status-chip loan-payment-status ${dueStatusClass}">${l.confirmedAt ? 'RECEIVED / CONFIRMED' : dueInfo.label}</span>`}
       </td>
       <td>${l.assignedCollectorName || "Unassigned"}</td>
       <td>
