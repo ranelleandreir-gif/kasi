@@ -944,6 +944,8 @@ textarea {
 .review-group h4 { font-size: .82rem; font-weight: 800; color: var(--navy-900); margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 .review-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: .84rem; color: var(--muted); }
 .review-row strong { color: var(--text); font-weight: 700; text-align: right; }
+.term-rate-line { margin-top: 8px; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--teal-soft); color: var(--teal); font-size: .82rem; font-weight: 700; }
+.term-rate-line span { color: var(--muted); font-weight: 600; margin-right: 4px; }
 .term-extra { display: none; margin-top: 2px; }
 .term-extra.show { display: block; }
 .interest-preview { margin-top: 14px; padding: 14px 16px; border-radius: var(--radius-md); background: var(--teal-soft); border: 1px solid rgba(15,157,130,.25); }
@@ -952,6 +954,28 @@ textarea {
 @media (max-width: 600px) {
   .loaner-grid { grid-template-columns: 1fr; }
 }
+
+/* ============ GROUP LOAN APPLICATION (additive only) ============ */
+.group-loan-box { display:none; margin-top:14px; padding:16px; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--surface-alt); }
+.group-loan-box.show { display:block; }
+.loan-type-switch { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.loan-type-option { position:relative; }
+.loan-type-option input { position:absolute; opacity:0; pointer-events:none; }
+.loan-type-option label { display:flex; align-items:center; gap:10px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); cursor:pointer; font-weight:700; color:var(--navy-800); }
+.loan-type-option label:before { content:""; width:16px; height:16px; border:2px solid var(--border); border-radius:50%; background:#fff; flex-shrink:0; }
+.loan-type-option input:checked + label { border-color:var(--blue); background:var(--blue-soft); color:var(--blue); }
+.loan-type-option input:checked + label:before { border:5px solid var(--blue); }
+.group-member-list { display:grid; gap:12px; margin-top:12px; }
+.group-member-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:14px; box-shadow:0 2px 8px rgba(15,30,60,.035); }
+.group-member-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+.group-member-head strong { color:var(--navy-900); }
+.group-member-remove { border:1px solid var(--red); background:var(--red-soft); color:var(--red); border-radius:var(--radius-sm); padding:6px 9px; font-size:.75rem; font-weight:700; cursor:pointer; }
+.group-member-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.group-member-grid .full { grid-column:1/-1; }
+.group-total-box { margin-top:12px; padding:12px 14px; border-radius:var(--radius-sm); background:var(--teal-soft); color:var(--teal); display:flex; justify-content:space-between; gap:12px; font-weight:800; }
+.group-note { color:var(--muted); font-size:.78rem; line-height:1.5; margin:0 0 10px; }
+.group-signature-page-note { padding:10px 12px; border-radius:var(--radius-sm); background:var(--gold-soft); color:var(--amber); font-size:.78rem; font-weight:700; }
+@media (max-width:600px) { .loan-type-switch,.group-member-grid { grid-template-columns:1fr; } }
 
 /* ============ ADMIN LOCK FEATURE (ADDED — does not alter any rule above) ============ */
 .lock-btn {
@@ -1106,13 +1130,14 @@ html.admin-locked .admin-locked-overlay { display: flex; }
 #borrowerApplications table.data-table { min-width: 860px; }
 .bl-modal-backdrop { position: fixed; inset: 0; background: rgba(11,30,61,.6); display: none; align-items: center; justify-content: center; z-index: 1200; padding: 16px; }
 .bl-modal-backdrop.show { display: flex; }
-.bl-modal { background: var(--surface); border-radius: 20px; box-shadow: var(--shadow-pop); width: 100%; max-width: 780px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; }
+.bl-modal { background: var(--surface); border-radius: 20px; box-shadow: var(--shadow-pop); width: 100%; max-width: 780px; max-height: 92vh; max-height: 92dvh; display: flex; flex-direction: column; overflow: hidden; }
 .bl-modal-head { display: flex; align-items: center; gap: 14px; padding: 18px 22px; background: linear-gradient(135deg, var(--navy-900), var(--navy-600)); color: #fff; }
 .bl-avatar { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.16); display: grid; place-items: center; font-weight: 800; font-size: 1.1rem; flex-shrink: 0; }
 .bl-modal-head h3 { color: #fff; font-size: 1.1rem; }
 .bl-modal-head small { display: block; opacity: .75; font-size: .74rem; margin-top: 2px; }
 .bl-modal-head .bl-x { margin-left: auto; background: rgba(255,255,255,.14); border: 0; color: #fff; width: 34px; height: 34px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; }
-.bl-modal-body { padding: 18px 22px; overflow-y: auto; display: grid; gap: 16px; }
+.bl-modal-body { padding: 18px 22px; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 16px; flex: 1 1 auto; min-height: 0; }
+.bl-modal-body > * { flex-shrink: 0; }
 .bl-group { border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
 .bl-group > h4 { font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; color: var(--blue); padding: 10px 14px; background: var(--surface-alt); border-bottom: 1px solid var(--border); }
 .bl-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px 18px; padding: 14px; }
@@ -1127,7 +1152,7 @@ html.admin-locked .admin-locked-overlay { display: flex; }
 @media (max-width: 760px) {
   .bl-kpis { gap: 10px; } .bl-kpi strong { font-size: 1.1rem; }
   .bl-grid { grid-template-columns: 1fr; }
-  .bl-modal { max-height: 96vh; border-radius: 16px; } .bl-modal-foot .button { flex: 1; justify-content: center; }
+  .bl-modal { max-height: 96vh; max-height: 96dvh; border-radius: 16px; } .bl-modal-foot .button { flex: 1; justify-content: center; }
   table.bl-stack { min-width: 0 !important; }
   .bl-stack thead { display: none; }
   .bl-stack, .bl-stack tbody, .bl-stack tr, .bl-stack td { display: block; width: 100%; }
@@ -1507,25 +1532,52 @@ html.admin-locked .admin-locked-overlay { display: flex; }
 
         <!-- Step 1: Borrower Information (same fields as Cashier Add Loaner) -->
         <div class="loaner-step" id="adminLoanerStep1">
-          <div class="loaner-grid">
-            <div class="loaner-field"><label for="adminLoanerFirstName">First Name</label><input type="text" id="adminLoanerFirstName" placeholder="Juan"></div>
-            <div class="loaner-field"><label for="adminLoanerLastName">Last Name</label><input type="text" id="adminLoanerLastName" placeholder="Dela Cruz"></div>
-            <div class="loaner-field"><label for="adminLoanerContact">Contact Number</label><input type="text" id="adminLoanerContact" placeholder="09xx xxx xxxx"></div>
-            <div class="loaner-field"><label for="adminLoanerEmail">Email</label><input type="email" id="adminLoanerEmail" placeholder="juan@email.com"></div>
-            <div class="loaner-field" style="grid-column:1 / -1"><label for="adminLoanerAddress">Address</label><input type="text" id="adminLoanerAddress" placeholder="Street, Barangay, City"></div>
-            <div class="loaner-field">
-              <label for="adminLoanerGender">Gender</label>
-              <select id="adminLoanerGender">
-                <option value="">Select gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-                <option value="Prefer not to say">Prefer not to say</option>
-              </select>
+          <div class="loaner-field">
+            <label>Loan Type</label>
+            <div class="loan-type-switch">
+              <div class="loan-type-option"><input type="radio" name="adminLoanType" id="adminLoanTypeSolo" value="solo" checked onchange="onAdminLoanTypeChange()"><label for="adminLoanTypeSolo">Solo Loan</label></div>
+              <div class="loan-type-option"><input type="radio" name="adminLoanType" id="adminLoanTypeGroup" value="group" onchange="onAdminLoanTypeChange()"><label for="adminLoanTypeGroup">Group Loan</label></div>
             </div>
-            <div class="loaner-field"><label for="adminLoanerOccupation">Occupation</label><input type="text" id="adminLoanerOccupation" placeholder="e.g. Vendor (or N/A)"></div>
-            <div class="loaner-field"><label for="adminLoanerIncome">Income</label><input type="text" id="adminLoanerIncome" placeholder="e.g. ₱8,000/month (or N/A)"></div>
           </div>
+
+          <div id="adminSoloBorrowerFields">
+            <div class="loaner-grid">
+              <div class="loaner-field"><label for="adminLoanerFirstName">First Name</label><input type="text" id="adminLoanerFirstName" placeholder="Juan"></div>
+              <div class="loaner-field"><label for="adminLoanerLastName">Last Name</label><input type="text" id="adminLoanerLastName" placeholder="Dela Cruz"></div>
+              <div class="loaner-field"><label for="adminLoanerContact">Contact Number</label><input type="text" id="adminLoanerContact" placeholder="09xx xxx xxxx"></div>
+              <div class="loaner-field"><label for="adminLoanerEmail">Email</label><input type="email" id="adminLoanerEmail" placeholder="juan@email.com"></div>
+              <div class="loaner-field"><label for="adminLoanerHouseNo">House No.</label><input type="text" id="adminLoanerHouseNo" placeholder="House number"></div>
+              <div class="loaner-field"><label for="adminLoanerStreetPurok">Street / Purok</label><input type="text" id="adminLoanerStreetPurok" placeholder="Street or Purok"></div>
+              <div class="loaner-field"><label for="adminLoanerBarangay">Barangay</label><input type="text" id="adminLoanerBarangay" placeholder="Barangay"></div>
+              <div class="loaner-field"><label for="adminLoanerMunicipality">Municipality</label><input type="text" id="adminLoanerMunicipality" placeholder="Municipality / City"></div>
+              <div class="loaner-field"><label for="adminLoanerCountry">Country</label><input type="text" id="adminLoanerCountry" placeholder="Philippines" value="Philippines"></div>
+              <input type="hidden" id="adminLoanerAddress">
+              <div class="loaner-field">
+                <label for="adminLoanerGender">Gender</label>
+                <select id="adminLoanerGender">
+                  <option value="">Select gender</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+              <div class="loaner-field"><label for="adminLoanerOccupation">Occupation</label><input type="text" id="adminLoanerOccupation" placeholder="e.g. Vendor (or N/A)"></div>
+              <div class="loaner-field"><label for="adminLoanerIncome">Income</label><input type="text" id="adminLoanerIncome" placeholder="e.g. ₱8,000/month (or N/A)"></div>
+            </div>
+          </div>
+
+          <div class="group-loan-box" id="adminGroupLoanFields">
+            <p class="group-note">One group is one loan application. Add every borrower/member below. Each member keeps their own information, amount, and signature page while remaining under the same group application.</p>
+            <div class="loaner-grid">
+              <div class="loaner-field"><label for="adminGroupName">Group Name</label><input type="text" id="adminGroupName" placeholder="e.g. Masipag Women Group"></div>
+              <div class="loaner-field"><label for="adminGroupHouseNo">Group House No.</label><input type="text" id="adminGroupHouseNo" placeholder="House number"></div>
+              <div class="loaner-field"><label for="adminGroupStreetPurok">Group Street / Purok</label><input type="text" id="adminGroupStreetPurok" placeholder="Street or Purok"></div>
+              <div class="loaner-field"><label for="adminGroupBarangay">Group Barangay</label><input type="text" id="adminGroupBarangay" placeholder="Barangay"></div>
+              <div class="loaner-field"><label for="adminGroupMunicipality">Group Municipality</label><input type="text" id="adminGroupMunicipality" placeholder="Municipality / City"></div>
+              <div class="loaner-field"><label for="adminGroupCountry">Group Country</label><input type="text" id="adminGroupCountry" placeholder="Philippines" value="Philippines"></div>
+            </div>
+            <div class="panel-title" style="margin-top:14px;"><h3>Group Members</h3><button type="button" class="button blue" onclick="addAdminGroupMember()">+ Add Member</button></div>
+            <div id="adminGroupMembers" class="group-member-list"></div>
+            <div class="group-total-box"><span>Total Group Loan Amount</span><span id="adminGroupTotalAmount">₱0.00</span></div>
+          </div>
+
           <div class="loaner-actions">
             <span></span>
             <button type="button" class="button blue" onclick="adminLoanerNextFromPersonal()">Next: Loan Details →</button>
@@ -1535,7 +1587,7 @@ html.admin-locked .admin-locked-overlay { display: flex; }
         <!-- Step 2: Loan Details (same fields as Cashier Add Loaner) -->
         <div class="loaner-step hidden" id="adminLoanerStep2">
           <div class="loaner-grid">
-            <div class="loaner-field"><label for="adminLoanerAmount">Loan Amount (₱)</label><input type="number" id="adminLoanerAmount" min="0" placeholder="e.g. 10000" oninput="updateAdminLoanerInterestPreview()"></div>
+            <div class="loaner-field"><label for="adminLoanerAmount">Loan Amount (₱)</label><input type="number" id="adminLoanerAmount" min="0" placeholder="e.g. 10000" oninput="updateAdminLoanerInterestPreview()"><div class="cell-sub" id="adminGroupAmountHint" style="display:none;margin-top:5px;">For Group Loan, this amount is automatically taken from the total of all member amounts.</div></div>
             <div class="loaner-field">
               <label for="adminLoanerTerm">Loan Term</label>
               <select id="adminLoanerTerm" onchange="onAdminLoanerTermChange()">
@@ -1545,6 +1597,7 @@ html.admin-locked .admin-locked-overlay { display: flex; }
                 <option value="12">1 Year</option>
                 <option value="custom">Other / Custom Term</option>
               </select>
+              <div class="term-rate-line" id="adminLoanerRateLine" style="display:none"></div>
             </div>
           </div>
           <div class="term-extra" id="adminLoanerCustomTermRow">
@@ -1560,6 +1613,7 @@ html.admin-locked .admin-locked-overlay { display: flex; }
             <div class="review-row"><span>Loan Term</span><strong id="adminPrevTerm">—</strong></div>
             <div class="review-row"><span>Total Interest</span><strong id="adminPrevInterest">₱0</strong></div>
             <div class="review-row"><span>Total Amount to Pay</span><strong id="adminPrevTotal">₱0</strong></div>
+            <div class="review-row"><span>Monthly Payment (Amortization)</span><strong id="adminPrevMonthly">₱0</strong></div>
           </div>
 
           <!-- Admin-only: needed to plug into the existing Admin/Firestore assignment workflow -->
@@ -2632,6 +2686,13 @@ function blGroups(l) {
     if (typeof v === "string" && v.length > 300) return;
     extra.push([blHuman(k), blFormat(l, k)]);
   });
+  if (l.loanType === "group" && Array.isArray(l.members)) {
+    groups.push({ title: "Group Members", rows: l.members.map((m, i) => {
+      const name = m.fullName || `${m.firstName || ""} ${m.lastName || ""}`.trim() || `Member ${i + 1}`;
+      const addr = m.address || [m.houseNo,m.streetPurok,m.barangay,m.municipality,m.country].filter(Boolean).join(", ");
+      return [`Member ${i + 1}`, `${name} | ${addr || "No address"} | Amount: ${money(m.amount)}`];
+    }) });
+  }
   groups.push({ title: "Additional Information", rows: extra });
   return groups.filter(g => g.rows.length);
 }
@@ -2755,6 +2816,10 @@ window.renderBorrowerApplications = renderBorrowerApplications;
 // ----- PDF: reuses the existing Add Loan PDF generator (KasipagLoanKit.generatePdf) with the saved loan data -----
 function buildBorrowerPdfData(l) {
   const created = toDateSafe(l.createdAt) || toDateSafe(l.approvedAt) || new Date();
+  if (l.loanType === "group" && Array.isArray(l.members)) {
+    const members = l.members.map(m => ({ ...m, fullName: m.fullName || `${m.firstName || ""} ${m.lastName || ""}`.trim(), address: m.address || [m.houseNo,m.streetPurok,m.barangay,m.municipality,m.country].filter(Boolean).join(", ") }));
+    return { loanType:"group", applicationId:l.id, groupName:l.groupName || l.borrowerName || "Group Loan", groupAddress:l.groupAddress || l.address || "", memberNames:members.map(m=>m.fullName), members, amount:Number(l.amount)||0, totalInterest:Number(l.totalInterest)||0, totalPayable:Number(l.totalPayable)||0, monthlyRate:Number(l.monthlyInterestRate)||0, termLabel:loanTermLabel(l), paymentFrequency:"Monthly", numPayments:Number(l.loanTermMonths)||0, paymentAmount:Number(l.loanTermMonths)>0?Math.round((Number(l.totalPayable)||0)/Number(l.loanTermMonths)*100)/100:0, startDate:toDateSafe(l.approvedAt)||created, submittedAt:created };
+  }
   const start = toDateSafe(l.approvedAt) || created;
   const amount = Number(l.amount) || 0;
   const months = Number(l.loanTermMonths) || (l.loanTermType && l.loanTermType !== "custom" ? Number(l.loanTermType) : 0) || 0;
@@ -2800,9 +2865,18 @@ window.downloadBorrowerPdf = async (id, btn) => {
 };
 
 // ----- Print: clean print-friendly page in a hidden frame -> browser print dialog -----
-window.printBorrowerApplication = (id) => {
+window.printBorrowerApplication = async (id) => {
   const l = blFindLoan(id);
   if (!l) { alert("Loan record not found. Please try again."); return; }
+  if (l.loanType === "group" && Array.isArray(l.members) && window.KasipagLoanKit?.generatePdf) {
+    try {
+      const res = await window.KasipagLoanKit.generatePdf(buildBorrowerPdfData(l));
+      const url = URL.createObjectURL(res.blob);
+      if (navigator.userAgent.includes("Android") || /iPhone|iPad|iPod/i.test(navigator.userAgent)) window.open(url,"_blank");
+      else { const frame=document.createElement("iframe"); frame.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;"; frame.onload=()=>{try{frame.contentWindow.focus();frame.contentWindow.print();}catch(e){window.open(url,"_blank");}setTimeout(()=>{frame.remove();URL.revokeObjectURL(url);},60000);}; document.body.appendChild(frame); frame.src=url; }
+    } catch(e) { console.error(e); alert("The group PDF could not be prepared for printing. "+(e?.message||"")); }
+    return;
+  }
   const name = l.borrowerName || `${l.firstName || ""} ${l.lastName || ""}`.trim() || "Borrower";
   const groups = blGroups(l).map(g => `<h2>${bl_esc(g.title)}</h2><table>${g.rows.map(([k, v]) => `<tr><th>${bl_esc(k)}</th><td>${bl_esc(v)}</td></tr>`).join("")}</table>`).join("");
   const photos = [["Applicant Photo", l.applicantPhoto], ["Valid ID", l.validIdPhoto]].filter(p => BL_PHOTO_OK(p[1]));
@@ -3485,19 +3559,125 @@ function showAdminLoanerStep(step) {
   if (step !== 3 && window.KasipagLoanKit) window.KasipagLoanKit.stopAllCameras();
 }
 
+function getAdminLoanType() {
+  return document.querySelector('input[name="adminLoanType"]:checked')?.value || "solo";
+}
+
+function syncAdminSoloAddress() {
+  const parts = [
+    document.getElementById("adminLoanerHouseNo")?.value.trim(),
+    document.getElementById("adminLoanerStreetPurok")?.value.trim(),
+    document.getElementById("adminLoanerBarangay")?.value.trim(),
+    document.getElementById("adminLoanerMunicipality")?.value.trim(),
+    document.getElementById("adminLoanerCountry")?.value.trim()
+  ].filter(Boolean);
+  const legacy = document.getElementById("adminLoanerAddress");
+  if (legacy) legacy.value = parts.join(", ");
+  return legacy?.value || "";
+}
+
+function getAdminGroupAddress() {
+  return [
+    document.getElementById("adminGroupHouseNo")?.value.trim(),
+    document.getElementById("adminGroupStreetPurok")?.value.trim(),
+    document.getElementById("adminGroupBarangay")?.value.trim(),
+    document.getElementById("adminGroupMunicipality")?.value.trim(),
+    document.getElementById("adminGroupCountry")?.value.trim()
+  ].filter(Boolean).join(", ");
+}
+
+function getAdminGroupMembers() {
+  return [...document.querySelectorAll(".group-member-card")].map(card => {
+    const val = (name) => card.querySelector(`[data-field="${name}"]`)?.value.trim() || "";
+    const amount = Number(val("amount")) || 0;
+    const address = [val("houseNo"), val("streetPurok"), val("barangay"), val("municipality"), val("country")].filter(Boolean).join(", ");
+    return {
+      fullName: val("fullName"), firstName: val("firstName"), lastName: val("lastName"), contactNumber: val("contact"), email: val("email"),
+      houseNo: val("houseNo"), streetPurok: val("streetPurok"), barangay: val("barangay"), municipality: val("municipality"), country: val("country"), address,
+      gender: val("gender"), occupation: val("occupation"), income: val("income"), amount
+    };
+  });
+}
+
+function updateAdminGroupTotal() {
+  const members = getAdminGroupMembers();
+  const total = members.reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
+  const out = document.getElementById("adminGroupTotalAmount");
+  if (out) out.textContent = `₱${total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  if (getAdminLoanType() === "group") {
+    const amount = document.getElementById("adminLoanerAmount");
+    if (amount) amount.value = total || "";
+    updateAdminLoanerInterestPreview();
+  }
+  return total;
+}
+
+window.addAdminGroupMember = () => {
+  const wrap = document.getElementById("adminGroupMembers");
+  if (!wrap) return;
+  const index = wrap.children.length + 1;
+  const card = document.createElement("div");
+  card.className = "group-member-card";
+  card.innerHTML = `
+    <div class="group-member-head"><strong>Member ${index}</strong><button type="button" class="group-member-remove" onclick="this.closest('.group-member-card').remove(); renumberAdminGroupMembers();">Remove</button></div>
+    <div class="group-member-grid">
+      <div class="loaner-field"><label>First Name</label><input data-field="firstName" type="text" placeholder="Juan"></div>
+      <div class="loaner-field"><label>Last Name</label><input data-field="lastName" type="text" placeholder="Dela Cruz"></div>
+      <div class="loaner-field full"><label>Full Name</label><input data-field="fullName" type="text" placeholder="Full name of member"></div>
+      <div class="loaner-field"><label>Contact Number</label><input data-field="contact" type="text" placeholder="09xx xxx xxxx"></div>
+      <div class="loaner-field"><label>Email</label><input data-field="email" type="email" placeholder="member@email.com"></div>
+      <div class="loaner-field"><label>House No.</label><input data-field="houseNo" type="text"></div>
+      <div class="loaner-field"><label>Street / Purok</label><input data-field="streetPurok" type="text"></div>
+      <div class="loaner-field"><label>Barangay</label><input data-field="barangay" type="text"></div>
+      <div class="loaner-field"><label>Municipality</label><input data-field="municipality" type="text"></div>
+      <div class="loaner-field"><label>Country</label><input data-field="country" type="text" value="Philippines"></div>
+      <div class="loaner-field"><label>Gender</label><select data-field="gender"><option value="">Select gender</option><option>Male</option><option>Female</option><option>Other</option><option>Prefer not to say</option></select></div>
+      <div class="loaner-field"><label>Occupation</label><input data-field="occupation" type="text" placeholder="e.g. Vendor or N/A"></div>
+      <div class="loaner-field"><label>Income</label><input data-field="income" type="text" placeholder="e.g. ₱8,000/month or N/A"></div>
+      <div class="loaner-field"><label>Amount Borrowed (₱)</label><input data-field="amount" type="number" min="0" placeholder="0" oninput="updateAdminGroupTotal()"></div>
+    </div>`;
+  wrap.appendChild(card);
+  renumberAdminGroupMembers();
+};
+
+window.renumberAdminGroupMembers = () => {
+  document.querySelectorAll("#adminGroupMembers .group-member-card").forEach((card, i) => {
+    const h = card.querySelector(".group-member-head strong"); if (h) h.textContent = `Member ${i + 1}`;
+  });
+  updateAdminGroupTotal();
+};
+
+window.onAdminLoanTypeChange = () => {
+  const group = getAdminLoanType() === "group";
+  document.getElementById("adminSoloBorrowerFields")?.classList.toggle("hidden", group);
+  document.getElementById("adminGroupLoanFields")?.classList.toggle("show", group);
+  document.getElementById("adminGroupAmountHint")?.style && (document.getElementById("adminGroupAmountHint").style.display = group ? "block" : "none");
+  if (group && !document.querySelector("#adminGroupMembers .group-member-card")) window.addAdminGroupMember();
+  if (!group) { const amount = document.getElementById("adminLoanerAmount"); if (amount) amount.readOnly = false; }
+  updateAdminGroupTotal();
+};
+
 function resetAdminLoanerForm() {
-  ["adminLoanerFirstName", "adminLoanerLastName", "adminLoanerContact", "adminLoanerEmail", "adminLoanerAddress", "adminLoanerOccupation", "adminLoanerIncome", "adminLoanerAmount", "adminLoanerCustomMonths", "adminLoanerCustomRate"].forEach((id) => {
+  ["adminLoanerFirstName", "adminLoanerLastName", "adminLoanerContact", "adminLoanerEmail", "adminLoanerAddress", "adminLoanerHouseNo", "adminLoanerStreetPurok", "adminLoanerBarangay", "adminLoanerMunicipality", "adminLoanerCountry", "adminLoanerOccupation", "adminLoanerIncome", "adminLoanerAmount", "adminLoanerCustomMonths", "adminLoanerCustomRate", "adminGroupName", "adminGroupHouseNo", "adminGroupStreetPurok", "adminGroupBarangay", "adminGroupMunicipality", "adminGroupCountry"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
   const genderEl = document.getElementById("adminLoanerGender");
   if (genderEl) genderEl.selectedIndex = 0;
+  const soloCountry = document.getElementById("adminLoanerCountry"); if (soloCountry) soloCountry.value = "Philippines";
+  const groupCountry = document.getElementById("adminGroupCountry"); if (groupCountry) groupCountry.value = "Philippines";
+  const groupMembers = document.getElementById("adminGroupMembers");
+  if (groupMembers) groupMembers.innerHTML = "";
+  const soloRadio = document.getElementById("adminLoanTypeSolo"); if (soloRadio) soloRadio.checked = true;
+  const groupFields = document.getElementById("adminGroupLoanFields"); if (groupFields) groupFields.classList.remove("show");
+  const soloFields = document.getElementById("adminSoloBorrowerFields"); if (soloFields) soloFields.classList.remove("hidden");
   const termEl = document.getElementById("adminLoanerTerm");
   if (termEl) termEl.selectedIndex = 0;
   const customRow = document.getElementById("adminLoanerCustomTermRow");
   if (customRow) customRow.classList.remove("show");
   const preview = document.getElementById("adminLoanerInterestPreview");
   if (preview) preview.style.display = "none";
+  refreshAdminLoanerRateLine();
   const collectorEl = document.getElementById("collectorSelect");
   if (collectorEl) collectorEl.selectedIndex = 0;
   const cashierEl = document.getElementById("cashierSelect");
@@ -3511,7 +3691,7 @@ function resetAdminLoanerForm() {
 window.resetAdminLoanerForm = resetAdminLoanerForm;
 
 // Same interest calculation as Cashier Add Loaner.
-const ADMIN_LOANER_INTEREST_RATES = { "3": 1, "6": 0.5, "12": 0.4 }; // % per month
+const ADMIN_LOANER_INTEREST_RATES = { "3": 1, "6": 1.5, "12": 2 }; // % per month (3 mo = 1%, 6 mo = 1.5%, 12 mo = 2%)
 
 function getAdminLoanerTermMonths(termType) {
   if (termType === "custom") return Number(document.getElementById("adminLoanerCustomMonths").value) || 0;
@@ -3539,6 +3719,20 @@ function computeAdminLoanerInterest(amount, termType) {
   return { months, rate, totalInterest, totalPayable };
 }
 
+// Shows the automatic monthly interest rate right under the Loan Term dropdown (display only).
+function refreshAdminLoanerRateLine() {
+  const line = document.getElementById("adminLoanerRateLine");
+  const termEl = document.getElementById("adminLoanerTerm");
+  if (!line || !termEl) return;
+  const t = termEl.value;
+  if (t && t !== "custom" && ADMIN_LOANER_INTEREST_RATES[t] != null) {
+    line.innerHTML = `<span>Monthly Interest Rate:</span>${ADMIN_LOANER_INTEREST_RATES[t]}% per month`;
+    line.style.display = "block";
+  } else {
+    line.style.display = "none";
+  }
+}
+
 window.onAdminLoanerTermChange = () => {
   const termType = document.getElementById("adminLoanerTerm").value;
   const customRow = document.getElementById("adminLoanerCustomTermRow");
@@ -3549,6 +3743,7 @@ window.onAdminLoanerTermChange = () => {
   } else {
     customRow.classList.remove("show");
   }
+  refreshAdminLoanerRateLine();
   updateAdminLoanerInterestPreview();
 };
 
@@ -3556,6 +3751,7 @@ window.updateAdminLoanerInterestPreview = () => {
   const amount = Number(document.getElementById("adminLoanerAmount").value) || 0;
   const termType = document.getElementById("adminLoanerTerm").value;
   const preview = document.getElementById("adminLoanerInterestPreview");
+  refreshAdminLoanerRateLine();
   if (!preview) return;
   if (!termType || !amount) {
     preview.style.display = "none";
@@ -3572,17 +3768,27 @@ window.updateAdminLoanerInterestPreview = () => {
   document.getElementById("adminPrevTerm").innerText = adminLoanerTermLabel(termType, months);
   document.getElementById("adminPrevInterest").innerText = `₱${totalInterest.toLocaleString()}`;
   document.getElementById("adminPrevTotal").innerText = `₱${totalPayable.toLocaleString()}`;
+  const monthlyEl = document.getElementById("adminPrevMonthly");
+  if (monthlyEl) monthlyEl.innerText = `₱${(Math.round((totalPayable / months) * 100) / 100).toLocaleString()} / month`;
 };
 
 window.adminLoanerNextFromPersonal = () => {
-  const required = ["adminLoanerFirstName", "adminLoanerLastName", "adminLoanerContact", "adminLoanerEmail", "adminLoanerAddress", "adminLoanerGender", "adminLoanerOccupation", "adminLoanerIncome"];
-  for (const id of required) {
-    const el = document.getElementById(id);
-    if (!el || !el.value.trim()) {
-      alert("Please fill in all borrower information fields (enter N/A if not applicable).");
-      if (el) el.focus();
-      return;
+  if (getAdminLoanType() === "group") {
+    const groupName = document.getElementById("adminGroupName")?.value.trim();
+    const members = getAdminGroupMembers();
+    if (!groupName) { alert("Enter a Group Name."); document.getElementById("adminGroupName")?.focus(); return; }
+    if (!getAdminGroupAddress()) { alert("Complete the Group Address: House No., Street/Purok, Barangay, Municipality and Country."); return; }
+    if (!members.length) { alert("Add at least one group member."); return; }
+    for (let i = 0; i < members.length; i++) {
+      const m = members[i];
+      if (!m.fullName && !(m.firstName && m.lastName)) { alert(`Complete the name of Member ${i + 1}.`); return; }
+      if (!m.contactNumber || !m.houseNo || !m.streetPurok || !m.barangay || !m.municipality || !m.country || !m.amount) { alert(`Complete the required information and amount for Member ${i + 1}.`); return; }
     }
+    updateAdminGroupTotal();
+  } else {
+    syncAdminSoloAddress();
+    const required = ["adminLoanerFirstName", "adminLoanerLastName", "adminLoanerContact", "adminLoanerEmail", "adminLoanerHouseNo", "adminLoanerStreetPurok", "adminLoanerBarangay", "adminLoanerMunicipality", "adminLoanerCountry", "adminLoanerGender", "adminLoanerOccupation", "adminLoanerIncome"];
+    for (const id of required) { const el = document.getElementById(id); if (!el || !el.value.trim()) { alert("Please fill in all borrower information fields (enter N/A if not applicable)."); if (el) el.focus(); return; } }
   }
   showAdminLoanerStep(2);
 };
@@ -3643,7 +3849,17 @@ function computeAdminLoanerSchedule(months, totalPayable) {
 
 // Reads the form (values + existing calculation) into one object used by the Review page and the PDF.
 function buildAdminLoanerPdfData(ctx) {
-  const val = (id) => document.getElementById(id).value.trim();
+  const val = (id) => document.getElementById(id)?.value.trim() || "";
+  const loanType = getAdminLoanType();
+  if (loanType === "group") {
+    const members = getAdminGroupMembers();
+    const amount = members.reduce((sum, m) => sum + (Number(m.amount) || 0), 0);
+    const termType = document.getElementById("adminLoanerTerm").value;
+    const calc = computeAdminLoanerInterest(amount, termType);
+    const sched = computeAdminLoanerSchedule(calc.months, calc.totalPayable);
+    return { applicationId: ctx?.id || "", loanType: "group", groupName: val("adminGroupName"), groupAddress: getAdminGroupAddress(), members, memberNames: members.map(m => m.fullName || `${m.firstName} ${m.lastName}`.trim()), amount, totalInterest: calc.totalInterest, totalPayable: calc.totalPayable, monthlyRate: calc.rate, termLabel: adminLoanerTermLabel(termType, calc.months), ...sched, submittedAt: new Date() };
+  }
+  syncAdminSoloAddress();
   const amount = Number(document.getElementById("adminLoanerAmount").value);
   const termType = document.getElementById("adminLoanerTerm").value;
   const { months, rate, totalInterest, totalPayable } = computeAdminLoanerInterest(amount, termType);
@@ -3735,7 +3951,21 @@ window.adminLoanerReturnToReview = () => {
 })();
 
 function buildAdminLoanerReview() {
-  const val = (id) => document.getElementById(id).value.trim();
+  const val = (id) => document.getElementById(id)?.value.trim() || "";
+  if (getAdminLoanType() === "group") {
+    const members = getAdminGroupMembers();
+    const total = members.reduce((s,m)=>s+(Number(m.amount)||0),0);
+    const termType = document.getElementById("adminLoanerTerm").value;
+    const calc = computeAdminLoanerInterest(total, termType);
+    const collectorSelect = document.getElementById("collectorSelect"), cashierSelect = document.getElementById("cashierSelect");
+    const collectorLabel = collectorSelect.options[collectorSelect.selectedIndex]?.textContent || "—";
+    const cashierLabel = cashierSelect.options[cashierSelect.selectedIndex]?.textContent || "—";
+    const reviewBox = document.getElementById("adminLoanerReviewContent");
+    if (!reviewBox) return;
+    reviewBox.innerHTML = `<div class="review-group"><h4>Group Information</h4><div class="review-row"><span>Group Name</span><strong>${val("adminGroupName")}</strong></div><div class="review-row"><span>Group Address</span><strong>${getAdminGroupAddress()}</strong></div><div class="review-row"><span>Members</span><strong>${members.length}</strong></div></div><div class="review-group"><h4>Group Members</h4>${members.map((m,i)=>`<div class="review-row"><span>Member ${i+1}</span><strong>${m.fullName || `${m.firstName} ${m.lastName}`.trim()} — ₱${Number(m.amount||0).toLocaleString()}</strong></div>`).join("")}</div><div class="review-group"><h4>Loan Details</h4><div class="review-row"><span>Total Group Loan Amount</span><strong>₱${total.toLocaleString()}</strong></div><div class="review-row"><span>Loan Term</span><strong>${adminLoanerTermLabel(termType, calc.months)}</strong></div><div class="review-row"><span>Monthly Interest Rate</span><strong>${calc.rate}%</strong></div><div class="review-row"><span>Total Interest</span><strong>₱${calc.totalInterest.toLocaleString()}</strong></div><div class="review-row"><span>Total Amount to Pay</span><strong>₱${calc.totalPayable.toLocaleString()}</strong></div></div><div class="group-signature-page-note">After approval, the system will generate one group application plus one individual signature page for every member.</div><div class="review-group"><h4>Assignment</h4><div class="review-row"><span>Assigned Collector</span><strong>${collectorLabel}</strong></div><div class="review-row"><span>Assigned Cashier</span><strong>${cashierLabel}</strong></div></div>`;
+    return;
+  }
+  syncAdminSoloAddress();
   const amount = Number(document.getElementById("adminLoanerAmount").value);
   const termType = document.getElementById("adminLoanerTerm").value;
   const { months, rate, totalInterest, totalPayable } = computeAdminLoanerInterest(amount, termType);
@@ -3774,7 +4004,10 @@ function buildAdminLoanerReview() {
 }
 
 window.submitAdminLoanerApplication = async () => {
-  const val = (id) => document.getElementById(id).value.trim();
+  const val = (id) => document.getElementById(id)?.value.trim() || "";
+  const loanType = getAdminLoanType();
+  if (loanType === "solo") syncAdminSoloAddress();
+  const groupMembers = loanType === "group" ? getAdminGroupMembers() : [];
   const firstName = val("adminLoanerFirstName");
   const lastName = val("adminLoanerLastName");
   const amount = Number(document.getElementById("adminLoanerAmount").value);
@@ -3818,50 +4051,44 @@ window.submitAdminLoanerApplication = async () => {
         if (d.id === cashierId) assignedCashierName = u.assignedName || u.name || u.email || "Cashier";
       });
 
-      const newLoanRef = await addDoc(collection(db, "loans"), {
-        borrowerName: `${firstName} ${lastName}`.trim(),
-        firstName,
-        lastName,
-        contactNumber: val("adminLoanerContact"),
-        email: val("adminLoanerEmail"),
-        address: val("adminLoanerAddress"),
-        gender: val("adminLoanerGender"),
-        occupation: val("adminLoanerOccupation"),
-        income: val("adminLoanerIncome"),
-        // ADDED: applicantPhoto, validIdType, validIdPhoto — extra fields on the same loan document
+      const newLoanRef = doc(collection(db, "loans"));
+      const groupAmount = loanType === "group" ? groupMembers.reduce((s,m)=>s+(Number(m.amount)||0),0) : amount;
+      const groupPrimary = loanType === "group" ? (groupMembers[0] || {}) : {};
+      await setDoc(newLoanRef, {
+        borrowerName: loanType === "group" ? (val("adminGroupName") || "Group Loan") : `${firstName} ${lastName}`.trim(),
+        firstName: loanType === "group" ? (groupPrimary.firstName || "") : firstName,
+        lastName: loanType === "group" ? (groupPrimary.lastName || "") : lastName,
+        contactNumber: loanType === "group" ? (groupPrimary.contactNumber || "") : val("adminLoanerContact"),
+        email: loanType === "group" ? (groupPrimary.email || "") : val("adminLoanerEmail"),
+        address: loanType === "group" ? getAdminGroupAddress() : val("adminLoanerAddress"),
+        gender: loanType === "group" ? (groupPrimary.gender || "") : val("adminLoanerGender"),
+        occupation: loanType === "group" ? (groupPrimary.occupation || "") : val("adminLoanerOccupation"),
+        income: loanType === "group" ? (groupPrimary.income || "") : val("adminLoanerIncome"),
         ...window.KasipagLoanKit.getFirestoreFields(),
-        amount,
-        balance: amount,
-        loanType: "solo",
-        memberNames: null,
+        amount: groupAmount,
+        balance: groupAmount,
+        loanType,
+        memberNames: loanType === "group" ? groupMembers.map(m => m.fullName || `${m.firstName} ${m.lastName}`.trim()) : null,
+        groupApplicationId: loanType === "group" ? newLoanRef.id : null,
+        groupName: loanType === "group" ? val("adminGroupName") : null,
+        groupAddress: loanType === "group" ? getAdminGroupAddress() : null,
+        members: loanType === "group" ? groupMembers : null,
         loanTermType: termType,
         loanTermMonths: months,
         monthlyInterestRate: rate,
         totalInterest,
         totalPayable,
-
-        // Admin-created loans are automatically approved (existing Admin behavior, unchanged).
-        status: "approved",
-        pendingApproval: false,
-        fromAdminCreation: true,
-        createdByAdminId: adminId,
-        createdByAdminName: document.getElementById("adminNameDisplay")?.textContent || "Admin",
-        createdByRole: "admin",
-        approvedAt: serverTimestamp(),
-        approvedBy: adminId,
-
-        // Keep BOTH assignments in the same loan record (existing Admin behavior, unchanged).
-        assignedCollectorId: collectorId,
-        assignedCollectorName: collectorName,
-        assignedCashierId: cashierId,
-        assignedCashierName: assignedCashierName,
-
+        status: "approved", pendingApproval: false, fromAdminCreation: true,
+        createdByAdminId: adminId, createdByAdminName: document.getElementById("adminNameDisplay")?.textContent || "Admin", createdByRole: "admin",
+        approvedAt: serverTimestamp(), approvedBy: adminId,
+        assignedCollectorId: collectorId, assignedCollectorName: collectorName,
+        assignedCashierId: cashierId, assignedCashierName: assignedCashierName,
         createdAt: serverTimestamp()
       });
 
       pdfContext = { id: newLoanRef.id }; // ADDED
 
-      alert(`Loan approved and assigned to ${assignedCashierName}. Collector: ${collectorName}.`);
+      alert(`${loanType === "group" ? "Group loan" : "Loan"} approved and assigned to ${assignedCashierName}. Collector: ${collectorName}.`);
     });
 
     // ADDED: only after a successful save — snapshot the form for the PDF, clear the form, show "Loan Application Ready".
@@ -4777,7 +5004,72 @@ window.logout = async () => {
       : "Kasipag_Loan_Application_" + name + ".pdf";
   }
 
+  async function generateGroupPdf(d) {
+    var JsPDF = await loadJsPdf();
+    var logo = await loadLogo();
+    var doc = new JsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+    var W = 210, H = 297, M = 14, CW = W - 2 * M;
+    var NAVY = [11,30,61], BLUE = [47,111,237], GOLD = [199,154,60], GRAY = [92,106,134], LIGHT = [242,245,250], BORDER = [216,223,234], TEAL = [15,157,130], WHITE=[255,255,255];
+    var members = Array.isArray(d.members) ? d.members : [];
+    var when = d.submittedAt || new Date();
+    function txt(c){doc.setTextColor(c[0],c[1],c[2]);} function fill(c){doc.setFillColor(c[0],c[1],c[2]);} function stroke(c){doc.setDrawColor(c[0],c[1],c[2]);}
+    function font(style,size){doc.setFont("helvetica",style);doc.setFontSize(size);}
+    function wrap(v,w){return doc.splitTextToSize(pdfSafe(v == null || v === "" ? "N/A" : v),w);}
+    function header(title, id){
+      var tx=M;
+      if(logo){var s=Math.min(18/logo.w*logo.w,18); var sc=Math.min(18/logo.w,18/logo.h); var lw=logo.w*sc, lh=logo.h*sc; doc.addImage(logo.data,logo.fmt,M,8+(18-lh)/2,lw,lh); tx=M+lw+4;}
+      font("bold",15);txt(NAVY);doc.text("KASIPAG MICROFINANCING",tx,15);
+      font("bold",8.5);txt(BLUE);doc.text(title,tx,21);
+      font("normal",7);txt(GRAY);doc.text("Application ID: "+pdfSafe(id||"-"),W-M,15,{align:"right"});
+      stroke(GOLD);doc.setLineWidth(.7);doc.line(M,27,W-M,27);
+    }
+    function footer(page,total){stroke(BORDER);doc.setLineWidth(.3);doc.line(M,H-14,W-M,H-14);font("normal",7.5);txt(GRAY);doc.text("Kasipag Microfinancing | Group Loan Application",M,H-9);doc.text("Page "+page+" of "+total,W-M,H-9,{align:"right"});}
+    function section(title,y){fill(BLUE);doc.rect(M,y,1.6,6,"F");font("bold",10.5);txt(NAVY);doc.text(pdfSafe(title),M+4,y+4.7);stroke(BORDER);doc.line(M,y+8,W-M,y+8);return y+13;}
+    function row(label,value,y,w=CW){font("normal",7);txt(GRAY);doc.text(pdfSafe(label).toUpperCase(),M,y);font("bold",9.5);txt(NAVY);var lines=wrap(value,w);for(var i=0;i<lines.length;i++)doc.text(lines[i],M,y+5+i*4.4);return y+7+lines.length*4.4;}
+
+    // Page 1: single group application
+    header("GROUP LOAN APPLICATION",d.applicationId);
+    var y=38; y=section("GROUP INFORMATION",y);
+    y=row("Group Name",d.groupName,y); y=row("Group Address",d.groupAddress,y); y=row("Loan Term",d.termLabel,y); y=row("Monthly Interest Rate",(d.monthlyRate||0)+"% per month",y);
+    y += 4; y=section("LOAN SUMMARY",y);
+    fill(LIGHT);stroke(BORDER);doc.rect(M,y,CW,35,"FD");
+    var cols=[['TOTAL GROUP AMOUNT',php(d.amount)],['TOTAL INTEREST',php(d.totalInterest)],['TOTAL PAYABLE',php(d.totalPayable)]];
+    cols.forEach(function(c,i){var x=M+i*(CW/3);font("normal",7);txt(GRAY);doc.text(c[0],x+5,y+8);font("bold",13);txt(i===2?TEAL:NAVY);doc.text(c[1],x+5,y+18);});
+    font("normal",7);txt(GRAY);doc.text("TERM",M+5,y+27);font("bold",9);txt(NAVY);doc.text(pdfSafe(d.termLabel),M+5,y+32);
+    font("normal",7);txt(GRAY);doc.text("PAYMENT / MONTH",M+CW/3+5,y+27);font("bold",9);txt(NAVY);doc.text(php(d.paymentAmount),M+CW/3+5,y+32);
+    font("normal",7);txt(GRAY);doc.text("MEMBERS",M+2*CW/3+5,y+27);font("bold",9);txt(NAVY);doc.text(String(members.length),M+2*CW/3+5,y+32);
+    y += 43; y=section("GROUP MEMBERS",y);
+    members.forEach(function(m,i){
+      if(y>H-45){doc.addPage();header("GROUP LOAN APPLICATION - MEMBERS",d.applicationId);y=38;}
+      var name=m.fullName||((m.firstName||"")+" "+(m.lastName||"")).trim()||("Member "+(i+1));
+      fill(LIGHT);stroke(BORDER);doc.roundedRect(M,y,CW,Math.max(24,28),3,3,"FD");
+      font("bold",9.5);txt(NAVY);doc.text((i+1)+". "+pdfSafe(name),M+5,y+7);
+      font("normal",7.2);txt(GRAY);doc.text("ADDRESS",M+5,y+13);font("bold",8);txt(NAVY);doc.text(pdfSafe(m.address||"N/A"),M+5,y+17.5,{maxWidth:CW-80});
+      font("normal",7.2);txt(GRAY);doc.text("AMOUNT",W-M-45,y+13);font("bold",8.5);txt(NAVY);doc.text(php(m.amount),W-M-45,y+18);
+      y += 34;
+    });
+    if(y>H-55){doc.addPage();header("GROUP LOAN APPLICATION",d.applicationId);y=38;}
+    y=section("GROUP CONFIRMATION",y+2);font("normal",8.5);txt(NAVY);doc.text("This group application contains the borrowers listed above under one group loan application.",M,y);y+=10;
+    stroke(NAVY);doc.line(M,y+18,M+78,y+18);doc.line(M+95,y+18,W-M,y+18);font("normal",7.5);txt(GRAY);doc.text("Group Representative Signature",M,y+23);doc.text("Date",M+95,y+23);
+
+    // One dedicated signature page per member
+    members.forEach(function(m,i){
+      doc.addPage(); header("GROUP LOAN MEMBER APPLICATION / AGREEMENT",d.applicationId); var yy=38;
+      yy=section("GROUP INFORMATION",yy); yy=row("Group Name",d.groupName,yy); yy=row("Group Application Number",d.applicationId,yy); yy=row("Group Address",d.groupAddress,yy);
+      yy += 4; yy=section("MEMBER INFORMATION",yy);
+      var name=m.fullName||((m.firstName||"")+" "+(m.lastName||"")).trim()||("Member "+(i+1));
+      yy=row("Full Name",name,yy); yy=row("House No.",m.houseNo,yy); yy=row("Street / Purok",m.streetPurok,yy); yy=row("Barangay",m.barangay,yy); yy=row("Municipality",m.municipality,yy); yy=row("Country",m.country,yy); yy=row("Contact Number",m.contactNumber,yy); yy=row("Email",m.email,yy); yy=row("Occupation",m.occupation,yy); yy=row("Income",m.income,yy);
+      yy += 3; yy=section("MEMBER LOAN DETAILS",yy); yy=row("Individual Amount Borrowed",php(m.amount),yy); yy=row("Loan Term",d.termLabel,yy); yy=row("Monthly Interest Rate",(d.monthlyRate||0)+"% per month",yy);
+      yy += 12; fill(LIGHT);stroke(BORDER);doc.roundedRect(M,yy,CW,54,3,3,"FD");font("bold",10);txt(NAVY);doc.text("MEMBER CONFIRMATION AND SIGNATURE",M+7,yy+10);font("normal",8);txt(GRAY);doc.text("I confirm that the information shown on this member application is correct.",M+7,yy+18);
+      stroke(NAVY);doc.line(M+7,yy+39,M+105,yy+39);doc.line(M+120,yy+39,W-M-7,yy+39);font("normal",7.5);txt(GRAY);doc.text("Member's Signature over Printed Name",M+7,yy+44);doc.text("Date",M+120,yy+44);
+    });
+    var total=doc.getNumberOfPages();for(var p=1;p<=total;p++){doc.setPage(p);footer(p,total);}
+    doc.setProperties({title:"Kasipag Group Loan Application - "+pdfSafe(d.groupName),subject:"Group Loan Application",author:"Kasipag Microfinancing",creator:"Kasipag Microfinancing"});
+    return {blob:doc.output("blob"),fileName:"Kasipag_Group_Loan_Application_"+fileSafe(d.applicationId||d.groupName)+".pdf"};
+  }
+
   async function generatePdf(d) {
+    if (d && d.loanType === "group") return generateGroupPdf(d);
     var JsPDF = await loadJsPdf();
     var imgs = await Promise.all([loadLogo(), prepImage(d.applicantPhoto), prepImage(d.validIdPhoto)]);
     var logo = imgs[0], photo = imgs[1], idImg = imgs[2];
