@@ -3225,8 +3225,21 @@ window.approvePaymentRequestAsAdmin = async (paymentId, btn) => {
 
 function loadAdminPaymentRecords(){
   const box=document.getElementById("adminPaymentRecordsList"); if(!box)return;
-  onSnapshot(collection(db,"payments"),(snap)=>{box.innerHTML="";let rows=[];snap.forEach(d=>{const p=d.data();if(p.deleted||p.paymentStatus!=="confirmed")return;rows.push({id:d.id,...p});});rows.sort((a,b)=>{const aa=a.confirmedAt?.toMillis?a.confirmedAt.toMillis():0,bb=b.confirmedAt?.toMillis?b.confirmedAt.toMillis():0;return bb-aa;});if(!rows.length){box.innerHTML='<div class="empty-state">No records found — no confirmed payments yet.</div>';return;}rows.forEach(p=>{const dt=p.confirmedAt?.toDate?p.confirmedAt.toDate().toLocaleString():(p.createdAt?.toDate?p.createdAt.toDate().toLocaleString():"N/A");const approver=p.confirmedByName||p.cashierName||"N/A";const role=p.receiptStatus==="received_by_admin"?"Admin":"Cashier";box.insertAdjacentHTML("beforeend",`<div class="panel" style="margin-bottom:10px"><div class="panel-title"><h3>${p.borrowerName||"Borrower"}</h3><span class="badge">${money(Number(p.amountPaid||0))}</span></div><div style="display:grid;gap:6px"><div>Collector: <strong>${p.collectorName||"N/A"}</strong></div><div>Approved by: <strong>${approver} (${role})</strong></div><div>Date: <strong>${dt}</strong></div><div>Remaining balance: <strong>${money(Number(p.remainingBalance||0))}</strong></div></div></div>`);});});
+  onSnapshot(collection(db,"payments"),(snap)=>{box.innerHTML="";let rows=[];snap.forEach(d=>{const p=d.data();if(p.deleted||p.paymentStatus!=="confirmed")return;rows.push({id:d.id,...p});});rows.sort((a,b)=>{const aa=a.confirmedAt?.toMillis?a.confirmedAt.toMillis():0,bb=b.confirmedAt?.toMillis?b.confirmedAt.toMillis():0;return bb-aa;});if(!rows.length){box.innerHTML='<div class="empty-state">No records found — no confirmed payments yet.</div>';return;}rows.forEach(p=>{const dt=p.confirmedAt?.toDate?p.confirmedAt.toDate().toLocaleString():(p.createdAt?.toDate?p.createdAt.toDate().toLocaleString():"N/A");const approver=p.confirmedByName||p.cashierName||"N/A";const role=p.receiptStatus==="received_by_admin"?"Admin":"Cashier";box.insertAdjacentHTML("beforeend",`<div class="panel" style="margin-bottom:10px"><div class="panel-title"><h3>${p.borrowerName||"Borrower"}</h3><span class="badge">${money(Number(p.amountPaid||0))}</span></div><div style="display:grid;gap:6px"><div>Collector: <strong>${p.collectorName||"N/A"}</strong></div><div>Approved by: <strong>${approver} (${role})</strong></div><div>Date: <strong>${dt}</strong></div><div>Remaining balance: <strong>${money(Number(p.remainingBalance||0))}</strong></div></div><div style="margin-top:12px"><button class="button red" onclick="deletePaymentRecordAsAdmin('${p.id}')">Delete</button></div></div>`);});});
 }
+
+window.deletePaymentRecordAsAdmin = async (id) => {
+  try {
+    if (!window.confirm("Delete this payment record? It will be removed from Records of Payment.")) return;
+    const paymentRef = doc(db, "payments", id);
+    const snap = await getDoc(paymentRef);
+    if (!snap.exists()) throw new Error("Payment not found.");
+    await updateDoc(paymentRef, { deleted: true, deletedAt: serverTimestamp(), deletedBy: adminId });
+    alert("Payment record deleted.");
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+};
 
 function renderCollectorsTab() {
   const box = document.getElementById("collectors-content");

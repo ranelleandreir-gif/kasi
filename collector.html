@@ -2290,120 +2290,187 @@ async function generateCollectorReceiptImage(payment,data,confirmedOnly=false) {
   const amount = Number(payment.amountPaid || data.pendingPaymentAmount || 0);
   if (!amount) { alert("No payment amount found."); return; }
 
-  const paymentId = payment.id || data.pendingPaymentId || "N/A";
+  const paymentId = payment.id || payment.paymentId || data.pendingPaymentId || "N/A";
+  const isConfirmed = payment.paymentStatus === "confirmed";
   const created = payment.createdAt?.toDate ? payment.createdAt.toDate() : (data.pendingPaymentAt?.toDate ? data.pendingPaymentAt.toDate() : (payment.confirmedAt?.toDate ? payment.confirmedAt.toDate() : new Date()));
-  const dateText = created.toLocaleString();
-  const scheduled = Number(computeSchedule(data).amountToCollect || 0);
-  const advance = Math.max(amount - scheduled, 0);
-  const balanceBefore = Number(data.balance || 0);
+  const dateText = created.toLocaleString("en-PH", { year:"numeric", month:"short", day:"numeric", hour:"numeric", minute:"2-digit" });
+  const money2 = (n) => "PHP " + Number(n || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const receiptNo = "KSP-" + String(paymentId).slice(0, 8).toUpperCase();
+
+  // Balance figures: for a confirmed payment the loan balance is already deducted,
+  // so derive "before" from the saved remainingBalance instead of the current loan balance.
+  const balanceAfter = isConfirmed ? Number(payment.remainingBalance || 0) : null;
+  const balanceBefore = isConfirmed ? balanceAfter + amount : Number(data.balance || 0);
+
+  const rows = [
+    ["Receipt No.", receiptNo],
+    ["Borrower", data.borrowerName || payment.borrowerName || "N/A"],
+    ["Collector", payment.collectorName || collectorName || "N/A"],
+    ["Date / Time", dateText]
+  ];
+  if (!isConfirmed) {
+    const scheduled = Number(computeSchedule(data).amountToCollect || 0);
+    rows.push(["Scheduled Amount", money2(scheduled)]);
+    rows.push(["Advance / Extra Payment", money2(Math.max(amount - scheduled, 0))]);
+    rows.push(["Loan Balance (before confirmation)", money2(balanceBefore)]);
+  } else {
+    rows.push(["Balance Before Payment", money2(balanceBefore)]);
+    rows.push(["Remaining Balance", money2(balanceAfter)]);
+    rows.push(["Approved / Received by", payment.confirmedByName || payment.cashierName || "N/A"]);
+  }
 
   try {
-    // Generate a shareable IMAGE e-receipt (PNG), not a PDF.
+    const scale = 2, width = 900;
+    const rowH = 64, headerH = 230, amountBlockTop = headerH + 60;
+    const rowsTop = amountBlockTop + 190;
+    const height = rowsTop + rows.length * rowH + 250;
     const canvas = document.createElement("canvas");
+    canvas.width = width * scale; canvas.height = height * scale;
     const ctx = canvas.getContext("2d");
-    const scale = 2;
-    const width = 900;
-    const height = 1120;
-    canvas.width = width * scale;
-    canvas.height = height * scale;
     ctx.scale(scale, scale);
 
-    ctx.fillStyle = "#f8fafc";
-    ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = "#ffffff";
-    roundRect(ctx, 45, 35, width - 90, height - 70, 28);
-    ctx.fill();
+    // Background
+    const bg = ctx.createLinearGradient(0, 0, 0, height);
+    bg.addColorStop(0, "#e6fffb"); bg.addColorStop(1, "#eef2ff");
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
 
-    // Header — use the existing Kasipag logo file. No new Firebase/logo resource is created.
-    ctx.fillStyle = "#0f766e";
-    roundRect(ctx, 45, 35, width - 90, 175, 28);
-    ctx.fill();
+    // Card with soft shadow
+    const cx = 40, cy = 30, cw = width - 80, ch = height - 60;
+    ctx.save();
+    ctx.shadowColor = "rgba(15,23,42,0.18)"; ctx.shadowBlur = 30; ctx.shadowOffsetY = 10;
+    ctx.fillStyle = "#ffffff"; roundRect(ctx, cx, cy, cw, ch, 30); ctx.fill();
+    ctx.restore();
+
+    // Header gradient (clipped to card top)
+    ctx.save();
+    roundRect(ctx, cx, cy, cw, ch, 30); ctx.clip();
+    const hg = ctx.createLinearGradient(cx, cy, cx + cw, cy + headerH);
+    hg.addColorStop(0, "#0f766e"); hg.addColorStop(1, "#2563eb");
+    ctx.fillStyle = hg; ctx.fillRect(cx, cy, cw, headerH);
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.beginPath(); ctx.arc(cx + cw - 40, cy + 30, 120, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 30, cy + headerH - 10, 90, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // Logo (existing file) with fallback badge
+    const midX = width / 2;
+    let logoDrawn = false;
     try {
-      const logoImg = await new Promise((resolve,reject)=>{ const im=new Image(); im.onload=()=>resolve(im); im.onerror=reject; im.src="oklogo.png"; });
-      const maxW=110,maxH=70,ratio=Math.min(maxW/logoImg.naturalWidth,maxH/logoImg.naturalHeight);
-      ctx.drawImage(logoImg,(width-(logoImg.naturalWidth*ratio))/2,48,logoImg.naturalWidth*ratio,logoImg.naturalHeight*ratio);
-    } catch(e) {}
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "center";
-    ctx.font = "700 34px Arial";
-    ctx.fillText("KASIPAG MICROFINANCING INC.", width / 2, 125);
-    ctx.font = "700 28px Arial";
-    ctx.fillText("COLLECTOR E-RECEIPT", width / 2, 160);
-    ctx.font = "18px Arial";
-    ctx.fillText("Payment received by collector", width / 2, 188);
+      const logoImg = await new Promise((resolve, reject) => { const im = new Image(); im.onload = () => resolve(im); im.onerror = reject; im.src = "oklogo.png"; setTimeout(reject, 4000); });
+      const ratio = Math.min(120 / logoImg.naturalWidth, 76 / logoImg.naturalHeight);
+      const lw = logoImg.naturalWidth * ratio, lh = logoImg.naturalHeight * ratio;
+      ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(midX, cy + 62, 44, 0, Math.PI * 2); ctx.fill();
+      const cr = Math.min(60 / logoImg.naturalWidth, 60 / logoImg.naturalHeight);
+      ctx.drawImage(logoImg, midX - (logoImg.naturalWidth * cr) / 2, cy + 62 - (logoImg.naturalHeight * cr) / 2, logoImg.naturalWidth * cr, logoImg.naturalHeight * cr);
+      logoDrawn = true;
+    } catch (err) {}
+    if (!logoDrawn) {
+      ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(midX, cy + 62, 44, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#0f766e"; ctx.font = "800 44px Arial"; ctx.textAlign = "center"; ctx.fillText("K", midX, cy + 78);
+    }
+    ctx.textAlign = "center"; ctx.fillStyle = "#ffffff";
+    ctx.font = "800 30px Arial"; ctx.fillText("KASIPAG MICROFINANCING INC.", midX, cy + 148);
+    ctx.font = "600 18px Arial"; ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fillText("OFFICIAL E-RECEIPT", midX, cy + 178);
 
-    // Status badge
-    ctx.fillStyle = "#fff7ed";
-    roundRect(ctx, 245, 235, 410, 54, 27);
-    ctx.fill();
-    ctx.fillStyle = "#c2410c";
-    ctx.font = "700 20px Arial";
-    ctx.fillText(payment.paymentStatus === "confirmed" ? "PAYMENT CONFIRMED" : "PENDING CASHIER CONFIRMATION", width / 2, 270);
+    // Status pill
+    const pillW = isConfirmed ? 300 : 420, pillY = headerH + cy - 22;
+    ctx.save();
+    ctx.shadowColor = "rgba(15,23,42,0.18)"; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
+    ctx.fillStyle = isConfirmed ? "#dcfce7" : "#fff7ed";
+    roundRect(ctx, midX - pillW / 2, pillY, pillW, 46, 23); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = isConfirmed ? "#15803d" : "#c2410c";
+    ctx.font = "800 18px Arial";
+    ctx.fillText(isConfirmed ? "PAYMENT CONFIRMED" : "PENDING CASHIER CONFIRMATION", midX, pillY + 30);
 
-    let y = 345;
-    const left = 95;
-    const right = 805;
-    const row = (label, value, boldValue = false) => {
-      ctx.textAlign = "left";
-      ctx.fillStyle = "#64748b";
-      ctx.font = "18px Arial";
+    // Amount block
+    const ay = amountBlockTop + cy;
+    ctx.fillStyle = "#64748b"; ctx.font = "600 17px Arial";
+    ctx.fillText("AMOUNT RECEIVED", midX, ay + 20);
+    ctx.fillStyle = "#0f172a"; ctx.font = "800 60px Arial";
+    ctx.fillText(money2(amount), midX, ay + 90);
+    ctx.fillStyle = "#0f766e"; ctx.font = "600 17px Arial";
+    ctx.fillText("Payment received by collector", midX, ay + 122);
+
+    // Dashed divider
+    const divY = ay + 150;
+    ctx.strokeStyle = "#cbd5e1"; ctx.lineWidth = 2; ctx.setLineDash([8, 8]);
+    ctx.beginPath(); ctx.moveTo(cx + 40, divY); ctx.lineTo(cx + cw - 40, divY); ctx.stroke(); ctx.setLineDash([]);
+
+    // Detail rows
+    let y = divY + 50;
+    const left = cx + 55, right = cx + cw - 55;
+    rows.forEach(([label, value], i) => {
+      if (i % 2 === 0) { ctx.fillStyle = "#f8fafc"; roundRect(ctx, left - 15, y - 34, right - left + 30, rowH - 8, 12); ctx.fill(); }
+      ctx.textAlign = "left"; ctx.fillStyle = "#64748b"; ctx.font = "600 17px Arial";
       ctx.fillText(label, left, y);
-      ctx.textAlign = "right";
-      ctx.fillStyle = "#0f172a";
-      ctx.font = boldValue ? "700 22px Arial" : "18px Arial";
-      ctx.fillText(String(value), right, y);
-      ctx.strokeStyle = "#e2e8f0";
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(left, y + 18); ctx.lineTo(right, y + 18); ctx.stroke();
-      y += 70;
-    };
+      ctx.textAlign = "right"; ctx.fillStyle = "#0f172a"; ctx.font = "700 19px Arial";
+      let txt = String(value);
+      while (ctx.measureText(txt).width > (right - left) * 0.62 && txt.length > 4) txt = txt.slice(0, -2);
+      if (txt !== String(value)) txt += "…";
+      ctx.fillText(txt, right, y);
+      y += rowH;
+    });
 
-    row("Receipt / Payment ID", paymentId);
-    row("Borrower", data.borrowerName || "N/A");
-    row("Collector", payment.collectorName || collectorName || "N/A");
-    row("Amount Received", peso(amount), true);
-    row("Scheduled Amount", peso(scheduled));
-    row("Advance / Extra Payment", peso(advance));
-    row("Loan Balance Before Confirmation", peso(balanceBefore));
-    row("Date / Time", dateText);
-
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#334155";
-    ctx.font = "16px Arial";
-    ctx.fillText("This receipt confirms that the collector received the stated payment.", width / 2, 940);
-    ctx.fillText("The loan balance will only be deducted after cashier receipt and confirmation.", width / 2, 970);
-    ctx.fillStyle = "#0f766e";
-    ctx.font = "700 18px Arial";
-    ctx.fillText("Please keep this receipt for your records.", width / 2, 1025);
+    // Footer
+    y += 20;
+    ctx.textAlign = "center"; ctx.fillStyle = "#475569"; ctx.font = "15px Arial";
+    ctx.fillText(isConfirmed ? "This payment has been received and confirmed. Your loan balance has been updated." : "The loan balance will be deducted after cashier/admin receipt and confirmation.", midX, y);
+    ctx.fillStyle = "#0f766e"; ctx.font = "800 18px Arial";
+    ctx.fillText("Thank you! Please keep this receipt for your records.", midX, y + 38);
+    ctx.fillStyle = "#94a3b8"; ctx.font = "13px Arial";
+    ctx.fillText("Ref: " + paymentId, midX, y + 70);
 
     const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png", 1));
     if (!blob) throw new Error("Unable to create receipt image.");
     const filename = `Kasipag_EReceipt_${paymentId}.png`;
-    const file = new File([blob], filename, { type: "image/png" });
-
-    // On supported phones, the share sheet can open Messenger directly.
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        title: "Kasipag E-Receipt",
-        text: `Payment receipt for ${data.borrowerName || "borrower"}`,
-        files: [file]
-      });
-    } else {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      alert("E-receipt image generated. The PNG was downloaded and can now be sent through Messenger.");
-    }
+    showCollectorReceiptPreview(blob, filename, data.borrowerName || payment.borrowerName || "borrower");
   } catch (error) {
-    if (error && error.name === "AbortError") return;
-    alert("Unable to create/share e-receipt: " + error.message);
+    alert("Unable to create e-receipt: " + error.message);
   }
-};
+}
+
+// Shows the generated receipt as a visible photo first, then lets the collector Download or Share it.
+function showCollectorReceiptPreview(blob, filename, borrowerName) {
+  const old = document.getElementById("kasipagReceiptPreview");
+  if (old) old.remove();
+  const url = URL.createObjectURL(blob);
+  const file = new File([blob], filename, { type: "image/png" });
+  const canShare = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
+
+  const overlay = document.createElement("div");
+  overlay.id = "kasipagReceiptPreview";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgba(2,6,23,0.88);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:16px;overflow:auto;font-family:Inter,Arial,sans-serif;";
+  const btnCss = "border:0;border-radius:12px;padding:12px 18px;font-weight:800;font-size:15px;cursor:pointer;color:#fff;";
+  overlay.innerHTML = `
+    <div style="width:100%;max-width:520px;display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;color:#fff;">
+        <strong style="font-size:17px;">🧾 E-Receipt</strong>
+        <button id="krpClose" style="${btnCss}background:#475569;padding:8px 14px;">✕ Close</button>
+      </div>
+      <img src="${url}" alt="E-Receipt" style="width:100%;height:auto;border-radius:14px;background:#fff;box-shadow:0 12px 40px rgba(0,0,0,.5);" />
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button id="krpDownload" style="${btnCss}background:linear-gradient(135deg,#0f766e,#2563eb);flex:1;">⬇ Download Photo</button>
+        ${canShare ? `<button id="krpShare" style="${btnCss}background:#2563eb;flex:1;">📤 Share / Messenger</button>` : ""}
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const close = () => { URL.revokeObjectURL(url); overlay.remove(); };
+  overlay.querySelector("#krpClose").onclick = close;
+  overlay.addEventListener("click", (ev) => { if (ev.target === overlay) close(); });
+  overlay.querySelector("#krpDownload").onclick = () => {
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+  const shareBtn = overlay.querySelector("#krpShare");
+  if (shareBtn) shareBtn.onclick = async () => {
+    try { await navigator.share({ title: "Kasipag E-Receipt", text: `Payment receipt for ${borrowerName}`, files: [file] }); }
+    catch (err) { if (!err || err.name !== "AbortError") alert("Unable to share: " + (err && err.message)); }
+  };
+}
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
@@ -2422,7 +2489,7 @@ window.loadCollectorPaymentRecords=function(){
 };
 
 window.generateCollectorEReceiptByPayment=async function(paymentId){
-  try{const ps=await getDoc(doc(db,"payments",paymentId));if(!ps.exists())throw new Error("Payment record not found.");const p=ps.data();const loanSnap=await getDoc(doc(db,"loans",p.loanId));const loan=loanSnap.exists()?loanSnap.data():{};await generateCollectorReceiptImage({paymentId,...p},loan,true);}catch(e){alert("Unable to create e-receipt: "+e.message);}
+  try{const ps=await getDoc(doc(db,"payments",paymentId));if(!ps.exists())throw new Error("Payment record not found.");const p=ps.data();const loanSnap=await getDoc(doc(db,"loans",p.loanId));const loan=loanSnap.exists()?loanSnap.data():{};await generateCollectorReceiptImage({id:paymentId,paymentId,...p},loan,true);}catch(e){alert("Unable to create e-receipt: "+e.message);}
 };
 
 function loadTasks() {

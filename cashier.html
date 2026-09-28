@@ -1330,9 +1330,6 @@ function loadPayments() {
           <div>Approved/Received by: <strong>${p.confirmedByName || p.cashierName || "N/A"}</strong></div>
           <div>Date: <strong>${createdAt}</strong></div>
         </div>
-        <div class="card-actions">
-          <button class="button red" onclick="deletePayment('${d.id}')">Delete</button>
-        </div>
       `;
       paymentsList.appendChild(item);
     });
