@@ -886,7 +886,8 @@ import {
   getDocs,
   deleteDoc,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -1067,23 +1068,102 @@ function buildLoanCard(l, id) {
 }
 
 
+// ===== REALTIME PAYMENT REQUESTS (source of truth: payments.paymentStatus === "pending_cashier_receipt") =====
+let __cashierPaymentRequestsStarted = false;
 window.loadPaymentRequests = function(){
+  if (__cashierPaymentRequestsStarted) return; // one listener only, no duplicates on tab clicks
   const box = document.getElementById("paymentRequestsList");
   const badge = document.getElementById("navPaymentRequestCount");
   if (!box) return;
-  onSnapshot(collection(db,"loans"), (snap)=>{
-    box.innerHTML=""; let count=0;
-    snap.forEach(d=>{
-      const l=d.data();
-      if(l.deleted || !l.pendingPaymentId || l.status !== "collected" || l.confirmedAt) return;
-      count++;
-      const amount=Number(l.pendingPaymentAmount||0);
-      const date=l.pendingPaymentAt?.toDate ? l.pendingPaymentAt.toDate().toLocaleString() : "N/A";
-      box.insertAdjacentHTML("beforeend", `<div class="item"><div class="item-title"><h3>${l.borrowerName||"Borrower"}</h3><span class="badge orange">PENDING APPROVAL</span></div><div style="display:grid;gap:8px;color:#d1d5db"><div>Collector: <strong>${l.collectedByName||l.assignedCollectorName||"N/A"}</strong></div><div>Amount collected: <strong>₱${amount.toLocaleString()}</strong></div><div>Date collected: <strong>${date}</strong></div><div>Current balance: <strong>₱${Number(l.balance||0).toLocaleString()}</strong></div></div><div class="card-actions"><button class="button green" onclick="payLoan('${d.id}','${String(l.borrowerName||'').replace(/'/g,"\\'")}',${Number(l.balance||0)})">✔ Receive &amp; Approve</button></div></div>`);
+  __cashierPaymentRequestsStarted = true;
+
+  const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  let loansById = {};
+  let pendingPayments = [];
+
+  const render = () => {
+    const rows = pendingPayments.slice().sort((a,b)=>{
+      const aa=a.createdAt?.toMillis?a.createdAt.toMillis():Date.now();
+      const bb=b.createdAt?.toMillis?b.createdAt.toMillis():Date.now();
+      return bb-aa;
     });
-    if(badge) badge.textContent=count;
-    if(!count) box.innerHTML='<div class="empty-state">No records found — no pending payment requests.</div>';
+    box.innerHTML = "";
+    rows.forEach(p=>{
+      const loan = loansById[p.loanId] || {};
+      const amount = Number(p.amountPaid||0);
+      const date = p.createdAt?.toDate ? p.createdAt.toDate().toLocaleString() : "Just now";
+      const bal = loan.balance != null ? Number(loan.balance||0) : Number(p.remainingBalance||0);
+      box.insertAdjacentHTML("beforeend", `<div class="item"><div class="item-title"><h3>${esc(p.borrowerName||loan.borrowerName||"Borrower")}</h3><span class="badge orange">PENDING APPROVAL</span></div><div style="display:grid;gap:8px;color:#d1d5db"><div>Collector: <strong>${esc(p.collectorName||loan.collectedByName||loan.assignedCollectorName||"N/A")}</strong></div><div>Payment amount: <strong>₱${amount.toLocaleString()}</strong></div><div>Date/Time: <strong>${esc(date)}</strong></div><div>Loan ID: <strong>${esc(p.loanId||"N/A")}</strong></div><div>Payment status: <strong>${esc(p.paymentStatus)}</strong></div><div>Current balance: <strong>₱${bal.toLocaleString()}</strong></div></div><div class="card-actions"><button class="button green" onclick="approvePaymentRequest('${esc(p.id)}', this)">✔ Receive &amp; Approve</button></div></div>`);
+    });
+    if (badge) badge.textContent = rows.length;
+    if (!rows.length) box.innerHTML = '<div class="empty-state">No records found — no pending payment requests.</div>';
+  };
+
+  onSnapshot(collection(db,"loans"), (snap)=>{ loansById={}; snap.forEach(d=>{ loansById[d.id]=d.data(); }); render(); });
+  onSnapshot(collection(db,"payments"), (snap)=>{
+    pendingPayments=[];
+    snap.forEach(d=>{ const p=d.data(); if(p.deleted || p.paymentStatus!=="pending_cashier_receipt") return; pendingPayments.push({id:d.id,...p}); });
+    render();
   });
+};
+
+// Atomic approval: status check + loan deduction + payment confirmation happen in ONE transaction,
+// so a payment can never be approved twice (by Cashier or Admin) or deducted twice.
+window.approvePaymentRequest = async (paymentId, btn) => {
+  if (btn) btn.disabled = true;
+  try {
+    const payRef = doc(db, "payments", paymentId);
+    const out = await runTransaction(db, async (tx) => {
+      const pSnap = await tx.get(payRef);
+      if (!pSnap.exists()) throw new Error("Payment request not found.");
+      const p = pSnap.data();
+      if (p.paymentStatus !== "pending_cashier_receipt") throw new Error("This payment has already been received or processed.");
+      const amount = Number(p.amountPaid || 0);
+      if (!p.loanId || !(amount > 0)) throw new Error("Invalid payment request.");
+      const loanRef = doc(db, "loans", p.loanId);
+      const lSnap = await tx.get(loanRef);
+      if (!lSnap.exists()) throw new Error("Loan record not found. No balance was changed.");
+      const loan = lSnap.data();
+      const newBalance = Math.max(Math.round((Number(loan.balance || 0) - amount) * 100) / 100, 0);
+      const loanUpdate = {
+        balance: newBalance,
+        lastPaymentAt: serverTimestamp(),
+        lastPaymentBy: cashierId,
+        lastPaymentByName: cashierName,
+        confirmedAt: serverTimestamp(),
+        confirmedById: cashierId,
+        confirmedByName: cashierName,
+        receivedAmount: amount,
+        assignedCollectorId: loan.assignedCollectorId || null,
+        assignedCollectorName: loan.assignedCollectorName || "",
+        status: newBalance <= 0 ? "paid" : "assigned"
+      };
+      if (!loan.pendingPaymentId || loan.pendingPaymentId === paymentId) {
+        loanUpdate.pendingPaymentId = null;
+        loanUpdate.pendingPaymentAmount = null;
+        loanUpdate.pendingPaymentStatus = null;
+        loanUpdate.pendingPaymentAt = null;
+        loanUpdate.pendingPenaltyAmount = null;
+      }
+      tx.update(loanRef, loanUpdate);
+      tx.update(payRef, {
+        paymentStatus: "confirmed",
+        receiptStatus: "received",
+        cashierId,
+        cashierName,
+        receivedAt: serverTimestamp(),
+        confirmedAt: serverTimestamp(),
+        confirmedById: cashierId,
+        confirmedByName: cashierName,
+        remainingBalance: newBalance
+      });
+      return { amount, newBalance };
+    });
+    alert(`✅ Payment RECEIVED and CONFIRMED. Deducted: ₱${out.amount.toLocaleString()}. Remaining balance: ₱${out.newBalance.toLocaleString()}`);
+  } catch (error) {
+    alert("Error: " + error.message);
+    if (btn) btn.disabled = false;
+  }
 };
 
 function loadLoans() {
@@ -1099,7 +1179,8 @@ function loadLoans() {
       // is required for this payment-confirmation flow.
       if (l.status !== "collected") return;
       if (!l.pendingPaymentId) return;
-      if (l.confirmedAt) return; // Skip if already confirmed/paid
+      // (removed confirmedAt check: it is never cleared, so it hid every new payment request on loans already paid once;
+      //  pendingPaymentId is cleared on approval, so it is enough)
       if (l.deleted) return; // Skip deleted loans
       count += 1;
       pendingCount += 1;
