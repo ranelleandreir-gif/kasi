@@ -2092,12 +2092,14 @@ function buildCollectHighlight(data) {
   }
   const sched = computeSchedule(data);
   const remainingText = sched.remainingMonths != null ? `${sched.remainingMonths} Month${sched.remainingMonths === 1 ? "" : "s"} remaining` : "N/A";
+  const upcoming = sched.dueDate && sched.dueDate > new Date();
   return `
-    <div class="collect-highlight ${sched.isLate ? "late" : ""}">
-      <span class="label">Amount to Collect Today</span>
-      <strong>${peso(sched.amountToCollect)}</strong>
+    <div class="collect-highlight ${sched.isLate ? "late" : ""} ${upcoming ? "upcoming" : ""}">
+      <span class="label">${upcoming ? "Assigned — Not Yet Due" : "Amount to Collect Today"}</span>
+      <strong>${upcoming ? "₱0 due today" : peso(sched.amountToCollect)}</strong>
     </div>
     <div class="detail-grid" style="margin-top:8px">
+      ${upcoming ? `<div style="color:var(--blue);font-weight:700">This borrower is already assigned to you. You can see the account now; first payment is due on <strong>${fmtDate(sched.dueDate)}</strong>.</div>` : ""}
       <div>Total Payable: <strong>${peso(sched.totalPayable)}</strong></div>
       <div>Amount Paid So Far: <strong>${peso(Math.max(sched.totalPayable - (data.balance || 0), 0))}</strong></div>
       <div>Remaining Balance: <strong>${peso(data.balance)}</strong></div>
@@ -2229,7 +2231,11 @@ function loadTasks() {
     snap.forEach(d => {
       const data = d.data();
       if (data.deleted) return; // Skip deleted loans
-      if (data.assignedCollectorId === collectorId && data.balance > 0 && (data.status === "assigned" || data.status === "unpaid")) {
+      // Show every active loan already assigned to this collector, even if its
+      // first payment is not due yet. This uses the EXISTING Firebase fields only.
+      // Pending/rejected loans are still excluded until they are approved/assigned.
+      const collectorStatuses = ["approved", "assigned", "unpaid"];
+      if (data.assignedCollectorId === collectorId && Number(data.balance) > 0 && collectorStatuses.includes(data.status)) {
         collectorLoans.push({ id: d.id, ...data });
         loansCache[d.id] = { id: d.id, ...data };
       }
@@ -2254,14 +2260,21 @@ function loadTasks() {
         ? `<div>Term: <strong>${collectorLoanTermLabel(data)}</strong> · Interest: <strong>${data.monthlyInterestRate || 0}%/mo</strong></div>`
         : "";
 
-      if (data.status === "assigned") {
+      if (data.status === "approved" || data.status === "assigned") {
         // ===== ASSIGNED COLLECTIONS TAB =====
+        // Admin-created loans can already be status="approved" while the
+        // collector assignment is present. They must still appear here so the
+        // collector knows who is assigned to them before the due date.
         const assignedCard = document.createElement("div");
         assignedCard.className = "item";
+        const schedulePreview = computeSchedule(data);
+        const assignmentBadge = schedulePreview.dueDate && schedulePreview.dueDate > new Date()
+          ? '<span class="badge orange">ASSIGNED · UPCOMING</span>'
+          : '<span class="badge">ASSIGNED</span>';
         assignedCard.innerHTML = `
           <div class="item-title">
             <h3>${data.borrowerName}</h3>
-            <span class="badge">ASSIGNED</span>
+            ${assignmentBadge}
           </div>
           <div class="detail-grid">
             <div>📍 ${data.address || "No address"}</div>

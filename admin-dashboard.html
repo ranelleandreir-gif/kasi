@@ -971,7 +971,12 @@ textarea {
 .group-member-head strong { color:var(--navy-900); }
 .group-member-remove { border:1px solid var(--red); background:var(--red-soft); color:var(--red); border-radius:var(--radius-sm); padding:6px 9px; font-size:.75rem; font-weight:700; cursor:pointer; }
 .group-member-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
-.group-member-grid .full { grid-column:1/-1; }
+ .group-member-grid .full { grid-column:1/-1; }
+.group-member-upload-box { background:#f8fafc; border:1px dashed var(--border); border-radius:12px; padding:12px; }
+.group-member-upload-box label { display:block; margin-bottom:7px; }
+.group-upload-status { display:inline-block; margin-left:8px; font-size:.76rem; color:var(--muted); font-weight:700; }
+.group-member-upload-preview { display:block; width:92px; height:92px; object-fit:cover; border-radius:10px; border:1px solid var(--border); margin-top:10px; }
+.group-member-upload-preview.id-preview { width:180px; height:112px; object-fit:contain; background:#fff; }
 .group-total-box { margin-top:12px; padding:12px 14px; border-radius:var(--radius-sm); background:var(--teal-soft); color:var(--teal); display:flex; justify-content:space-between; gap:12px; font-weight:800; }
 .group-note { color:var(--muted); font-size:.78rem; line-height:1.5; margin:0 0 10px; }
 .group-signature-page-note { padding:10px 12px; border-radius:var(--radius-sm); background:var(--gold-soft); color:var(--amber); font-size:.78rem; font-weight:700; }
@@ -3594,10 +3599,57 @@ function getAdminGroupMembers() {
     return {
       fullName: val("fullName"), firstName: val("firstName"), lastName: val("lastName"), contactNumber: val("contact"), email: val("email"),
       houseNo: val("houseNo"), streetPurok: val("streetPurok"), barangay: val("barangay"), municipality: val("municipality"), country: val("country"), address,
-      gender: val("gender"), occupation: val("occupation"), income: val("income"), amount
+      gender: val("gender"), occupation: val("occupation"), income: val("income"), amount,
+      applicantPhoto: card.dataset.applicantPhoto || "", validIdPhoto: card.dataset.validIdPhoto || "", validIdType: val("validIdType")
     };
   });
 }
+
+async function readAdminMemberImage(file, maxSize = 1100, quality = 0.72) {
+  if (!file || !file.type || !file.type.startsWith("image/")) throw new Error("Please select an image file.");
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("The image could not be read."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("The image could not be loaded."));
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+window.handleAdminGroupMemberImage = async (input, type) => {
+  const card = input?.closest(".group-member-card");
+  if (!card || !input.files?.[0]) return;
+  const preview = card.querySelector(`[data-preview="${type}"]`);
+  const button = card.querySelector(`[data-upload-btn="${type}"]`);
+  try {
+    if (button) { button.disabled = true; button.textContent = "Uploading…"; }
+    const dataUrl = await readAdminMemberImage(input.files[0], type === "id" ? 1200 : 900, type === "id" ? 0.68 : 0.72);
+    if (type === "photo") card.dataset.applicantPhoto = dataUrl;
+    else card.dataset.validIdPhoto = dataUrl;
+    if (preview) { preview.src = dataUrl; preview.style.display = "block"; }
+    if (button) button.textContent = type === "id" ? "Change ID Photo" : "Change Member Picture";
+    const status = card.querySelector(`[data-upload-status="${type}"]`);
+    if (status) status.textContent = "Uploaded ✓";
+  } catch (e) {
+    alert(e.message || "Unable to upload the image.");
+    if (button) button.textContent = type === "id" ? "Upload Valid ID" : "Upload Member Picture";
+  } finally {
+    if (button) button.disabled = false;
+    input.value = "";
+  }
+};
 
 function updateAdminGroupTotal() {
   const members = getAdminGroupMembers();
@@ -3635,6 +3687,24 @@ window.addAdminGroupMember = () => {
       <div class="loaner-field"><label>Occupation</label><input data-field="occupation" type="text" placeholder="e.g. Vendor or N/A"></div>
       <div class="loaner-field"><label>Income</label><input data-field="income" type="text" placeholder="e.g. ₱8,000/month or N/A"></div>
       <div class="loaner-field"><label>Amount Borrowed (₱)</label><input data-field="amount" type="number" min="0" placeholder="0" oninput="updateAdminGroupTotal()"></div>
+      <div class="loaner-field full">
+        <label>Valid ID Type</label>
+        <select data-field="validIdType"><option value="">Select ID type</option><option>Philippine National ID</option><option>Driver's License</option><option>Passport</option><option>UMID</option><option>SSS ID</option><option>PhilHealth ID</option><option>Postal ID</option><option>Voter's ID</option><option>Other Valid ID</option></select>
+      </div>
+      <div class="loaner-field full group-member-upload-box">
+        <label>Member Picture</label>
+        <input type="file" accept="image/*" hidden data-file="photo" onchange="handleAdminGroupMemberImage(this,'photo')">
+        <button type="button" class="button outline" data-upload-btn="photo" onclick="this.previousElementSibling.click()">Upload Member Picture</button>
+        <span class="group-upload-status" data-upload-status="photo">Not uploaded</span>
+        <img class="group-member-upload-preview" data-preview="photo" alt="Member picture preview" style="display:none;">
+      </div>
+      <div class="loaner-field full group-member-upload-box">
+        <label>Valid ID Picture</label>
+        <input type="file" accept="image/*" hidden data-file="id" onchange="handleAdminGroupMemberImage(this,'id')">
+        <button type="button" class="button outline" data-upload-btn="id" onclick="this.previousElementSibling.click()">Upload Valid ID</button>
+        <span class="group-upload-status" data-upload-status="id">Not uploaded</span>
+        <img class="group-member-upload-preview id-preview" data-preview="id" alt="Valid ID preview" style="display:none;">
+      </div>
     </div>`;
   wrap.appendChild(card);
   renumberAdminGroupMembers();
@@ -3783,6 +3853,8 @@ window.adminLoanerNextFromPersonal = () => {
       const m = members[i];
       if (!m.fullName && !(m.firstName && m.lastName)) { alert(`Complete the name of Member ${i + 1}.`); return; }
       if (!m.contactNumber || !m.houseNo || !m.streetPurok || !m.barangay || !m.municipality || !m.country || !m.amount) { alert(`Complete the required information and amount for Member ${i + 1}.`); return; }
+      if (!m.validIdType || !m.validIdPhoto) { alert(`Upload the Valid ID and select the ID type for Member ${i + 1}.`); return; }
+      if (!m.applicantPhoto) { alert(`Upload the picture of Member ${i + 1}.`); return; }
     }
     updateAdminGroupTotal();
   } else {
@@ -5060,8 +5132,17 @@ window.logout = async () => {
       var name=m.fullName||((m.firstName||"")+" "+(m.lastName||"")).trim()||("Member "+(i+1));
       yy=row("Full Name",name,yy); yy=row("House No.",m.houseNo,yy); yy=row("Street / Purok",m.streetPurok,yy); yy=row("Barangay",m.barangay,yy); yy=row("Municipality",m.municipality,yy); yy=row("Country",m.country,yy); yy=row("Contact Number",m.contactNumber,yy); yy=row("Email",m.email,yy); yy=row("Occupation",m.occupation,yy); yy=row("Income",m.income,yy);
       yy += 3; yy=section("MEMBER LOAN DETAILS",yy); yy=row("Individual Amount Borrowed",php(m.amount),yy); yy=row("Loan Term",d.termLabel,yy); yy=row("Monthly Interest Rate",(d.monthlyRate||0)+"% per month",yy);
-      yy += 12; fill(LIGHT);stroke(BORDER);doc.roundedRect(M,yy,CW,54,3,3,"FD");font("bold",10);txt(NAVY);doc.text("MEMBER CONFIRMATION AND SIGNATURE",M+7,yy+10);font("normal",8);txt(GRAY);doc.text("I confirm that the information shown on this member application is correct.",M+7,yy+18);
-      stroke(NAVY);doc.line(M+7,yy+39,M+105,yy+39);doc.line(M+120,yy+39,W-M-7,yy+39);font("normal",7.5);txt(GRAY);doc.text("Member's Signature over Printed Name",M+7,yy+44);doc.text("Date",M+120,yy+44);
+      yy += 4; yy=section("MEMBER IDENTIFICATION",yy);
+      var photoX=M, photoY=yy, photoW=46, photoH=48, idX=M+60, idY=yy, idW=116, idH=48;
+      fill(WHITE);stroke(BORDER);doc.roundedRect(photoX,photoY,photoW,photoH,2,2,"FD");doc.roundedRect(idX,idY,idW,idH,2,2,"FD");
+      font("bold",7.5);txt(GRAY);doc.text("MEMBER PICTURE",photoX+3,photoY+6);doc.text("VALID ID - "+pdfSafe(m.validIdType||"N/A"),idX+3,idY+6);
+      if (m.applicantPhoto) { try { doc.addImage(m.applicantPhoto,"JPEG",photoX+3,photoY+9,photoW-6,photoH-12); } catch(e) {} }
+      if (m.validIdPhoto) { try { doc.addImage(m.validIdPhoto,"JPEG",idX+3,idY+9,idW-6,idH-12); } catch(e) {} }
+      yy += 58;
+      yy += 3; fill(LIGHT);stroke(BORDER);doc.roundedRect(M,yy,CW,52,3,3,"FD");font("bold",10);txt(NAVY);doc.text("MEMBER CONFIRMATION",M+7,yy+9);font("normal",8);txt(GRAY);
+      var confirmLines=wrap("I confirm that the information shown on this member application is correct and that I am the member identified above.",CW-14);
+      doc.text(confirmLines,M+7,yy+17);
+      var sigY=yy+39; stroke(NAVY);doc.line(M+7,sigY,M+105,sigY);doc.line(M+120,sigY,W-M-7,sigY);font("normal",7.5);txt(GRAY);doc.text("Signature over Printed Name",M+7,sigY+5);doc.text("Date",M+120,sigY+5);
     });
     var total=doc.getNumberOfPages();for(var p=1;p<=total;p++){doc.setPage(p);footer(p,total);}
     doc.setProperties({title:"Kasipag Group Loan Application - "+pdfSafe(d.groupName),subject:"Group Loan Application",author:"Kasipag Microfinancing",creator:"Kasipag Microfinancing"});
