@@ -674,6 +674,10 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg>
       <span class="nav-label">Approved Loans</span><span class="nav-hint">VIEW</span><span class="nav-count" id="navApprovedLoanCount">0</span>
     </button>
+    <button type="button" id="paymentRequestsTabBtn" class="nav-link nav-active" onclick="showCashierTab('paymentRequests')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M8 10h8M8 14h5"/></svg>
+      <span class="nav-label">Receive Payment Requests</span><span class="nav-hint">APPROVE</span><span class="nav-count" id="navPaymentRequestCount">0</span>
+    </button>
     <button type="button" id="collectedTabBtn" class="nav-link active" onclick="showCashierTab('collected')">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h5"/></svg>
       <span class="nav-label">Collected Loans</span><span class="nav-hint">VIEW</span><span class="nav-count" id="navPaymentCount">0</span>
@@ -778,6 +782,12 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
       </section>
 
       <div class="container">
+        <section class="card hidden" id="paymentRequestsSection">
+          <h2>Receive Payment Requests</h2>
+          <p style="color:var(--muted);font-size:.85rem;margin:-6px 0 14px;">Payments collected by collectors appear here. Cashier can receive and approve them. Once approved, the loan balance and Record of Payments are updated.</p>
+          <div id="paymentRequestsList"></div>
+        </section>
+
         <section class="card" id="collectedSection">
           <h2>Collected Loans</h2>
           <div id="loansList"></div>
@@ -834,6 +844,7 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
 /* Navigation fallback: works even if the Firebase module is still loading. */
 window.showCashierTab = function(tab){
   const sections = {
+    paymentRequests: document.getElementById('paymentRequestsSection'),
     collected: document.getElementById('collectedSection'),
     payments: document.getElementById('paymentSection'),
     deleted: document.getElementById('deletedPaymentsSection'),
@@ -844,6 +855,7 @@ window.showCashierTab = function(tab){
     balance: document.getElementById('balanceSection')
   };
   const buttons = {
+    paymentRequests: document.getElementById('paymentRequestsTabBtn'),
     collected: document.getElementById('collectedTabBtn'),
     payments: document.getElementById('paymentsTabBtn'),
     deleted: document.getElementById('deletedPaymentsTabBtn'),
@@ -859,6 +871,7 @@ window.showCashierTab = function(tab){
   const button = buttons[tab] || buttons.collected;
   section && section.classList.remove('hidden');
   button && button.classList.add('active');
+  if(tab === 'paymentRequests' && typeof window.loadPaymentRequests === 'function') window.loadPaymentRequests();
   if(tab === 'balance' && typeof window.showBalancePanel === 'function') window.showBalancePanel('active');
 };
 </script>
@@ -893,6 +906,7 @@ const summaryPending = document.getElementById("summaryPending");
 const summaryPayments = document.getElementById("summaryPayments");
 
 window.showCashierTab = (tab) => {
+  const paymentRequestsBtn = document.getElementById("paymentRequestsTabBtn");
   const collectedBtn = document.getElementById("collectedTabBtn");
   const paymentsBtn = document.getElementById("paymentsTabBtn");
   const deletedBtn = document.getElementById("deletedPaymentsTabBtn");
@@ -901,6 +915,7 @@ window.showCashierTab = (tab) => {
   const collectorRequestsBtn = document.getElementById("collectorRequestsTabBtn");
   const myApplicationsBtn = document.getElementById("myApplicationsTabBtn");
   const balanceBtn = document.getElementById("balanceTabBtn");
+  const paymentRequestsSection = document.getElementById("paymentRequestsSection");
   const collectedSection = document.getElementById("collectedSection");
   const paymentSection = document.getElementById("paymentSection");
   const deletedSection = document.getElementById("deletedPaymentsSection");
@@ -911,6 +926,7 @@ window.showCashierTab = (tab) => {
   const balanceSection = document.getElementById("balanceSection");
 
   // Hide all sections
+  paymentRequestsSection.classList.add("hidden");
   collectedSection.classList.add("hidden");
   paymentSection.classList.add("hidden");
   deletedSection.classList.add("hidden");
@@ -919,6 +935,7 @@ window.showCashierTab = (tab) => {
   collectorRequestsSection.classList.add("hidden");
   myApplicationsSection.classList.add("hidden");
   balanceSection.classList.add("hidden");
+  paymentRequestsBtn.classList.remove("active");
   collectedBtn.classList.remove("active");
   paymentsBtn.classList.remove("active");
   deletedBtn.classList.remove("active");
@@ -928,7 +945,11 @@ window.showCashierTab = (tab) => {
   myApplicationsBtn.classList.remove("active");
   balanceBtn.classList.remove("active");
 
-  if (tab === "myApplications") {
+  if (tab === "paymentRequests") {
+    paymentRequestsSection.classList.remove("hidden");
+    paymentRequestsBtn.classList.add("active");
+    if (typeof window.loadPaymentRequests === "function") window.loadPaymentRequests();
+  } else if (tab === "myApplications") {
     myApplicationsSection.classList.remove("hidden");
     myApplicationsBtn.classList.add("active");
   } else if (tab === "payments") {
@@ -961,6 +982,7 @@ document.addEventListener("click", (event) => {
   const button = event.target.closest("#collectedTabBtn, #paymentsTabBtn, #deletedPaymentsTabBtn, #deletedLoansTabBtn, #approvedLoansTabBtn, #collectorRequestsTabBtn, #myApplicationsTabBtn, #balanceTabBtn");
   if (!button) return;
   const tabMap = {
+    paymentRequestsTabBtn: "paymentRequests",
     collectedTabBtn: "collected",
     paymentsTabBtn: "payments",
     deletedPaymentsTabBtn: "deleted",
@@ -1004,6 +1026,7 @@ onAuthStateChanged(auth, async (user) => {
 
   loadLoans();
   loadPayments();
+  window.loadPaymentRequests();
   loadTrashPayments();
   loadDeletedLoans();
   loadApprovedLoans();
@@ -1018,22 +1041,22 @@ onAuthStateChanged(auth, async (user) => {
 
 function buildLoanCard(l, id) {
   const pendingAmount = Number(l.pendingPaymentAmount || 0);
+  const hasPendingCollectorPayment = l.status === "collected" && !!l.pendingPaymentId;
   return `
     <div class="item">
       <div class="item-title">
         <h3>${l.borrowerName}</h3>
-        <span class="badge">${l.status === "collected" ? "PENDING RECEIPT" : l.status.toUpperCase()}</span>
+        <span class="badge">${hasPendingCollectorPayment ? "PENDING CASHIER CONFIRMATION" : l.status.toUpperCase()}</span>
       </div>
       <div style="display:grid; gap:8px; color:#d1d5db;">
         <div>💰 Current Loan Balance: <strong>₱${Number(l.balance || 0).toLocaleString()}</strong></div>
-        <div>🚚 Collector: <strong>${l.assignedCollectorName || "N/A"}</strong></div>
-        <div>Cashier: <strong>${l.assignedCashierName || "Unassigned"}</strong></div>
+        <div>🚚 Collector: <strong>${l.collectedByName || l.assignedCollectorName || "N/A"}</strong></div>
         <div>Address: <strong>${l.address || "N/A"}</strong></div>
         <div>Type: <strong>${l.loanType || 'solo'}</strong> ${l.memberNames && l.memberNames.length > 0 ? `| Members: ${l.memberNames.join(', ')}` : ''}</div>
-        ${l.status === "collected" ? `<div style="color:#f4b84a;font-weight:800;">💵 Cash received by collector: <strong>₱${pendingAmount.toLocaleString()}</strong> — balance has NOT been deducted yet.</div>` : ''}
+        ${hasPendingCollectorPayment ? `<div style="color:#f4b84a;font-weight:800;">💵 Cash received by collector: <strong>₱${pendingAmount.toLocaleString()}</strong> — balance has NOT been deducted yet.</div>` : ''}
       </div>
       <div class="input-group">
-        <input type="number" placeholder="${pendingAmount ? `Received amount: ₱${pendingAmount}` : 'Enter payment amount'}" value="${pendingAmount || ''}" id="pay-${id}" min="0" max="${Number(l.balance || 0)}" />
+        <input type="number" placeholder="${pendingAmount ? `Collector reported: ₱${pendingAmount}` : 'Enter payment amount'}" value="${pendingAmount || ''}" id="pay-${id}" min="0" max="${Number(l.balance || 0)}" ${hasPendingCollectorPayment ? '' : ''} />
         <button class="button green" onclick="payLoan('${id}','${String(l.borrowerName || '').replace(/'/g, "\\'")}',${Number(l.balance || 0)})">✔ Receive & Confirm</button>
       </div>
       <div class="card-actions" style="margin-top: 12px;">
@@ -1043,6 +1066,26 @@ function buildLoanCard(l, id) {
   `;
 }
 
+
+window.loadPaymentRequests = function(){
+  const box = document.getElementById("paymentRequestsList");
+  const badge = document.getElementById("navPaymentRequestCount");
+  if (!box) return;
+  onSnapshot(collection(db,"loans"), (snap)=>{
+    box.innerHTML=""; let count=0;
+    snap.forEach(d=>{
+      const l=d.data();
+      if(l.deleted || !l.pendingPaymentId || l.status !== "collected" || l.confirmedAt) return;
+      count++;
+      const amount=Number(l.pendingPaymentAmount||0);
+      const date=l.pendingPaymentAt?.toDate ? l.pendingPaymentAt.toDate().toLocaleString() : "N/A";
+      box.insertAdjacentHTML("beforeend", `<div class="item"><div class="item-title"><h3>${l.borrowerName||"Borrower"}</h3><span class="badge orange">PENDING APPROVAL</span></div><div style="display:grid;gap:8px;color:#d1d5db"><div>Collector: <strong>${l.collectedByName||l.assignedCollectorName||"N/A"}</strong></div><div>Amount collected: <strong>₱${amount.toLocaleString()}</strong></div><div>Date collected: <strong>${date}</strong></div><div>Current balance: <strong>₱${Number(l.balance||0).toLocaleString()}</strong></div></div><div class="card-actions"><button class="button green" onclick="payLoan('${d.id}','${String(l.borrowerName||'').replace(/'/g,"\\'")}',${Number(l.balance||0)})">✔ Receive &amp; Approve</button></div></div>`);
+    });
+    if(badge) badge.textContent=count;
+    if(!count) box.innerHTML='<div class="empty-state">No records found — no pending payment requests.</div>';
+  });
+};
+
 function loadLoans() {
   onSnapshot(collection(db, "loans"), (snap) => {
     loansList.innerHTML = "";
@@ -1051,8 +1094,11 @@ function loadLoans() {
 
     snap.forEach((d) => {
       const l = d.data();
+      // Collector payments are routed to the Cashier automatically through
+      // the existing pendingPaymentId/paymentStatus fields. No cashier assignment
+      // is required for this payment-confirmation flow.
       if (l.status !== "collected") return;
-      if (l.assignedCashierId !== cashierId) return;
+      if (!l.pendingPaymentId) return;
       if (l.confirmedAt) return; // Skip if already confirmed/paid
       if (l.deleted) return; // Skip deleted loans
       count += 1;
@@ -1121,6 +1167,10 @@ window.payLoan = async (loanId, borrowerName, currentBalance) => {
         confirmedById: cashierId,
         confirmedByName: cashierName,
         receivedAmount: amountPaid,
+        // ADDITIVE ONLY: keep the existing collector assignment while the loan still has a balance.
+        // Admin can change assignedCollectorId/assignedCollectorName separately when needed.
+        assignedCollectorId: loan.assignedCollectorId || null,
+        assignedCollectorName: loan.assignedCollectorName || "",
         pendingPaymentId: null,
         pendingPaymentAmount: null,
         pendingPaymentStatus: null,
@@ -1137,6 +1187,8 @@ window.payLoan = async (loanId, borrowerName, currentBalance) => {
         cashierName,
         receivedAt: serverTimestamp(),
         confirmedAt: serverTimestamp(),
+        confirmedById: cashierId,
+        confirmedByName: cashierName,
         remainingBalance: newBalance
       });
 
@@ -1156,11 +1208,15 @@ window.payLoan = async (loanId, borrowerName, currentBalance) => {
       confirmedAt: serverTimestamp(),
       confirmedById: cashierId,
       confirmedByName: cashierName,
+      // ADDITIVE ONLY: never remove the current collector assignment after payment receipt.
+      assignedCollectorId: loan.assignedCollectorId || null,
+      assignedCollectorName: loan.assignedCollectorName || "",
       status: newBalance <= 0 ? "paid" : "assigned"
     });
     await addDoc(collection(db, "payments"), {
       loanId, borrowerName, amountPaid, remainingBalance: newBalance,
       cashierId, cashierName, paymentStatus: "confirmed", receiptStatus: "received",
+      confirmedById: cashierId, confirmedByName: cashierName,
       createdAt: serverTimestamp(), confirmedAt: serverTimestamp()
     });
     input.value = "";
@@ -1177,8 +1233,8 @@ function loadPayments() {
 
     snap.forEach((d) => {
       const p = d.data();
-      if (p.cashierId !== cashierId) return;
       if (p.deleted) return;
+      if (p.paymentStatus !== "confirmed") return;
       count += 1;
       const createdAt = p.createdAt && p.createdAt.toDate ? new Date(p.createdAt.toDate()).toLocaleString() : "N/A";
       const item = document.createElement("div");
@@ -1190,8 +1246,8 @@ function loadPayments() {
         </div>
         <div style="display:grid; gap:8px; color:#d1d5db;">
           <div>Remaining Balance After Payment: <strong>₱${p.remainingBalance}</strong></div>
-          <div>Cashier: <strong>${p.cashierName}</strong></div>
-          <div>Time: <strong>${createdAt}</strong></div>
+          <div>Approved/Received by: <strong>${p.confirmedByName || p.cashierName || "N/A"}</strong></div>
+          <div>Date: <strong>${createdAt}</strong></div>
         </div>
         <div class="card-actions">
           <button class="button red" onclick="deletePayment('${d.id}')">Delete</button>

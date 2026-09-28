@@ -1234,6 +1234,15 @@ html.admin-locked .admin-locked-overlay { display: flex; }
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.4-4 4-6 7.5-6s6.1 2 7.5 6"/></svg>
       Collectors / Riders
     </button>
+    <button class="nav-link" data-tab="paymentRequests" onclick="openTab(this,'paymentRequests')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M8 10h8M8 14h5"/></svg>
+      Receive Payment Requests
+      <span class="nav-badge" id="navPaymentRequestsBadge" style="display:none;">0</span>
+    </button>
+    <button class="nav-link" data-tab="paymentRecords" onclick="openTab(this,'paymentRecords')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+      Record of Payments
+    </button>
     <button class="nav-link" data-tab="cashier" onclick="openTab(this,'cashier')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="12" cy="12.5" r="2.6"/><path d="M7 6V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1"/></svg>
       Cashier
@@ -1665,6 +1674,16 @@ html.admin-locked .admin-locked-overlay { display: flex; }
     </section>
 
     <!-- ===================== CASHIER ===================== -->
+    <section id="paymentRequests" class="section">
+      <div class="section-head"><div><h2>Receive Payment Requests</h2><p>Collector collections waiting for Cashier or Admin approval.</p></div></div>
+      <div id="adminPaymentRequestsList"></div>
+    </section>
+
+    <section id="paymentRecords" class="section">
+      <div class="section-head"><div><h2>Record of Payments</h2><p>Confirmed payments received from borrowers.</p></div></div>
+      <div id="adminPaymentRecordsList"></div>
+    </section>
+
     <section id="cashier" class="section">
       <div class="section-head">
         <div>
@@ -1788,6 +1807,8 @@ onAuthStateChanged(auth, async (user) => {
   loadCashiers();
   loadLoanApplications();
   loadDeletionRequests();
+  loadAdminPaymentRequests();
+  loadAdminPaymentRecords();
 });
 
 // ===================== ADMIN PROFILE PICTURE =====================
@@ -3094,6 +3115,34 @@ function barRow(label, value, max, color, valueLabel) {
   `;
 }
 
+
+window.approveCollectorPaymentAsAdmin = async (loanId) => {
+  try {
+    const loanRef=doc(db,"loans",loanId); const snap=await getDoc(loanRef);
+    if(!snap.exists()) throw new Error("Loan record not found.");
+    const loan=snap.data(); const paymentId=loan.pendingPaymentId;
+    if(!paymentId) throw new Error("No pending payment request.");
+    const paymentRef=doc(db,"payments",paymentId); const ps=await getDoc(paymentRef);
+    if(!ps.exists()) throw new Error("Payment record not found.");
+    const payment=ps.data(); const amount=Number(payment.amountPaid||loan.pendingPaymentAmount||0);
+    if(payment.paymentStatus !== "pending_cashier_receipt") throw new Error("This payment is already processed.");
+    const newBalance=Math.max(Math.round((Number(loan.balance||0)-amount)*100)/100,0);
+    await updateDoc(loanRef,{balance:newBalance,lastPaymentAt:serverTimestamp(),lastPaymentBy:adminId,lastPaymentByName:document.getElementById("adminNameDisplay")?.textContent||"Admin",confirmedAt:serverTimestamp(),confirmedById:adminId,confirmedByName:document.getElementById("adminNameDisplay")?.textContent||"Admin",receivedAmount:amount,pendingPaymentId:null,pendingPaymentAmount:null,pendingPaymentStatus:null,pendingPaymentAt:null,pendingPenaltyAmount:null,status:newBalance<=0?"paid":"assigned"});
+    await updateDoc(paymentRef,{paymentStatus:"confirmed",receiptStatus:"received_by_admin",receivedAt:serverTimestamp(),confirmedAt:serverTimestamp(),confirmedById:adminId,confirmedByName:document.getElementById("adminNameDisplay")?.textContent||"Admin",remainingBalance:newBalance});
+    alert(`Payment approved by Admin. ₱${amount.toLocaleString()} received. Remaining balance: ₱${newBalance.toLocaleString()}`);
+  } catch(e){ alert("Error: "+e.message); }
+};
+
+function loadAdminPaymentRequests(){
+  const box=document.getElementById("adminPaymentRequestsList"); const badge=document.getElementById("navPaymentRequestsBadge"); if(!box)return;
+  onSnapshot(collection(db,"loans"),(snap)=>{box.innerHTML="";let count=0;snap.forEach(d=>{const l=d.data();if(l.deleted||!l.pendingPaymentId||l.status!=="collected"||l.confirmedAt)return;count++;const amt=Number(l.pendingPaymentAmount||0);const dt=l.pendingPaymentAt?.toDate?l.pendingPaymentAt.toDate().toLocaleString():"N/A";box.insertAdjacentHTML("beforeend",`<div class="panel" style="margin-bottom:14px"><div class="panel-title"><h3>${l.borrowerName||"Borrower"}</h3><span class="status-chip pending">PENDING</span></div><div style="display:grid;gap:7px;margin:10px 0 14px"><div>Collector: <strong>${l.collectedByName||l.assignedCollectorName||"N/A"}</strong></div><div>Amount: <strong>${money(amt)}</strong></div><div>Date: <strong>${dt}</strong></div><div>Balance before approval: <strong>${money(l.balance)}</strong></div></div><button class="button green" onclick="approveCollectorPaymentAsAdmin('${d.id}')">✔ Receive &amp; Approve Payment</button></div>`);});if(badge){badge.textContent=count;badge.style.display=count?'inline-flex':'none';}if(!count)box.innerHTML='<div class="empty-state">No records found — no pending payment requests.</div>';});
+}
+
+function loadAdminPaymentRecords(){
+  const box=document.getElementById("adminPaymentRecordsList"); if(!box)return;
+  onSnapshot(collection(db,"payments"),(snap)=>{box.innerHTML="";let rows=[];snap.forEach(d=>{const p=d.data();if(p.deleted||p.paymentStatus!=="confirmed")return;rows.push({id:d.id,...p});});rows.sort((a,b)=>{const aa=a.confirmedAt?.toMillis?a.confirmedAt.toMillis():0,bb=b.confirmedAt?.toMillis?b.confirmedAt.toMillis():0;return bb-aa;});if(!rows.length){box.innerHTML='<div class="empty-state">No records found — no confirmed payments yet.</div>';return;}rows.forEach(p=>{const dt=p.confirmedAt?.toDate?p.confirmedAt.toDate().toLocaleString():(p.createdAt?.toDate?p.createdAt.toDate().toLocaleString():"N/A");const approver=p.confirmedByName||p.cashierName||"N/A";const role=p.receiptStatus==="received_by_admin"?"Admin":"Cashier";box.insertAdjacentHTML("beforeend",`<div class="panel" style="margin-bottom:10px"><div class="panel-title"><h3>${p.borrowerName||"Borrower"}</h3><span class="badge">${money(Number(p.amountPaid||0))}</span></div><div style="display:grid;gap:6px"><div>Collector: <strong>${p.collectorName||"N/A"}</strong></div><div>Approved by: <strong>${approver} (${role})</strong></div><div>Date: <strong>${dt}</strong></div><div>Remaining balance: <strong>${money(Number(p.remainingBalance||0))}</strong></div></div></div>`);});});
+}
+
 function renderCollectorsTab() {
   const box = document.getElementById("collectors-content");
   if (!box) return;
@@ -4204,7 +4253,10 @@ window.assignCollector = async (loanId) => {
   let selected = collectors[0];
   if (collectors.length > 1) {
     const collectorList = collectors.map((c, i) => `${i + 1}. ${c.name}`).join("\n");
-    const choice = prompt(`Select a collector:\n${collectorList}\n\nEnter number (1-${collectors.length}):`, "1");
+    const choice = prompt(`Select a collector:
+${collectorList}
+
+Enter number (1-${collectors.length}):`, "1");
     if (!choice || isNaN(choice) || choice < 1 || choice > collectors.length) {
       alert("Assignment cancelled.");
       return;
@@ -4217,12 +4269,11 @@ window.assignCollector = async (loanId) => {
     const currentData = loanDoc.data();
 
     const assignmentUpdate = {
+      // ADDITIVE/FIX ONLY: changing the collector changes only the active assignment.
+      // Existing payment history, cashier receipt, and balance are preserved.
       assignedCollectorId: selected.id,
-      assignedCollectorName: selected.name,
-      collectedAt: null,
-      confirmedAt: null,
-      confirmedById: null
-      // Keep current balance and existing Cashier assignment.
+      assignedCollectorName: selected.name
+      // Keep current balance, payment history, and existing Cashier assignment.
     };
 
     // Preserve automatic approval for Admin-created loans.
