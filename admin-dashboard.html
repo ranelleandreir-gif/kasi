@@ -1091,6 +1091,51 @@ html.admin-locked .admin-locked-overlay { display: flex; }
 @media (max-width: 480px) {
   .admin-locked-card { padding: 26px 20px 22px; }
 }
+/* ============ BORROWER LOANS ENHANCEMENTS (additive only) ============ */
+.bl-kpis { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; margin-bottom: 18px; }
+.bl-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 16px; box-shadow: var(--shadow-card); border-top: 3px solid var(--blue); }
+.bl-kpi:nth-child(2) { border-top-color: var(--gold); } .bl-kpi:nth-child(3) { border-top-color: var(--navy-600); } .bl-kpi:nth-child(4) { border-top-color: var(--teal); }
+.bl-kpi span { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.bl-kpi strong { display: block; margin-top: 6px; font-family: var(--font-head); font-size: 1.35rem; color: var(--navy-900); }
+#loans .panel, #borrowerApplications .panel { padding: 0; overflow: hidden; }
+#loans .panel-title, #borrowerApplications .panel-title { margin: 0; padding: 16px 20px; background: linear-gradient(180deg, var(--surface-alt), var(--surface)); border-bottom: 1px solid var(--border); }
+#loans .table-scroll, #borrowerApplications .table-scroll { padding: 0 8px 8px; }
+#loans .data-table thead th, #borrowerApplications .data-table thead th { background: var(--surface-alt); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+#loans .empty-state, #borrowerApplications .empty-state { padding: 26px 20px; }
+#loans .row-actions, #borrowerApplications .row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+#borrowerApplications table.data-table { min-width: 860px; }
+.bl-modal-backdrop { position: fixed; inset: 0; background: rgba(11,30,61,.6); display: none; align-items: center; justify-content: center; z-index: 1200; padding: 16px; }
+.bl-modal-backdrop.show { display: flex; }
+.bl-modal { background: var(--surface); border-radius: 20px; box-shadow: var(--shadow-pop); width: 100%; max-width: 780px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; }
+.bl-modal-head { display: flex; align-items: center; gap: 14px; padding: 18px 22px; background: linear-gradient(135deg, var(--navy-900), var(--navy-600)); color: #fff; }
+.bl-avatar { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.16); display: grid; place-items: center; font-weight: 800; font-size: 1.1rem; flex-shrink: 0; }
+.bl-modal-head h3 { color: #fff; font-size: 1.1rem; }
+.bl-modal-head small { display: block; opacity: .75; font-size: .74rem; margin-top: 2px; }
+.bl-modal-head .bl-x { margin-left: auto; background: rgba(255,255,255,.14); border: 0; color: #fff; width: 34px; height: 34px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; }
+.bl-modal-body { padding: 18px 22px; overflow-y: auto; display: grid; gap: 16px; }
+.bl-group { border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
+.bl-group > h4 { font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; color: var(--blue); padding: 10px 14px; background: var(--surface-alt); border-bottom: 1px solid var(--border); }
+.bl-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px 18px; padding: 14px; }
+.bl-f span { display: block; font-size: .7rem; font-weight: 600; color: var(--muted); margin-bottom: 2px; }
+.bl-f strong { font-size: .88rem; color: var(--navy-900); word-break: break-word; }
+.bl-f.wide { grid-column: 1 / -1; }
+.bl-photos { display: flex; gap: 14px; flex-wrap: wrap; padding: 14px; }
+.bl-photos figure { margin: 0; text-align: center; font-size: .7rem; color: var(--muted); }
+.bl-photos img { display: block; max-width: 180px; max-height: 150px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 4px; }
+.bl-modal-foot { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; padding: 14px 22px; border-top: 1px solid var(--border); background: var(--surface-alt); }
+@media (max-width: 900px) { .bl-kpis { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 760px) {
+  .bl-kpis { gap: 10px; } .bl-kpi strong { font-size: 1.1rem; }
+  .bl-grid { grid-template-columns: 1fr; }
+  .bl-modal { max-height: 96vh; border-radius: 16px; } .bl-modal-foot .button { flex: 1; justify-content: center; }
+  table.bl-stack { min-width: 0 !important; }
+  .bl-stack thead { display: none; }
+  .bl-stack, .bl-stack tbody, .bl-stack tr, .bl-stack td { display: block; width: 100%; }
+  .bl-stack tr { border: 1px solid var(--border); border-radius: var(--radius-md); margin: 10px 0; padding: 4px 12px; background: var(--surface); }
+  .bl-stack td { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0 !important; border-bottom: 1px dashed var(--border) !important; text-align: right; }
+  .bl-stack td::before { content: attr(data-label); font-size: .68rem; font-weight: 700; text-transform: uppercase; color: var(--muted); text-align: left; flex-shrink: 0; }
+  .bl-stack td:last-child { display: block; border-bottom: 0 !important; text-align: left; } .bl-stack td:last-child::before { display: none; }
+}
 </style>
 </head>
 <body>
@@ -1138,6 +1183,10 @@ html.admin-locked .admin-locked-overlay { display: flex; }
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 8h1M9 12h6M9 16h6"/></svg>
       Loan Applications
       <span class="nav-badge" id="navLoanAppBadge" style="display:none;">0</span>
+    </button>
+    <button class="nav-link" data-tab="borrowerApplications" onclick="openTab(this,'borrowerApplications')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13l2 2 4-4"/></svg>
+      Borrowers Application
     </button>
     <button class="nav-link" data-tab="deletionRequests" onclick="openTab(this,'deletionRequests')">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></svg>
@@ -1384,6 +1433,32 @@ html.admin-locked .admin-locked-overlay { display: flex; }
         </div>
       </div>
       <div id="loan-apps-content"></div>
+    </section>
+
+    <!-- ===================== BORROWERS APPLICATION (approved loans — additive only) ===================== -->
+    <section id="borrowerApplications" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Borrowers Application</h2>
+          <p>Approved loan applications. View full details, download the application PDF, or print it.</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="field grow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="baSearch" type="text" placeholder="Search by borrower name, contact or address..." oninput="renderBorrowerApplications()">
+        </div>
+        <div class="field">
+          <span>Status</span>
+          <select id="baStatus" onchange="renderBorrowerApplications()">
+            <option value="">All</option>
+            <option value="approved">Approved</option>
+            <option value="assigned">Assigned</option>
+            <option value="paid">Paid</option>
+          </select>
+        </div>
+      </div>
+      <div id="borrower-apps-content"></div>
     </section>
 
     <!-- ===================== DELETION REQUESTS (new feature — additive only) ===================== -->
@@ -2067,6 +2142,7 @@ function renderLoanFolder(title, list, parent) {
       <td>${l.assignedCollectorName || "Unassigned"}</td>
       <td>
         <div class="row-actions">
+          <button class="button blue" onclick="openLoanDetails('${l.id}')">View Details</button>
           ${l.balance > 0 ? `<button class="button orange" onclick="assignCollector('${l.id}')">${l.assignedCollectorId ? 'Reassign' : 'Assign collector'}</button>` : ''}
           <button class="button outline" onclick="editLoanBalance('${l.id}', ${l.balance})">Edit balance</button>
           ${l.balance > 0 ? `<button class="button green" onclick="markPaid('${l.id}')">Mark paid</button>` : ''}
@@ -2371,6 +2447,7 @@ function loadLoans() {
     renderReports(active, paid);
     renderCollectorsTab();
     renderCashierTab();
+    try { enhanceBorrowerLoansUI(); renderBorrowerApplications(); } catch (e) { console.warn("Borrower loans UI enhancement:", e); }
   });
 }
 
@@ -2501,6 +2578,263 @@ window.rejectLoanApplication = async (id) => {
     });
   });
   alert("Loan application rejected.");
+};
+
+// ===================== BORROWER LOANS ENHANCEMENTS (additive only) =====================
+// Reads the loan records already loaded by loadLoans() (currentLoans). Nothing is written to Firestore.
+const bl_esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const BL_SKIP = new Set(["id", "deleted", "pendingApproval", "applicantPhoto", "validIdPhoto", "approvedBy", "rejectedBy", "deletionRequested"]);
+const BL_EMPTY = (v) => v == null || v === "" || (Array.isArray(v) && !v.length);
+const BL_PHOTO_OK = (s) => typeof s === "string" && /^(data:image\/|https?:)/i.test(s);
+const blHuman = (k) => k.replace(/([A-Z])/g, " $1").replace(/^./, c => c.toUpperCase());
+const blStatusKey = (l) => (Number(l.balance) === 0 ? "paid" : (l.status || "assigned"));
+
+function blFormat(l, key, kind) {
+  const v = l[key];
+  if (kind === "money") return money(v);
+  if (kind === "rate") return `${v}% / month`;
+  if (kind === "term") return loanTermLabel(l);
+  if (kind === "status") return blStatusKey(l).toUpperCase();
+  if (v && typeof v.toDate === "function") return fmtDate(v);
+  if (Array.isArray(v)) return v.join(", ");
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  if (key === "loanType") return String(v).charAt(0).toUpperCase() + String(v).slice(1);
+  return String(v);
+}
+
+// One source of truth for the details modal AND the print view: only fields that exist on the saved record.
+function blGroups(l) {
+  const spec = [
+    ["Borrower Information", [["borrowerName", "Borrower Name"], ["firstName", "First Name"], ["lastName", "Last Name"], ["contactNumber", "Contact Number"], ["email", "Email"], ["gender", "Gender"], ["address", "Address"], ["occupation", "Occupation"], ["income", "Income"], ["memberNames", "Group Members"], ["validIdType", "Valid ID Type"]]],
+    ["Loan Information", [["loanType", "Loan Type"], ["amount", "Amount Borrowed", "money"], ["balance", "Outstanding Balance", "money"], ["loanTermType", "Loan Term", "term"], ["monthlyInterestRate", "Monthly Interest Rate", "rate"], ["totalInterest", "Total Interest", "money"], ["totalPayable", "Total Amount to Pay", "money"], ["status", "Loan Status", "status"], ["createdAt", "Application / Loan Date"], ["approvedAt", "Approval Date"], ["lastPaymentAt", "Last Payment"], ["confirmedAt", "Paid On"]]],
+    ["Assignment & Processing", [["assignedCollectorName", "Assigned Collector"], ["assignedCashierName", "Assigned Cashier"], ["createdByCashierName", "Submitted By (Cashier)"], ["createdByCollectorName", "Submitted By (Collector)"], ["createdByAdminName", "Created By (Admin)"], ["approvedByCashierName", "Cashier-Approved By"]]]
+  ];
+  const used = new Set(BL_SKIP);
+  const groups = spec.map(([title, fields]) => {
+    const rows = [];
+    fields.forEach(([key, label, kind]) => {
+      used.add(key);
+      if (kind === "status") { rows.push([label, blFormat(l, key, kind)]); return; }
+      if (!BL_EMPTY(l[key])) rows.push([label, blFormat(l, key, kind)]);
+    });
+    if (title === "Loan Information") {
+      const due = getLoanDueInfo(l);
+      if (due && due.date && Number(l.balance) > 0) rows.push(["Next Due Date", formatDueDate(due.date)]);
+    }
+    return { title, rows };
+  });
+  const extra = [];
+  Object.keys(l).sort().forEach(k => {
+    if (used.has(k) || /Ids?$/.test(k) || BL_EMPTY(l[k])) return;
+    const v = l[k];
+    if (v && typeof v === "object" && !Array.isArray(v) && typeof v.toDate !== "function") return;
+    if (Array.isArray(v) && v.some(x => x && typeof x === "object")) return;
+    if (typeof v === "string" && v.length > 300) return;
+    extra.push([blHuman(k), blFormat(l, k)]);
+  });
+  groups.push({ title: "Additional Information", rows: extra });
+  return groups.filter(g => g.rows.length);
+}
+
+function blFindLoan(id) { return (currentLoans || []).find(x => x.id === id); }
+
+function ensureBlModal() {
+  let m = document.getElementById("blDetailsModal");
+  if (m) return m;
+  m = document.createElement("div");
+  m.id = "blDetailsModal";
+  m.className = "bl-modal-backdrop";
+  m.innerHTML = `<div class="bl-modal" role="dialog" aria-modal="true" aria-labelledby="blModalName">
+    <div class="bl-modal-head"><div class="bl-avatar" id="blModalAvatar"></div>
+      <div><h3 id="blModalName"></h3><small id="blModalSub"></small></div>
+      <button type="button" class="bl-x" aria-label="Close" onclick="closeLoanDetails()">×</button></div>
+    <div class="bl-modal-body" id="blModalBody"></div>
+    <div class="bl-modal-foot" id="blModalFoot"></div></div>`;
+  m.addEventListener("click", (e) => { if (e.target === m) window.closeLoanDetails(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") window.closeLoanDetails(); });
+  document.body.appendChild(m);
+  return m;
+}
+
+window.openLoanDetails = (id) => {
+  const l = blFindLoan(id);
+  if (!l) { alert("Loan record not found. Please try again."); return; }
+  const m = ensureBlModal();
+  const name = l.borrowerName || `${l.firstName || ""} ${l.lastName || ""}`.trim() || "Borrower";
+  document.getElementById("blModalAvatar").textContent = name.charAt(0).toUpperCase();
+  document.getElementById("blModalName").textContent = name;
+  document.getElementById("blModalSub").textContent = `Loan ID: ${l.id}`;
+  let html = `<div><span class="status-chip ${bl_esc(blStatusKey(l))}">${bl_esc(blStatusKey(l).toUpperCase())}</span></div>`;
+  blGroups(l).forEach(g => {
+    html += `<div class="bl-group"><h4>${bl_esc(g.title)}</h4><div class="bl-grid">` +
+      g.rows.map(([k, v]) => `<div class="bl-f${/address|members/i.test(k) ? " wide" : ""}"><span>${bl_esc(k)}</span><strong>${bl_esc(v)}</strong></div>`).join("") + `</div></div>`;
+  });
+  const photos = [["Applicant Photo", l.applicantPhoto], ["Valid ID", l.validIdPhoto]].filter(p => BL_PHOTO_OK(p[1]));
+  if (photos.length) html += `<div class="bl-group"><h4>Photos</h4><div class="bl-photos">${photos.map(p => `<figure><img src="${bl_esc(p[1])}" alt="${bl_esc(p[0])}">${p[0]}</figure>`).join("")}</div></div>`;
+  document.getElementById("blModalBody").innerHTML = html;
+  const safeId = bl_esc(l.id);
+  document.getElementById("blModalFoot").innerHTML =
+    `<button type="button" class="button outline" onclick="closeLoanDetails()">Close</button>` +
+    `<button type="button" class="button outline" onclick="printBorrowerApplication('${safeId}')">Print</button>` +
+    `<button type="button" class="button blue" onclick="downloadBorrowerPdf('${safeId}', this)">Download PDF</button>`;
+  m.classList.add("show");
+  document.getElementById("blModalBody").scrollTop = 0;
+};
+window.closeLoanDetails = () => { const m = document.getElementById("blDetailsModal"); if (m) m.classList.remove("show"); };
+
+// ----- Loans tab: summary cards + mobile-friendly rows (display only) -----
+function enhanceBorrowerLoansUI() {
+  const content = document.getElementById("loans-content");
+  if (!content) return;
+  let strip = document.getElementById("blSummary");
+  if (!strip) {
+    strip = document.createElement("div");
+    strip.id = "blSummary";
+    strip.className = "bl-kpis";
+    content.parentNode.insertBefore(strip, content);
+  }
+  const all = currentLoans || [];
+  const active = all.filter(l => !(l.status === "paid" || l.balance === 0));
+  const sum = (arr, k) => arr.reduce((s, l) => s + (Number(l[k]) || 0), 0);
+  const kpi = (label, value) => `<div class="bl-kpi"><span>${label}</span><strong>${value}</strong></div>`;
+  strip.innerHTML = kpi("Active loans", active.length) + kpi("Outstanding balance", money(sum(active, "balance"))) + kpi("Total released", money(sum(all, "amount"))) + kpi("Paid loans", all.length - active.length);
+  content.querySelectorAll("table.data-table").forEach(t => {
+    t.classList.add("bl-stack");
+    const heads = [...t.querySelectorAll("thead th")].map(h => h.textContent.trim());
+    t.querySelectorAll("tbody tr").forEach(tr => [...tr.children].forEach((td, i) => td.setAttribute("data-label", heads[i] || "")));
+  });
+}
+
+// ----- Borrowers Application (approved loans, using the existing status workflow) -----
+// currentLoans already excludes deleted and still-pending applications; rejected ones are excluded here.
+function getApprovedApplications() {
+  return (currentLoans || []).filter(l => l.status !== "rejected");
+}
+
+function renderBorrowerApplications() {
+  const box = document.getElementById("borrower-apps-content");
+  if (!box) return;
+  const q = (document.getElementById("baSearch")?.value || "").trim().toLowerCase();
+  const st = document.getElementById("baStatus")?.value || "";
+  const stamp = (l) => (toDateSafe(l.approvedAt) || toDateSafe(l.createdAt) || new Date(0)).getTime();
+  const all = getApprovedApplications();
+  const list = all.filter(l => {
+    const hay = `${l.borrowerName || ""} ${l.contactNumber || ""} ${l.address || ""}`.toLowerCase();
+    return (!q || hay.includes(q)) && (!st || blStatusKey(l) === st);
+  }).sort((a, b) => stamp(b) - stamp(a));
+
+  const kpi = (label, value) => `<div class="bl-kpi"><span>${label}</span><strong>${value}</strong></div>`;
+  let html = `<div class="bl-kpis">${kpi("Approved applications", all.length)}${kpi("Total principal", money(all.reduce((s, l) => s + (Number(l.amount) || 0), 0)))}${kpi("Outstanding balance", money(all.reduce((s, l) => s + (Number(l.balance) || 0), 0)))}${kpi("Showing", list.length)}</div>`;
+  html += `<div class="panel"><div class="panel-title"><h3>Approved loan applications</h3><span class="badge muted">${list.length}</span></div>`;
+  if (!list.length) {
+    html += `<div class="empty-state">${all.length ? "No applications match your search." : "No approved applications yet."}</div></div>`;
+    box.innerHTML = html;
+    return;
+  }
+  html += `<div class="table-scroll"><table class="data-table bl-stack"><thead><tr><th>Borrower</th><th>Loan Type</th><th class="num">Amount</th><th>Term</th><th>Application Date</th><th>Approval Date</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
+  list.forEach(l => {
+    const key = blStatusKey(l);
+    const isGroup = l.loanType === "group" && l.memberNames && l.memberNames.length;
+    const id = bl_esc(l.id);
+    const cells = [
+      ["Borrower", `<div class="cell-primary">${bl_esc(l.borrowerName || "N/A")}</div><div class="cell-sub">${bl_esc(l.contactNumber || l.address || "")}</div>`, ""],
+      ["Loan Type", isGroup ? `Group · ${l.memberNames.length}` : "Solo", ""],
+      ["Amount", money(l.amount), "num amount"],
+      ["Term", l.loanTermType ? bl_esc(loanTermLabel(l)) : "—", ""],
+      ["Application Date", bl_esc(fmtDate(l.createdAt) || "N/A"), ""],
+      ["Approval Date", bl_esc(fmtDate(l.approvedAt) || "N/A"), ""],
+      ["Status", `<span class="status-chip ${bl_esc(key)}">${bl_esc(key.toUpperCase())}</span>`, ""],
+      ["Actions", `<div class="row-actions"><button class="button outline" onclick="openLoanDetails('${id}')">View</button><button class="button blue" onclick="downloadBorrowerPdf('${id}', this)">Download PDF</button><button class="button outline" onclick="printBorrowerApplication('${id}')">Print</button></div>`, ""]
+    ];
+    html += `<tr>${cells.map(([lab, v, cls]) => `<td class="${cls}" data-label="${lab}">${v}</td>`).join("")}</tr>`;
+  });
+  box.innerHTML = html + `</tbody></table></div></div>`;
+}
+window.renderBorrowerApplications = renderBorrowerApplications;
+
+// ----- PDF: reuses the existing Add Loan PDF generator (KasipagLoanKit.generatePdf) with the saved loan data -----
+function buildBorrowerPdfData(l) {
+  const created = toDateSafe(l.createdAt) || toDateSafe(l.approvedAt) || new Date();
+  const start = toDateSafe(l.approvedAt) || created;
+  const amount = Number(l.amount) || 0;
+  const months = Number(l.loanTermMonths) || (l.loanTermType && l.loanTermType !== "custom" ? Number(l.loanTermType) : 0) || 0;
+  const rate = Number(l.monthlyInterestRate) || 0;
+  const totalInterest = l.totalInterest != null ? Number(l.totalInterest) : Math.round(amount * (rate / 100) * months * 100) / 100;
+  const totalPayable = l.totalPayable != null ? Number(l.totalPayable) : Math.round((amount + totalInterest) * 100) / 100;
+  const fullName = l.borrowerName || `${l.firstName || ""} ${l.lastName || ""}`.trim();
+  return {
+    applicationId: l.id, fullName, firstName: l.firstName || "", lastName: l.lastName || "",
+    contactNumber: l.contactNumber || "", email: l.email || "", address: l.address || "",
+    gender: l.gender || "", occupation: l.occupation || "", income: l.income || "",
+    validIdType: l.validIdType || "", applicantPhoto: l.applicantPhoto || "", validIdPhoto: l.validIdPhoto || "",
+    amount, totalInterest, totalPayable, monthlyRate: rate,
+    termLabel: adminLoanerTermLabel(l.loanTermType, months),
+    paymentFrequency: "Monthly", numPayments: months,
+    paymentAmount: months > 0 ? Math.round((totalPayable / months) * 100) / 100 : 0,
+    startDate: start,
+    firstDueDate: months > 0 ? addMonthsSafe(start, 1) : null,
+    finalPaymentDate: months > 0 ? addMonthsSafe(start, months) : null,
+    submittedAt: created
+  };
+}
+
+window.downloadBorrowerPdf = async (id, btn) => {
+  const l = blFindLoan(id);
+  if (!l) { alert("Loan record not found. Please try again."); return; }
+  if (!window.KasipagLoanKit || !window.KasipagLoanKit.generatePdf) { alert("The PDF module did not load. Please refresh the page and try again."); return; }
+  const label = btn ? btn.textContent : "";
+  if (btn) { btn.disabled = true; btn.textContent = "Generating…"; }
+  try {
+    const res = await window.KasipagLoanKit.generatePdf(buildBorrowerPdfData(l));
+    const url = URL.createObjectURL(res.blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = res.fileName;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } catch (err) {
+    console.error("Borrower PDF error:", err);
+    alert("The PDF could not be created. " + (err && err.message ? err.message : ""));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = label; }
+  }
+};
+
+// ----- Print: clean print-friendly page in a hidden frame -> browser print dialog -----
+window.printBorrowerApplication = (id) => {
+  const l = blFindLoan(id);
+  if (!l) { alert("Loan record not found. Please try again."); return; }
+  const name = l.borrowerName || `${l.firstName || ""} ${l.lastName || ""}`.trim() || "Borrower";
+  const groups = blGroups(l).map(g => `<h2>${bl_esc(g.title)}</h2><table>${g.rows.map(([k, v]) => `<tr><th>${bl_esc(k)}</th><td>${bl_esc(v)}</td></tr>`).join("")}</table>`).join("");
+  const photos = [["Applicant Photo", l.applicantPhoto], ["Valid ID", l.validIdPhoto]].filter(p => BL_PHOTO_OK(p[1]));
+  const photoHtml = photos.length ? `<h2>Photos</h2><div class="ph">${photos.map(p => `<figure><img src="${bl_esc(p[1])}" alt=""><figcaption>${p[0]}</figcaption></figure>`).join("")}</div>` : "";
+  const docHtml = `<!doctype html><html><head><meta charset="utf-8"><title>Loan Application - ${bl_esc(name)}</title><style>
+    @page { size: A4; margin: 14mm; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #14213d; font-size: 12px; margin: 0; }
+    .hd { background: #0b1e3d; color: #fff; padding: 14px 18px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .hd b { font-size: 18px; } .hd span { font-size: 11px; opacity: .85; }
+    h2 { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: #2f6fed; margin: 18px 0 6px; border-bottom: 1px solid #e2e7f0; padding-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; } tr { page-break-inside: avoid; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eef1f6; vertical-align: top; } th { width: 34%; color: #5c6a86; font-weight: 600; }
+    .ph { display: flex; gap: 16px; } figure { margin: 0; text-align: center; font-size: 10px; color: #5c6a86; } img { max-width: 200px; max-height: 160px; border: 1px solid #e2e7f0; border-radius: 6px; }
+    .sig { margin-top: 46px; width: 260px; border-top: 1px solid #14213d; padding-top: 4px; font-size: 10px; color: #5c6a86; }
+    .ft { margin-top: 20px; font-size: 10px; color: #8592ab; }
+  </style></head><body>
+    <div class="hd"><div><b>Kasipag Microfinancing</b><br><span>Loan Application</span></div><span>Application ID: ${bl_esc(l.id)}</span></div>
+    ${groups}${photoHtml}
+    <div class="sig">Applicant's Signature over Printed Name</div>
+    <div class="ft">Printed on ${bl_esc(new Date().toLocaleString())}</div></body></html>`;
+  const frame = document.createElement("iframe");
+  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
+  frame.onload = () => {
+    try { frame.contentWindow.focus(); frame.contentWindow.print(); }
+    catch (e) {
+      const w = window.open("", "_blank");
+      if (w) { w.document.write(docHtml); w.document.close(); w.focus(); w.print(); }
+    }
+    setTimeout(() => frame.remove(), 60000);
+  };
+  document.body.appendChild(frame);
+  frame.srcdoc = docHtml;
 };
 
 // ===================== LOAN TERM HELPER (new feature — additive only) =====================
