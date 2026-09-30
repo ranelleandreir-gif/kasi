@@ -2299,6 +2299,7 @@ function renderLoanFolder(title, list, parent) {
           <button class="button blue" onclick="openLoanDetails('${l.id}')">View Details</button>
           ${l.balance > 0 ? `<button class="button orange" onclick="assignCollector('${l.id}')">${l.assignedCollectorId ? 'Reassign' : 'Assign collector'}</button>` : ''}
           <button class="button outline" onclick="editLoanBalance('${l.id}', ${l.balance})">Edit balance</button>
+          ${l.balance > 0 ? `<button class="button outline" onclick="editLoanAmount('${l.id}')">Edit loan amount</button>` : ''}
           ${l.balance > 0 ? `<button class="button green" onclick="markPaid('${l.id}')">Mark paid</button>` : ''}
           ${loanDeleteLocked(l) ? `<button class="button red" disabled style="opacity:.45;cursor:not-allowed" title="Cannot delete: loan has collections and an unpaid balance">Delete</button>` : `<button class="button red" onclick="deleteLoan('${l.id}')">Delete</button>`}
         </div>
@@ -3813,6 +3814,40 @@ window.editLoanBalance = async (loanId, currentBalance) => {
       balanceEditedAt: serverTimestamp()
     });
     alert(`Balance updated to ₱${parsedBalance}. This change is visible realtime across collector and cashier pages.`);
+  });
+};
+
+// ===== EDIT CLIENT LOAN AMOUNT (ADDED) — due dates stay exactly where they are =====
+window.editLoanAmount = async (loanId) => {
+  const l = (currentLoans || []).find(x => x.id === loanId);
+  if (!l) { alert("Loan not found."); return; }
+  if (l.loanType === "group") { alert("Group loan amounts are tied to each member's amount and can't be edited here."); return; }
+  const input = window.prompt(`Edit loan amount (current: ₱${Number(l.amount).toLocaleString()}):`, l.amount);
+  if (input === null) return;
+  const newAmount = Number(String(input).trim());
+  if (isNaN(newAmount) || newAmount <= 0) { alert("Please enter a valid loan amount."); return; }
+  const oldAmount = Number(l.amount) || 0, oldBalance = Number(l.balance) || 0;
+  const principalPaid = Math.max(0, oldAmount - oldBalance);
+  if (newAmount <= principalPaid) { alert(`The new amount must be more than what was already paid (₱${principalPaid.toLocaleString()}).`); return; }
+  const newBalance = Math.round((newAmount - principalPaid) * 100) / 100;
+  const rate = Number(l.monthlyInterestRate) || 0;
+  const weeklyTerm = /^w\d+$/.test(String(l.loanTermType));
+  const periods = weeklyTerm ? (Number(l.loanTermWeeks) || Number(String(l.loanTermType).slice(1))) : (Number(l.loanTermMonths) || 0);
+  const totalInterest = Math.round(newAmount * (rate / 100) * periods * 100) / 100;
+  const totalPayable = Math.round((newAmount + totalInterest) * 100) / 100;
+  const weeks = getLoanWeeks(l);
+  const changes = { amount: newAmount, balance: newBalance, totalInterest, totalPayable };
+  if (l.totalDeduction != null) changes.netAmountReceived = newAmount - Number(l.totalDeduction);
+  if (weeks) changes.weeklyCollectionAmount = Math.round((totalPayable / weeks) * 100) / 100;
+  // Freeze the due-date position so the new amount never moves the due dates.
+  const di = getLoanDueInfo(l);
+  const lw = di.paidWeeks != null ? di.paidWeeks : null;
+  if (lw != null) { changes.dueLockWeeks = lw; changes.dueLockBalance = newBalance; }
+  const ok = window.confirm(`Change loan amount for ${l.borrowerName}?\n\nLoan amount: ₱${oldAmount.toLocaleString()} → ₱${newAmount.toLocaleString()}\nBalance: ₱${oldBalance.toLocaleString()} → ₱${newBalance.toLocaleString()}\nTotal payable: ₱${totalPayable.toLocaleString()}\n\nDue dates will not change.`);
+  if (!ok) return;
+  await runAction("Updating loan amount...", "Saving the new loan amount and recomputing interest.", async () => {
+    await updateDoc(doc(db, "loans", loanId), { ...changes, previousAmount: oldAmount, amountEditedBy: adminId, amountEditedAt: serverTimestamp() });
+    alert("Loan amount updated. Due dates were not changed.");
   });
 };
 
