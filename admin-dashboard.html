@@ -2126,7 +2126,12 @@ function getLoanDueInfo(loan) {
   const balance = Number(loan.balance) || 0;
   const weeklyAmount = Math.round(((Number(loan.totalPayable) || amount) / weeks) * 100) / 100;
   if (balance === 0 || loan.status === "paid") return { date: addWeeklyDue(start, weeks), state: "paid", label: "PAID", weeks, weeklyAmount, remaining: 0 };
-  const paidWeeks = Math.min(weeks, Math.floor((1 - balance / amount) * weeks + 1e-9));
+  let paidWeeks = Math.min(weeks, Math.floor((1 - balance / amount) * weeks + 1e-9));
+  // Balance was edited by Admin: keep the schedule where it was, then only count payments made after the edit.
+  if (loan.dueLockWeeks != null && loan.dueLockBalance != null) {
+    const step = amount / weeks;
+    paidWeeks = Math.min(weeks, Number(loan.dueLockWeeks) + Math.max(0, Math.floor((Number(loan.dueLockBalance) - balance) / step + 1e-9)));
+  }
   let passed = 0;
   while (passed < weeks && addWeeklyDue(start, passed + 1) < today) passed++;
   const curDate = addWeeklyDue(start, Math.min(paidWeeks + 1, weeks));
@@ -3792,8 +3797,17 @@ window.editLoanBalance = async (loanId, currentBalance) => {
     return;
   }
 
+  // Freeze the current due-date position so editing the balance never moves the due date.
+  const lockLoan = (currentLoans || []).find(x => x.id === loanId);
+  let lockFields = {};
+  if (lockLoan) {
+    const li = getLoanDueInfo(lockLoan);
+    const lw = li.paidWeeks != null ? li.paidWeeks : (li.state === "paid" && li.weeks ? li.weeks : null);
+    if (lw != null) lockFields = { dueLockWeeks: lw, dueLockBalance: parsedBalance };
+  }
   await runAction("Updating balance...", "Saving the corrected loan balance.", async () => {
     await updateDoc(doc(db, "loans", loanId), {
+      ...lockFields,
       balance: parsedBalance,
       balanceEditedBy: adminId,
       balanceEditedAt: serverTimestamp()
