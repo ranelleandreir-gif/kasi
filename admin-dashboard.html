@@ -1622,10 +1622,9 @@ html.admin-locked .admin-locked-overlay { display: flex; }
               <label for="adminLoanerTerm">Loan Term</label>
               <select id="adminLoanerTerm" onchange="onAdminLoanerTermChange()">
                 <option value="">Select loan term</option>
-                <option value="3">3 Months</option>
-                <option value="6">6 Months</option>
-                <option value="12">1 Year</option>
-                <option value="custom">Other / Custom Term</option>
+                <option value="w3">3 Weeks</option>
+                <option value="w4">4 Weeks</option>
+                <option value="w5">5 Weeks</option>
               </select>
               <div class="term-rate-line" id="adminLoanerRateLine" style="display:none"></div>
             </div>
@@ -1633,13 +1632,13 @@ html.admin-locked .admin-locked-overlay { display: flex; }
           <div class="term-extra" id="adminLoanerCustomTermRow">
             <div class="loaner-grid">
               <div class="loaner-field"><label for="adminLoanerCustomMonths">Custom Term (months)</label><input type="number" id="adminLoanerCustomMonths" min="1" placeholder="e.g. 9" oninput="updateAdminLoanerInterestPreview()"></div>
-              <div class="loaner-field"><label for="adminLoanerCustomRate">Monthly Interest Rate (%)</label><input type="number" id="adminLoanerCustomRate" min="0" step="0.01" placeholder="e.g. 0.5" oninput="updateAdminLoanerInterestPreview()"></div>
+              <div class="loaner-field"><label for="adminLoanerCustomRate">Interest Rate (%)</label><input type="number" id="adminLoanerCustomRate" min="0" step="0.01" placeholder="e.g. 0.5" oninput="updateAdminLoanerInterestPreview()"></div>
             </div>
           </div>
           <div class="interest-preview" id="adminLoanerInterestPreview" style="display:none">
             <h5>Interest &amp; Total Payable</h5>
             <div class="review-row"><span>Principal Loan Amount</span><strong id="adminPrevPrincipal">₱0</strong></div>
-            <div class="review-row"><span>Monthly Interest Rate</span><strong id="adminPrevRate">0%</strong></div>
+            <div class="review-row"><span>Interest Rate</span><strong id="adminPrevRate">0%</strong></div>
             <div class="review-row"><span>Loan Term</span><strong id="adminPrevTerm">—</strong></div>
             <div class="review-row"><span>Total Interest</span><strong id="adminPrevInterest">₱0</strong></div>
             <div class="review-row"><span>Total Amount to Pay</span><strong id="adminPrevTotal">₱0</strong></div>
@@ -1648,11 +1647,9 @@ html.admin-locked .admin-locked-overlay { display: flex; }
 
           <div class="interest-preview" id="adminDeductionBox" style="display:block">
             <h5>Loan Deduction / Computation</h5>
-            <div class="loaner-grid">
-              <div class="loaner-field"><label for="adminProcFee">Processing Fee (₱)</label><input type="number" id="adminProcFee" min="0" placeholder="e.g. 500" oninput="updateAdminLoanerDeductions()"></div>
-              <div class="loaner-field"><label for="adminInsFee">Insurance Fee (₱)</label><input type="number" id="adminInsFee" min="0" placeholder="e.g. 100" oninput="updateAdminLoanerDeductions()"></div>
-              <div class="loaner-field"><label for="adminOtherDed">Other Deduction (₱)</label><input type="number" id="adminOtherDed" min="0" placeholder="0" oninput="updateAdminLoanerDeductions()"></div>
-            </div>
+            <div class="review-row"><span>Processing Fee</span><strong>₱100</strong></div>
+            <div class="review-row"><span>Insurance Fee</span><strong>₱50</strong></div>
+            <div class="review-row"><span>Document Fee</span><strong>₱50</strong></div>
             <div class="review-row"><span>Principal / Loan Amount</span><strong id="adminDedPrincipal">₱0</strong></div>
             <div class="review-row"><span>Interest</span><strong id="adminDedInterest">₱0</strong></div>
             <div class="review-row"><span>Total Deduction</span><strong id="adminDedTotal">₱0</strong></div>
@@ -1660,12 +1657,6 @@ html.admin-locked .admin-locked-overlay { display: flex; }
             <div class="review-row"><span>Total Amount Payable</span><strong id="adminDedPayable">₱0</strong></div>
             <div class="review-row"><span>Number of Weeks (Mon-Sat collection)</span><strong id="adminDedWeeks">—</strong></div>
             <div class="review-row"><span>Weekly Collection Amount</span><strong id="adminDedWeekly">₱0</strong></div>
-          </div>
-          <div class="interest-preview" id="adminBrgySection" style="display:block">
-            <h5>Barangay Clearance (required)</h5>
-            <input type="file" id="adminBrgyFile" accept="image/*">
-            <div class="cell-sub" id="adminBrgyMsg">Upload a photo/scan of the Barangay Clearance.</div>
-            <img id="adminBrgyPreview" alt="Barangay Clearance preview" style="display:none;max-width:100%;max-height:240px;margin-top:8px;border-radius:8px;border:1px solid var(--line, #ddd)">
           </div>
 
           <!-- Admin-only: needed to plug into the existing Admin/Firestore assignment workflow -->
@@ -2119,6 +2110,7 @@ function getLoanDueInfoLegacy(loan) {
 function weeklyAdjust(d) { const x = new Date(d); x.setHours(0,0,0,0); if (x.getDay() === 0) x.setDate(x.getDate() + 1); return x; }
 function addWeeklyDue(start, k) { const x = new Date(start); x.setHours(0,0,0,0); x.setDate(x.getDate() + 7 * k); return weeklyAdjust(x); }
 function getLoanWeeks(l) {
+  if (Number(l.loanTermWeeks) > 0) return Number(l.loanTermWeeks);
   const m = Number(l.loanTermMonths) || (l.loanTermType && l.loanTermType !== "custom" ? Number(l.loanTermType) : 0) || 0;
   return m * 4;
 }
@@ -2277,7 +2269,7 @@ function renderLoanFolder(title, list, parent) {
       <td>${isGroup ? `<span class="status-chip collected" title="${l.memberNames.join(', ')}">Group · ${l.memberNames.length}</span>` : "Solo"}</td>
       <td class="num amount">${money(l.amount)}</td>
       <td class="num amount">${money(l.balance)}${paymentDateText ? `<div class="cell-sub">${paymentDateText}</div>` : ""}</td>
-      <td>${l.loanTermType ? `${loanTermLabel(l)}${l.monthlyInterestRate != null ? `<div class="cell-sub">${l.monthlyInterestRate}%/mo</div>` : ""}` : "—"}</td>
+      <td>${l.loanTermType ? `${loanTermLabel(l)}${l.monthlyInterestRate != null ? `<div class="cell-sub">${l.monthlyInterestRate}%/${/^w\d+$/.test(String(l.loanTermType)) ? "wk" : "mo"}</div>` : ""}` : "—"}</td>
       <td>
         <span class="status-chip ${l.balance === 0 ? 'paid' : (l.status || 'assigned')}">${l.balance === 0 ? 'PAID' : (l.status || '').toUpperCase()}</span>
         ${l.deletionRequested ? `<div class="cell-sub" style="color:var(--red);font-weight:700;margin-top:4px;">DELETE REQUESTED</div>` : ""}
@@ -2692,7 +2684,7 @@ function renderLoanApplications(apps, parent) {
         <div class="app-field"><span>Income</span><strong>${a.income || "N/A"}</strong></div>
         <div class="app-field"><span>Loan Amount</span><strong>${money(a.amount)}</strong></div>
         <div class="app-field"><span>Loan Term</span><strong>${loanTermLabel(a)}</strong></div>
-        <div class="app-field"><span>Monthly Interest Rate</span><strong>${a.monthlyInterestRate != null ? a.monthlyInterestRate + "% / month" : "N/A"}</strong></div>
+        <div class="app-field"><span>Interest Rate</span><strong>${a.monthlyInterestRate != null ? a.monthlyInterestRate + (/^w\d+$/.test(String(a.loanTermType)) ? "% / week" : "% / month") : "N/A"}</strong></div>
         <div class="app-field"><span>Total Interest</span><strong>${a.totalInterest != null ? money(a.totalInterest) : "N/A"}</strong></div>
         <div class="app-field"><span>Total Amount to Pay</span><strong>${a.totalPayable != null ? money(a.totalPayable) : "N/A"}</strong></div>
         <div class="app-field"><span>Submitted By</span><strong>${a.fromCollectorApplication ? (a.createdByCollectorName || "Collector") : (a.createdByCashierName || "Cashier")}</strong></div>
@@ -2777,7 +2769,7 @@ const blStatusKey = (l) => (Number(l.balance) === 0 ? "paid" : (l.status || "ass
 function blFormat(l, key, kind) {
   const v = l[key];
   if (kind === "money") return money(v);
-  if (kind === "rate") return `${v}% / month`;
+  if (kind === "rate") return `${v}% / ${/^w\d+$/.test(String(l.loanTermType)) ? "week" : "month"}`;
   if (kind === "term") return loanTermLabel(l);
   if (kind === "status") return blStatusKey(l).toUpperCase();
   if (v && typeof v.toDate === "function") return fmtDate(v);
@@ -2791,7 +2783,7 @@ function blFormat(l, key, kind) {
 function blGroups(l) {
   const spec = [
     ["Borrower Information", [["borrowerName", "Borrower Name"], ["firstName", "First Name"], ["lastName", "Last Name"], ["contactNumber", "Contact Number"], ["email", "Email"], ["gender", "Gender"], ["address", "Address"], ["occupation", "Occupation"], ["income", "Income"], ["memberNames", "Group Members"], ["validIdType", "Valid ID Type"]]],
-    ["Loan Information", [["loanType", "Loan Type"], ["amount", "Amount Borrowed", "money"], ["balance", "Outstanding Balance", "money"], ["loanTermType", "Loan Term", "term"], ["monthlyInterestRate", "Monthly Interest Rate", "rate"], ["totalInterest", "Total Interest", "money"], ["totalPayable", "Total Amount to Pay", "money"], ["status", "Loan Status", "status"], ["createdAt", "Application / Loan Date"], ["approvedAt", "Approval Date"], ["lastPaymentAt", "Last Payment"], ["confirmedAt", "Paid On"]]],
+    ["Loan Information", [["loanType", "Loan Type"], ["amount", "Amount Borrowed", "money"], ["balance", "Outstanding Balance", "money"], ["loanTermType", "Loan Term", "term"], ["monthlyInterestRate", "Interest Rate", "rate"], ["totalInterest", "Total Interest", "money"], ["totalPayable", "Total Amount to Pay", "money"], ["status", "Loan Status", "status"], ["createdAt", "Application / Loan Date"], ["approvedAt", "Approval Date"], ["lastPaymentAt", "Last Payment"], ["confirmedAt", "Paid On"]]],
     ["Assignment & Processing", [["assignedCollectorName", "Assigned Collector"], ["assignedCashierName", "Assigned Cashier"], ["createdByCashierName", "Submitted By (Cashier)"], ["createdByCollectorName", "Submitted By (Collector)"], ["createdByAdminName", "Created By (Admin)"], ["approvedByCashierName", "Cashier-Approved By"]]]
   ];
   const used = new Set(BL_SKIP);
@@ -3045,6 +3037,7 @@ window.printBorrowerApplication = async (id) => {
 // ===================== LOAN TERM HELPER (new feature — additive only) =====================
 function loanTermLabel(l) {
   if (!l || !l.loanTermType) return "N/A";
+  if (/^w\d+$/.test(String(l.loanTermType))) return `${String(l.loanTermType).slice(1)} Weeks`;
   if (l.loanTermType === "3") return "3 Months";
   if (l.loanTermType === "6") return "6 Months";
   if (l.loanTermType === "12") return "1 Year";
@@ -4019,8 +4012,6 @@ function resetAdminLoanerForm() {
   const soloFields = document.getElementById("adminSoloBorrowerFields"); if (soloFields) soloFields.classList.remove("hidden");
   const termEl = document.getElementById("adminLoanerTerm");
   if (termEl) termEl.selectedIndex = 0;
-  ['adminProcFee','adminInsFee','adminOtherDed','adminBrgyFile'].forEach(i => { const el = document.getElementById(i); if (el) el.value = ''; });
-  adminBrgyData = ''; const brgyImg = document.getElementById('adminBrgyPreview'); if (brgyImg) brgyImg.style.display = 'none';
   try { updateAdminLoanerDeductions(); } catch (e) {}
   const customRow = document.getElementById("adminLoanerCustomTermRow");
   if (customRow) customRow.classList.remove("show");
@@ -4040,19 +4031,25 @@ function resetAdminLoanerForm() {
 window.resetAdminLoanerForm = resetAdminLoanerForm;
 
 // Same interest calculation as Cashier Add Loaner.
+const ADMIN_WEEKLY_TERM_RATE = 0.5; // % per week, same for 3/4/5 weeks
+const isWeeklyTerm = (t) => /^w\d+$/.test(String(t || ""));
+const weeklyTermWeeks = (t) => Number(String(t).slice(1)) || 0;
 const ADMIN_LOANER_INTEREST_RATES = { "3": 1, "6": 1.5, "12": 2 }; // % per month (3 mo = 1%, 6 mo = 1.5%, 12 mo = 2%)
 
 function getAdminLoanerTermMonths(termType) {
+  if (isWeeklyTerm(termType)) return weeklyTermWeeks(termType) / 4;
   if (termType === "custom") return Number(document.getElementById("adminLoanerCustomMonths").value) || 0;
   return Number(termType) || 0;
 }
 
 function getAdminLoanerMonthlyRate(termType) {
+  if (isWeeklyTerm(termType)) return ADMIN_WEEKLY_TERM_RATE;
   if (termType === "custom") return Number(document.getElementById("adminLoanerCustomRate").value) || 0;
   return ADMIN_LOANER_INTEREST_RATES[termType] || 0;
 }
 
 function adminLoanerTermLabel(termType, months) {
+  if (isWeeklyTerm(termType)) return `${weeklyTermWeeks(termType)} Weeks`;
   if (termType === "3") return "3 Months";
   if (termType === "6") return "6 Months";
   if (termType === "12") return "1 Year";
@@ -4063,7 +4060,8 @@ function adminLoanerTermLabel(termType, months) {
 function computeAdminLoanerInterest(amount, termType) {
   const months = getAdminLoanerTermMonths(termType);
   const rate = getAdminLoanerMonthlyRate(termType);
-  const totalInterest = amount > 0 && months > 0 ? Math.round(amount * (rate / 100) * months * 100) / 100 : 0;
+  const periods = isWeeklyTerm(termType) ? weeklyTermWeeks(termType) : months; // weekly terms: 0.5% x number of weeks
+  const totalInterest = amount > 0 && periods > 0 ? Math.round(amount * (rate / 100) * periods * 100) / 100 : 0;
   const totalPayable = Math.round((amount + totalInterest) * 100) / 100;
   return { months, rate, totalInterest, totalPayable };
 }
@@ -4074,8 +4072,11 @@ function refreshAdminLoanerRateLine() {
   const termEl = document.getElementById("adminLoanerTerm");
   if (!line || !termEl) return;
   const t = termEl.value;
-  if (t && t !== "custom" && ADMIN_LOANER_INTEREST_RATES[t] != null) {
-    line.innerHTML = `<span>Monthly Interest Rate:</span>${ADMIN_LOANER_INTEREST_RATES[t]}% per month`;
+  if (isWeeklyTerm(t)) {
+    line.innerHTML = `<span>Interest Rate:</span>${ADMIN_WEEKLY_TERM_RATE}% per week`;
+    line.style.display = "block";
+  } else if (t && t !== "custom" && ADMIN_LOANER_INTEREST_RATES[t] != null) {
+    line.innerHTML = `<span>Interest Rate:</span>${ADMIN_LOANER_INTEREST_RATES[t]}% per month`;
     line.style.display = "block";
   } else {
     line.style.display = "none";
@@ -4097,16 +4098,14 @@ window.onAdminLoanerTermChange = () => {
 };
 
 // ===== LOAN DEDUCTIONS + BARANGAY CLEARANCE (ADDED) =====
-let adminBrgyData = "";
 function getAdminLoanerDeductions() {
-  const n = (id) => Math.max(0, Number(document.getElementById(id)?.value) || 0);
   const amount = Number(document.getElementById("adminLoanerAmount")?.value) || 0;
   const termType = document.getElementById("adminLoanerTerm")?.value || "";
-  const processingFee = n("adminProcFee"), insuranceFee = n("adminInsFee"), otherDeduction = n("adminOtherDed");
-  const totalDeduction = processingFee + insuranceFee + otherDeduction;
+  const processingFee = 100, insuranceFee = 50, documentFee = 50; // fixed amounts
+  const totalDeduction = processingFee + insuranceFee + documentFee;
   const calc = termType ? computeAdminLoanerInterest(amount, termType) : { months: 0, totalInterest: 0, totalPayable: amount };
   const weeks = (calc.months || 0) * 4;
-  return { amount, processingFee, insuranceFee, otherDeduction, totalDeduction, netAmountReceived: amount - totalDeduction,
+  return { amount, processingFee, insuranceFee, documentFee, totalDeduction, netAmountReceived: amount - totalDeduction,
     totalInterest: calc.totalInterest || 0, totalPayable: calc.totalPayable || amount, weeks,
     weeklyAmount: weeks ? Math.round(((calc.totalPayable || 0) / weeks) * 100) / 100 : 0 };
 }
@@ -4118,30 +4117,6 @@ window.updateAdminLoanerDeductions = () => {
   set("adminDedNet", m(d.netAmountReceived)); set("adminDedPayable", m(d.totalPayable));
   set("adminDedWeeks", d.weeks ? `${d.weeks} weeks` : "—"); set("adminDedWeekly", m(d.weeklyAmount));
 };
-document.addEventListener("change", (e) => {
-  if (!e.target || e.target.id !== "adminBrgyFile") return;
-  const f = e.target.files && e.target.files[0];
-  const msg = document.getElementById("adminBrgyMsg"), img = document.getElementById("adminBrgyPreview");
-  adminBrgyData = ""; if (img) img.style.display = "none";
-  if (!f) return;
-  if (!/^image\//.test(f.type)) { if (msg) msg.textContent = "Please choose an image file."; e.target.value = ""; return; }
-  const reader = new FileReader();
-  reader.onload = () => {
-    const im = new Image();
-    im.onload = () => {
-      const sc = Math.min(1, 1280 / Math.max(im.width, im.height));
-      const c = document.createElement("canvas"); c.width = Math.round(im.width * sc); c.height = Math.round(im.height * sc);
-      c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
-      let q = 0.74, out = c.toDataURL("image/jpeg", q);
-      while (out.length > 380000 && q > 0.3) { q -= 0.1; out = c.toDataURL("image/jpeg", q); }
-      adminBrgyData = out;
-      if (img) { img.src = out; img.style.display = "block"; }
-      if (msg) msg.textContent = "Barangay Clearance attached.";
-    };
-    im.src = reader.result;
-  };
-  reader.readAsDataURL(f);
-});
 
 window.updateAdminLoanerInterestPreview = () => {
   const amount = Number(document.getElementById("adminLoanerAmount").value) || 0;
@@ -4161,12 +4136,14 @@ window.updateAdminLoanerInterestPreview = () => {
   }
   preview.style.display = "block";
   document.getElementById("adminPrevPrincipal").innerText = `₱${amount.toLocaleString()}`;
-  document.getElementById("adminPrevRate").innerText = `${rate}% per month`;
+  document.getElementById("adminPrevRate").innerText = isWeeklyTerm(termType) ? `${rate}% per week` : `${rate}% per month`;
   document.getElementById("adminPrevTerm").innerText = adminLoanerTermLabel(termType, months);
   document.getElementById("adminPrevInterest").innerText = `₱${totalInterest.toLocaleString()}`;
   document.getElementById("adminPrevTotal").innerText = `₱${totalPayable.toLocaleString()}`;
   const monthlyEl = document.getElementById("adminPrevMonthly");
-  if (monthlyEl) monthlyEl.innerText = `₱${(Math.round((totalPayable / months) * 100) / 100).toLocaleString()} / month`;
+  if (monthlyEl) monthlyEl.innerText = isWeeklyTerm(termType)
+    ? `₱${(Math.round((totalPayable / weeklyTermWeeks(termType)) * 100) / 100).toLocaleString()} / week`
+    : `₱${(Math.round((totalPayable / months) * 100) / 100).toLocaleString()} / month`;
 };
 
 window.adminLoanerNextFromPersonal = () => {
@@ -4361,7 +4338,7 @@ function buildAdminLoanerReview() {
     const cashierLabel = cashierSelect.options[cashierSelect.selectedIndex]?.textContent || "—";
     const reviewBox = document.getElementById("adminLoanerReviewContent");
     if (!reviewBox) return;
-    reviewBox.innerHTML = `<div class="review-group"><h4>Group Information</h4><div class="review-row"><span>Group Name</span><strong>${val("adminGroupName")}</strong></div><div class="review-row"><span>Group Address</span><strong>${getAdminGroupAddress()}</strong></div><div class="review-row"><span>Members</span><strong>${members.length}</strong></div></div><div class="review-group"><h4>Group Members</h4>${members.map((m,i)=>`<div class="review-row"><span>Member ${i+1}</span><strong>${m.fullName || `${m.firstName} ${m.lastName}`.trim()} — ₱${Number(m.amount||0).toLocaleString()}</strong></div>`).join("")}</div><div class="review-group"><h4>Loan Details</h4><div class="review-row"><span>Total Group Loan Amount</span><strong>₱${total.toLocaleString()}</strong></div><div class="review-row"><span>Loan Term</span><strong>${adminLoanerTermLabel(termType, calc.months)}</strong></div><div class="review-row"><span>Monthly Interest Rate</span><strong>${calc.rate}%</strong></div><div class="review-row"><span>Total Interest</span><strong>₱${calc.totalInterest.toLocaleString()}</strong></div><div class="review-row"><span>Total Amount to Pay</span><strong>₱${calc.totalPayable.toLocaleString()}</strong></div></div><div class="group-signature-page-note">After approval, the system will generate one group application plus one individual signature page for every member.</div><div class="review-group"><h4>Assignment</h4><div class="review-row"><span>Assigned Collector</span><strong>${collectorLabel}</strong></div><div class="review-row"><span>Assigned Cashier</span><strong>${cashierLabel}</strong></div></div>`;
+    reviewBox.innerHTML = `<div class="review-group"><h4>Group Information</h4><div class="review-row"><span>Group Name</span><strong>${val("adminGroupName")}</strong></div><div class="review-row"><span>Group Address</span><strong>${getAdminGroupAddress()}</strong></div><div class="review-row"><span>Members</span><strong>${members.length}</strong></div></div><div class="review-group"><h4>Group Members</h4>${members.map((m,i)=>`<div class="review-row"><span>Member ${i+1}</span><strong>${m.fullName || `${m.firstName} ${m.lastName}`.trim()} — ₱${Number(m.amount||0).toLocaleString()}</strong></div>`).join("")}</div><div class="review-group"><h4>Loan Details</h4><div class="review-row"><span>Total Group Loan Amount</span><strong>₱${total.toLocaleString()}</strong></div><div class="review-row"><span>Loan Term</span><strong>${adminLoanerTermLabel(termType, calc.months)}</strong></div><div class="review-row"><span>Interest Rate</span><strong>${calc.rate}%</strong></div><div class="review-row"><span>Total Interest</span><strong>₱${calc.totalInterest.toLocaleString()}</strong></div><div class="review-row"><span>Total Amount to Pay</span><strong>₱${calc.totalPayable.toLocaleString()}</strong></div></div><div class="group-signature-page-note">After approval, the system will generate one group application plus one individual signature page for every member.</div><div class="review-group"><h4>Assignment</h4><div class="review-row"><span>Assigned Collector</span><strong>${collectorLabel}</strong></div><div class="review-row"><span>Assigned Cashier</span><strong>${cashierLabel}</strong></div></div>`;
     return;
   }
   syncAdminSoloAddress();
@@ -4390,7 +4367,7 @@ function buildAdminLoanerReview() {
       <h4>Loan Details</h4>
       <div class="review-row"><span>Loan Amount</span><strong>₱${amount.toLocaleString()}</strong></div>
       <div class="review-row"><span>Loan Term</span><strong>${adminLoanerTermLabel(termType, months)}</strong></div>
-      <div class="review-row"><span>Monthly Interest Rate</span><strong>${rate}%</strong></div>
+      <div class="review-row"><span>Interest Rate</span><strong>${rate}%</strong></div>
       <div class="review-row"><span>Total Interest</span><strong>₱${totalInterest.toLocaleString()}</strong></div>
       <div class="review-row"><span>Total Amount to Pay</span><strong>₱${totalPayable.toLocaleString()}</strong></div>
     </div>
@@ -4430,7 +4407,6 @@ window.submitAdminLoanerApplication = async () => {
     alert(finalCheck.message);
     return;
   }
-  if (!adminBrgyData) { alert("Upload the Barangay Clearance before submitting."); return; }
   const ded = getAdminLoanerDeductions();
   if (ded.netAmountReceived < 0) { alert("Total deductions cannot be more than the loan amount."); return; }
 
@@ -4477,11 +4453,11 @@ window.submitAdminLoanerApplication = async () => {
         members: loanType === "group" ? groupMembers : null,
         loanTermType: termType,
         loanTermMonths: months,
+        loanTermWeeks: isWeeklyTerm(termType) ? weeklyTermWeeks(termType) : Math.round(months * 4),
         monthlyInterestRate: rate,
         totalInterest,
         totalPayable,
-        barangayClearance: adminBrgyData,
-        processingFee: ded.processingFee, insuranceFee: ded.insuranceFee, otherDeduction: ded.otherDeduction,
+        processingFee: ded.processingFee, insuranceFee: ded.insuranceFee, documentFee: ded.documentFee,
         totalDeduction: ded.totalDeduction, netAmountReceived: ded.netAmountReceived,
         collectionFrequency: "weekly", numberOfWeeks: ded.weeks, weeklyCollectionAmount: ded.weeklyAmount,
         dueDate: addWeeklyDue(new Date(), 1),
@@ -4822,6 +4798,7 @@ window.logout = async () => {
     // Photos are compressed to JPEG so they fit safely inside the existing loan document (Firestore 1 MB doc limit).
     applicant: { maxDim: 640, quality: 0.8, maxChars: 240000 },
     validId: { maxDim: 1280, quality: 0.74, maxChars: 380000 },
+    barangay: { maxDim: 1000, quality: 0.72, maxChars: 200000 },
     maxUploadBytes: 25 * 1024 * 1024
   };
 
@@ -4834,10 +4811,11 @@ window.logout = async () => {
     photo: "Please upload or take your applicant photo.",
     idType: "Please select a Valid ID.",
     idPhoto: "Please upload or take a photo of your Valid ID.",
+    barangay: "Please upload or take a photo of the Barangay Clearance.",
     confirm: "Please review all information before confirming your application."
   };
 
-  var state = { applicantPhoto: "", validIdType: "", validIdPhoto: "" };
+  var state = { applicantPhoto: "", validIdType: "", validIdPhoto: "", barangayClearance: "" };
   var slots = {};
   var mediaMounted = false;
   var editMode = false;
@@ -5176,6 +5154,10 @@ window.logout = async () => {
         '<div class="kp-sec-head"><span class="kp-num">3</span><div><h4>Valid ID Photo</h4><p>Required. The photo must be of the Valid ID selected above.</p></div></div>' +
         '<div class="kp-idtype-line" id="kpIdTypeLine"></div>' +
         '<div data-slot="id"></div>' +
+      "</section>" +
+      '<section class="kp-section" id="kpSecBarangay">' +
+        '<div class="kp-sec-head"><span class="kp-num">4</span><div><h4>Barangay Clearance</h4><p>Required. Upload or take a photo of the Barangay Clearance.</p></div></div>' +
+        '<div data-slot="barangay"></div>' +
       "</section>";
 
     slots.applicant = createSlot({
@@ -5186,8 +5168,13 @@ window.logout = async () => {
       title: "Valid ID photo", facing: "environment", cfg: CONFIG.validId,
       onChange: function (v) { state.validIdPhoto = v; clearMediaError(); }
     });
+    slots.barangay = createSlot({
+      title: "Barangay Clearance", facing: "environment", cfg: CONFIG.barangay,
+      onChange: function (v) { state.barangayClearance = v; clearMediaError(); }
+    });
     container.querySelector('[data-slot="applicant"]').appendChild(slots.applicant.el);
     container.querySelector('[data-slot="id"]').appendChild(slots.id.el);
+    container.querySelector('[data-slot="barangay"]').appendChild(slots.barangay.el);
 
     container.querySelector(".kp-id-grid").addEventListener("click", function (ev) {
       var b = ev.target.closest(".kp-id-card");
@@ -5213,6 +5200,7 @@ window.logout = async () => {
     if (!state.applicantPhoto) return { ok: false, message: MSG.photo, target: "kpSecApplicant" };
     if (!state.validIdType) return { ok: false, message: MSG.idType, target: "kpSecIdType" };
     if (!state.validIdPhoto) return { ok: false, message: MSG.idPhoto, target: "kpSecIdPhoto" };
+    if (!state.barangayClearance) return { ok: false, message: MSG.barangay, target: "kpSecBarangay" };
     return { ok: true };
   }
 
@@ -5272,7 +5260,8 @@ window.logout = async () => {
       '<div class="review-row"><span>Due Date (first payment)</span><strong>' + esc(longDate(d.firstDueDate)) + "</strong></div>" +
       '<div class="review-row"><span>Final Payment Date</span><strong>' + esc(longDate(d.finalPaymentDate)) + "</strong></div></div>");
 
-    if (groups[0]) { box.insertBefore(photoGroup, groups[0]); groups[0].after(idGroup); } else { box.appendChild(photoGroup); box.appendChild(idGroup); }
+    var brgyGroup = html('<div class="review-group"><h4>Barangay Clearance</h4><div class="kp-review-imgwrap kp-wide"><img src="' + state.barangayClearance + '" alt="Barangay Clearance"></div></div>');
+    if (groups[0]) { box.insertBefore(photoGroup, groups[0]); groups[0].after(idGroup); idGroup.after(brgyGroup); } else { box.appendChild(photoGroup); box.appendChild(idGroup); box.appendChild(brgyGroup); }
     if (groups[1]) groups[1].after(schedGroup); else box.appendChild(schedGroup);
 
     var confirm = html(
@@ -5321,7 +5310,7 @@ window.logout = async () => {
 
   function reset() {
     stopAllCameras();
-    state.applicantPhoto = ""; state.validIdType = ""; state.validIdPhoto = "";
+    state.applicantPhoto = ""; state.validIdType = ""; state.validIdPhoto = ""; state.barangayClearance = "";
     Object.keys(slots).forEach(function (k) { slots[k].clear(); });
     clearMediaError();
     updateIdSelectionUI();
@@ -5439,7 +5428,7 @@ window.logout = async () => {
     // Page 1: single group application
     header("GROUP LOAN APPLICATION",d.applicationId);
     var y=38; y=section("GROUP INFORMATION",y);
-    y=row("Group Name",d.groupName,y); y=row("Group Address",d.groupAddress,y); y=row("Loan Term",d.termLabel,y); y=row("Monthly Interest Rate",(d.monthlyRate||0)+"% per month",y);
+    y=row("Group Name",d.groupName,y); y=row("Group Address",d.groupAddress,y); y=row("Loan Term",d.termLabel,y); y=row("Interest Rate",(d.monthlyRate||0)+(/Week/.test(d.termLabel||"") ? "% per week" : "% per month"),y);
     y += 4; y=section("LOAN SUMMARY",y);
     fill(LIGHT);stroke(BORDER);doc.rect(M,y,CW,35,"FD");
     var cols=[['TOTAL GROUP AMOUNT',php(d.amount)],['TOTAL INTEREST',php(d.totalInterest)],['TOTAL PAYABLE',php(d.totalPayable)]];
@@ -5468,7 +5457,7 @@ window.logout = async () => {
       yy += 4; yy=section("MEMBER INFORMATION",yy);
       var name=m.fullName||((m.firstName||"")+" "+(m.lastName||"")).trim()||("Member "+(i+1));
       yy=row("Full Name",name,yy); yy=row("House No.",m.houseNo,yy); yy=row("Street / Purok",m.streetPurok,yy); yy=row("Barangay",m.barangay,yy); yy=row("Municipality",m.municipality,yy); yy=row("Country",m.country,yy); yy=row("Contact Number",m.contactNumber,yy); yy=row("Email",m.email,yy); yy=row("Occupation",m.occupation,yy); yy=row("Income",m.income,yy);
-      yy += 3; yy=section("MEMBER LOAN DETAILS",yy); yy=row("Individual Amount Borrowed",php(m.amount),yy); yy=row("Loan Term",d.termLabel,yy); yy=row("Monthly Interest Rate",(d.monthlyRate||0)+"% per month",yy);
+      yy += 3; yy=section("MEMBER LOAN DETAILS",yy); yy=row("Individual Amount Borrowed",php(m.amount),yy); yy=row("Loan Term",d.termLabel,yy); yy=row("Interest Rate",(d.monthlyRate||0)+(/Week/.test(d.termLabel||"") ? "% per week" : "% per month"),yy);
       yy += 4; yy=section("MEMBER IDENTIFICATION",yy);
       var photoX=M, photoY=yy, photoW=46, photoH=48, idX=M+60, idY=yy, idW=116, idH=48;
       fill(WHITE);stroke(BORDER);doc.roundedRect(photoX,photoY,photoW,photoH,2,2,"FD");doc.roundedRect(idX,idY,idW,idH,2,2,"FD");
@@ -5684,7 +5673,7 @@ window.logout = async () => {
     sectionTitle("LOAN INFORMATION");
     kvGrid([
       { label: "Loan Amount / Amount Borrowed", value: php(d.amount) },
-      { label: "Interest Rate", value: (d.monthlyRate != null ? d.monthlyRate + "% per month" : "N/A") },
+      { label: "Interest Rate", value: (d.monthlyRate != null ? d.monthlyRate + (/Week/.test(d.termLabel||"") ? "% per week" : "% per month") : "N/A") },
       { label: "Interest Amount", value: php(d.totalInterest) },
       { label: "Loan Term", value: d.termLabel },
       { label: "Payment Frequency", value: d.paymentFrequency },
@@ -5834,9 +5823,9 @@ window.logout = async () => {
     validateMediaStep: validateMediaStep,
     validateBeforeConfirm: validateBeforeConfirm,
     isConfirmChecked: isConfirmChecked,
-    getState: function () { return { applicantPhoto: state.applicantPhoto, validIdType: state.validIdType, validIdPhoto: state.validIdPhoto }; },
+    getState: function () { return { applicantPhoto: state.applicantPhoto, validIdType: state.validIdType, validIdPhoto: state.validIdPhoto, barangayClearance: state.barangayClearance }; },
     // Extra fields stored on the SAME loan document created by the existing workflow.
-    getFirestoreFields: function () { return { applicantPhoto: state.applicantPhoto, validIdType: state.validIdType, validIdPhoto: state.validIdPhoto }; },
+    getFirestoreFields: function () { return { applicantPhoto: state.applicantPhoto, validIdType: state.validIdType, validIdPhoto: state.validIdPhoto, barangayClearance: state.barangayClearance }; },
     decorateReview: decorateReview,
     installEditBar: installEditBar,
     setEditMode: setEditMode,
