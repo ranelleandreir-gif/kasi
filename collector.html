@@ -607,6 +607,19 @@ input:focus,select:focus{border-color:var(--blue);background:#fff;box-shadow:0 0
         <div class="review-row"><span>Total Interest</span><strong id="prevInterest">₱0</strong></div>
         <div class="review-row"><span>Total Amount to Pay</span><strong id="prevTotal">₱0</strong></div>
       </div>
+      <div class="interest-preview" id="loanerDeductionBox" style="display:block">
+        <h5>Loan Deduction / Computation</h5>
+        <div class="review-row"><span>Processing Fee</span><strong>₱100</strong></div>
+        <div class="review-row"><span>Insurance Fee</span><strong>₱50</strong></div>
+        <div class="review-row"><span>Document Fee</span><strong>₱50</strong></div>
+        <div class="review-row"><span>Total Deduction</span><strong id="dedTotal">₱200</strong></div>
+        <div class="review-row"><span>Principal / Loan Amount</span><strong id="dedPrincipal">₱0</strong></div>
+        <div class="review-row"><span>Interest</span><strong id="dedInterest">₱0</strong></div>
+        <div class="review-row"><span>Net Amount Received</span><strong id="dedNet">₱0</strong></div>
+        <div class="review-row"><span>Total Amount Payable</span><strong id="dedPayable">₱0</strong></div>
+        <div class="review-row"><span>Number of Weeks (Mon-Sat collection)</span><strong id="dedWeeks">—</strong></div>
+        <div class="review-row"><span>Weekly Collection Amount</span><strong id="dedWeekly">₱0</strong></div>
+      </div>
       <div class="loaner-actions">
         <button type="button" class="button outline" onclick="loanerBackToPersonal()">← Back</button>
         <button type="button" class="button blue" onclick="loanerNextFromLoanDetails()">Next: Photo &amp; Valid ID →</button>
@@ -677,6 +690,16 @@ input:focus,select:focus{border-color:var(--blue);background:#fff;box-shadow:0 0
           </div>
         </div>
         <div class="doc-required" id="validIdPhotoRequired">⚠ Valid ID Photo is required.</div>
+      </div>
+
+      <!-- Barangay Clearance (ADDED) -->
+      <div class="doc-block" id="barangayClearanceBox" style="margin-top:16px">
+        <h4 style="margin:0 0 4px">📄 Barangay Clearance</h4>
+        <p style="color:var(--muted);font-size:.82rem;margin:0 0 8px">Required. Upload the Barangay Clearance photo.</p>
+        <button type="button" class="button outline" onclick="document.getElementById('barangayInput').click()">📁 Upload Photo</button>
+        <input type="file" id="barangayInput" accept="image/png,image/jpeg,image/jpg" style="display:none" onchange="handleBarangayUpload(event)">
+        <div id="barangayPreviewWrap" style="display:none;margin-top:8px"><img id="barangayPreview" alt="Barangay Clearance preview" style="max-width:100%;max-height:220px;border-radius:8px;border:1px solid #dbe3ee"></div>
+        <div class="doc-required" id="barangayRequired">⚠ Barangay Clearance is required.</div>
       </div>
 
       <div class="loaner-actions">
@@ -1055,6 +1078,8 @@ let validIdPhotoData = null;
 function resetLoanerDocuments() {
   applicantPhotoData = null;
   validIdPhotoData = null;
+  clearBarangayPreview();
+  try { updateLoanerDeductions(); } catch (e) {}
   setDocPreview("applicant", null);
   setDocPreview("validId", null);
   const idType = document.getElementById("loanerValidIdType");
@@ -1451,6 +1476,11 @@ window.loanerNextFromDocuments = () => {
     ok = false;
   }
 
+  if (!loanerBarangayDataUrl) {
+    const rq = document.getElementById("barangayRequired"); if (rq) rq.classList.add("show");
+    ok = false;
+  }
+
   if (!ok) {
     alert("Kumpletuhin muna: Applicant Photo, Valid ID Type, at Valid ID Photo.");
     return;
@@ -1504,6 +1534,10 @@ function buildLoanerReview() {
           <span>Valid ID Photo</span>
           <img src="${validIdPhotoData || ""}" alt="Valid ID photo">
         </div>
+        <div class="review-photo">
+          <span>Barangay Clearance</span>
+          <img src="${loanerBarangayDataUrl || ""}" alt="Barangay Clearance">
+        </div>
       </div>
       <div class="review-row"><span>Valid ID Type</span><strong>${idType}</strong></div>
     </div>
@@ -1518,6 +1552,14 @@ function buildLoanerReview() {
       <div class="review-row"><span>Gender</span><strong>${val("loanerGender")}</strong></div>
       <div class="review-row"><span>Occupation</span><strong>${val("loanerOccupation")}</strong></div>
       <div class="review-row"><span>Income</span><strong>${val("loanerIncome")}</strong></div>
+    </div>
+    <div class="review-group">
+      <h4>Loan Deductions</h4>
+      <div class="review-row"><span>Processing Fee</span><strong>₱100</strong></div>
+      <div class="review-row"><span>Insurance Fee</span><strong>₱50</strong></div>
+      <div class="review-row"><span>Document Fee</span><strong>₱50</strong></div>
+      <div class="review-row"><span>Total Deduction</span><strong>₱200</strong></div>
+      <div class="review-row"><span>Net Amount Received</span><strong>₱${(getLoanerDeductions().netAmountReceived).toLocaleString()}</strong></div>
     </div>
     <div class="review-group">
       <h4>Loan Details</h4>
@@ -1535,6 +1577,51 @@ function buildLoanerReview() {
     </div>
   `;
 }
+
+// ===== LOAN DEDUCTIONS + BARANGAY CLEARANCE (ADDED) =====
+function getLoanerDeductions() {
+  const amount = Number(document.getElementById("loanerAmount")?.value) || 0;
+  const termType = document.getElementById("loanerTerm")?.value || "";
+  const processingFee = 100, insuranceFee = 50, documentFee = 50; // fixed amounts
+  const totalDeduction = processingFee + insuranceFee + documentFee;
+  const calc = termType ? computeLoanerInterest(amount, termType) : { months: 0, totalInterest: 0, totalPayable: amount };
+  const weeks = (calc.months || 0) * 4;
+  return { amount, processingFee, insuranceFee, documentFee, totalDeduction, netAmountReceived: amount - totalDeduction,
+    totalInterest: calc.totalInterest || 0, totalPayable: calc.totalPayable || amount, weeks,
+    weeklyAmount: weeks ? Math.round(((calc.totalPayable || 0) / weeks) * 100) / 100 : 0 };
+}
+function updateLoanerDeductions() {
+  const d = getLoanerDeductions();
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const m = (v) => `₱${Number(v).toLocaleString()}`;
+  set("dedTotal", m(d.totalDeduction)); set("dedPrincipal", m(d.amount)); set("dedInterest", m(d.totalInterest));
+  set("dedNet", m(d.netAmountReceived)); set("dedPayable", m(d.totalPayable));
+  set("dedWeeks", d.weeks ? `${d.weeks} weeks` : "—"); set("dedWeekly", m(d.weeklyAmount));
+}
+{
+  const _prevInterestPreview = window.updateLoanerInterestPreview;
+  window.updateLoanerInterestPreview = () => { _prevInterestPreview(); try { updateLoanerDeductions(); } catch (e) {} };
+}
+let loanerBarangayDataUrl = null;
+function clearBarangayPreview() {
+  loanerBarangayDataUrl = null;
+  const w = document.getElementById("barangayPreviewWrap"); if (w) w.style.display = "none";
+  const im = document.getElementById("barangayPreview"); if (im) im.removeAttribute("src");
+  const rq = document.getElementById("barangayRequired"); if (rq) rq.classList.remove("show");
+}
+window.handleBarangayUpload = async (event) => {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  if (!file.type || !file.type.startsWith("image/")) { alert("Please select a JPG or PNG image."); return; }
+  try {
+    const dataUrl = await compressImageFile(file, 800);
+    loanerBarangayDataUrl = dataUrl;
+    const w = document.getElementById("barangayPreviewWrap"); if (w) w.style.display = "block";
+    const im = document.getElementById("barangayPreview"); if (im) im.src = dataUrl;
+    const rq = document.getElementById("barangayRequired"); if (rq) rq.classList.remove("show");
+  } catch (error) { alert("Please select a valid image file."); }
+};
 
 window.submitLoanerApplication = async () => {
   const val = (id) => document.getElementById(id).value.trim();
@@ -1563,6 +1650,11 @@ window.submitLoanerApplication = async () => {
   }
   if (!validIdPhotoData) {
     alert("Valid ID Photo is required.");
+    showLoanerStep(3);
+    return;
+  }
+  if (!loanerBarangayDataUrl) {
+    alert("Barangay Clearance is required.");
     showLoanerStep(3);
     return;
   }
@@ -1619,6 +1711,9 @@ window.submitLoanerApplication = async () => {
       applicantPhotoUrl: applicantPhotoData,
       validIdType,
       validIdPhotoUrl: validIdPhotoData,
+      barangayClearance: loanerBarangayDataUrl,
+      processingFee: 100, insuranceFee: 50, documentFee: 50, totalDeduction: 200,
+      netAmountReceived: amount - 200,
       applicationStartDate: Timestamp.fromDate(start),
       applicationFirstDueDate: Timestamp.fromDate(firstDue),
       applicationFinalDueDate: Timestamp.fromDate(finalDue),
