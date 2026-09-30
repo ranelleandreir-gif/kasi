@@ -506,10 +506,9 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
           <label for="loanerTerm">Loan Term</label>
           <select id="loanerTerm" onchange="onLoanerTermChange()">
             <option value="">Select loan term</option>
-            <option value="3">3 Months</option>
-            <option value="6">6 Months</option>
-            <option value="12">1 Year</option>
-            <option value="custom">Other / Custom Term</option>
+            <option value="w3">3 Weeks</option>
+            <option value="w4">4 Weeks</option>
+            <option value="w5">5 Weeks</option>
           </select>
         </div>
       </div>
@@ -522,7 +521,7 @@ input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(4
       <div class="interest-preview" id="loanerInterestPreview" style="display:none">
         <h5>Interest &amp; Total Payable</h5>
         <div class="review-row"><span>Principal Loan Amount</span><strong id="prevPrincipal">₱0</strong></div>
-        <div class="review-row"><span>Monthly Interest Rate</span><strong id="prevRate">0%</strong></div>
+        <div class="review-row"><span>Interest Rate</span><strong id="prevRate">0%</strong></div>
         <div class="review-row"><span>Loan Term</span><strong id="prevTerm">—</strong></div>
         <div class="review-row"><span>Total Interest</span><strong id="prevInterest">₱0</strong></div>
         <div class="review-row"><span>Total Amount to Pay</span><strong id="prevTotal">₱0</strong></div>
@@ -1692,9 +1691,13 @@ function resetLoanerForm() {
 
 // ===== Loan Term / Interest calculation (new feature — additive only) =====
 // Adjust monthly rates here if the business changes its tubo/interest policy.
-const LOANER_INTEREST_RATES = { "3": 1, "6": 0.5, "12": 0.4 }; // % per month
+const LOANER_INTEREST_RATES = { "3": 1, "6": 0.5, "12": 0.4, "w3": 0.5, "w4": 0.5, "w5": 0.5 }; // old month terms: % per month | week terms (w3/w4/w5): flat 0.5% of the loan amount
+
+function isLoanerWeekTerm(termType) { return /^w\d+$/.test(String(termType || "")); }
+function getLoanerTermWeeks(termType) { return isLoanerWeekTerm(termType) ? Number(String(termType).slice(1)) : 0; }
 
 function getLoanerTermMonths(termType) {
+  if (isLoanerWeekTerm(termType)) return getLoanerTermWeeks(termType) / 4; // weeks -> months (kept for existing fields/logic)
   if (termType === "custom") return Number(document.getElementById("loanerCustomMonths").value) || 0;
   return Number(termType) || 0;
 }
@@ -1705,6 +1708,7 @@ function getLoanerMonthlyRate(termType) {
 }
 
 function loanerTermLabel(termType, months) {
+  if (isLoanerWeekTerm(termType)) return `${getLoanerTermWeeks(termType)} Weeks`;
   if (termType === "3") return "3 Months";
   if (termType === "6") return "6 Months";
   if (termType === "12") return "1 Year";
@@ -1715,7 +1719,10 @@ function loanerTermLabel(termType, months) {
 function computeLoanerInterest(amount, termType) {
   const months = getLoanerTermMonths(termType);
   const rate = getLoanerMonthlyRate(termType);
-  const totalInterest = amount > 0 && months > 0 ? Math.round(amount * (rate / 100) * months * 100) / 100 : 0;
+  // Week terms: flat 0.5% of the loan amount. Old month terms keep the original formula.
+  const totalInterest = amount > 0 && months > 0
+    ? (isLoanerWeekTerm(termType) ? Math.round(amount * (rate / 100) * 100) / 100 : Math.round(amount * (rate / 100) * months * 100) / 100)
+    : 0;
   const totalPayable = Math.round((amount + totalInterest) * 100) / 100;
   return { months, rate, totalInterest, totalPayable };
 }
@@ -1749,7 +1756,7 @@ window.updateLoanerInterestPreview = () => {
   }
   preview.style.display = "block";
   document.getElementById("prevPrincipal").innerText = `₱${amount.toLocaleString()}`;
-  document.getElementById("prevRate").innerText = `${rate}% per month`;
+  document.getElementById("prevRate").innerText = isLoanerWeekTerm(termType) ? `${rate}%` : `${rate}% per month`;
   document.getElementById("prevTerm").innerText = loanerTermLabel(termType, months);
   document.getElementById("prevInterest").innerText = `₱${totalInterest.toLocaleString()}`;
   document.getElementById("prevTotal").innerText = `₱${totalPayable.toLocaleString()}`;
@@ -2037,7 +2044,7 @@ function buildLoanerReview() {
       <h4>Loan Information</h4>
       <div class="review-row"><span>Amount Borrowed</span><strong>₱${amount.toLocaleString()}</strong></div>
       <div class="review-row"><span>Loan Term</span><strong>${loanerTermLabel(termType, months)}</strong></div>
-      <div class="review-row"><span>Monthly Interest Rate</span><strong>${rate}%</strong></div>
+      <div class="review-row"><span>Interest Rate</span><strong>${isLoanerWeekTerm(termType) ? rate + "%" : rate + "% per month"}</strong></div>
       <div class="review-row"><span>Total Interest</span><strong>₱${totalInterest.toLocaleString()}</strong></div>
       <div class="review-row"><span>Total Amount to Pay</span><strong>₱${totalPayable.toLocaleString()}</strong></div>
     </div>
@@ -2140,6 +2147,7 @@ window.submitLoanerApplication = async () => {
       memberNames: null,
       loanTermType: termType,
       loanTermMonths: months,
+      loanTermWeeks: isLoanerWeekTerm(termType) ? getLoanerTermWeeks(termType) : null,
       monthlyInterestRate: rate,
       totalInterest,
       totalPayable,
@@ -2245,7 +2253,7 @@ function loadCollectorLoanRequests() {
           <div>Income: <strong>${r.income || "N/A"}</strong></div>
           <div>Loan Amount: <strong>₱${(r.amount || 0).toLocaleString()}</strong></div>
           <div>Loan Term: <strong>${termLabel}</strong></div>
-          <div>Monthly Interest: <strong>${r.monthlyInterestRate || 0}%</strong></div>
+          <div>Interest: <strong>${r.monthlyInterestRate || 0}%${r.loanTermWeeks ? "" : " / month"}</strong></div>
           <div>Total Interest: <strong>₱${(r.totalInterest || 0).toLocaleString()}</strong></div>
           <div>Total Payable: <strong>₱${(r.totalPayable || r.amount || 0).toLocaleString()}</strong></div>
           <div>Submitted By (Collector): <strong>${r.createdByCollectorName || "Collector"}</strong></div>
@@ -2321,7 +2329,7 @@ function renderApprovedLoans() {
       <div style="display:grid; gap:8px; color:#d1d5db;">
         <div>💰 Loan Amount: <strong>₱${(l.amount || 0).toLocaleString()}</strong></div>
         <div>📅 Term: <strong>${termLabel}</strong></div>
-        <div>📈 Interest: <strong>${l.monthlyInterestRate || 0}% per month</strong></div>
+        <div>📈 Interest: <strong>${l.monthlyInterestRate || 0}%${l.loanTermWeeks ? "" : " per month"}</strong></div>
         <div>🧾 Total Payable: <strong>₱${(l.totalPayable || l.amount || 0).toLocaleString()}</strong></div>
         <div>🏍️ Assigned Rider: <strong>${l.assignedCollectorName || "Unassigned"}</strong></div>
         <div>💼 Assigned Cashier: <strong>${l.assignedCashierName || cashierName || "Cashier"}</strong></div>
@@ -2489,8 +2497,10 @@ async function buildLoanApplicationPdf(loan, loanId) {
 
   const startDate = loan.createdAt && loan.createdAt.toDate ? loan.createdAt.toDate() : null;
   const months = loan.loanTermMonths || 0;
-  const finalPaymentDate = startDate && months ? new Date(startDate.getFullYear(), startDate.getMonth() + months, startDate.getDate()) : null;
-  const numberOfPayments = months || 0;
+  const weeksTerm = Number(loan.loanTermWeeks) || 0;
+  const finalPaymentDate = startDate && weeksTerm ? new Date(startDate.getTime() + weeksTerm * 7 * 86400000)
+    : (startDate && months ? new Date(startDate.getFullYear(), startDate.getMonth() + months, startDate.getDate()) : null);
+  const numberOfPayments = weeksTerm || months || 0;
   const paymentAmount = numberOfPayments > 0 ? Math.round(((loan.totalPayable || loan.amount || 0) / numberOfPayments) * 100) / 100 : (loan.totalPayable || loan.amount || 0);
 
   function sectionTitle(t) {

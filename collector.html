@@ -586,10 +586,9 @@ input:focus,select:focus{border-color:var(--blue);background:#fff;box-shadow:0 0
           <label for="loanerTerm">Loan Term</label>
           <select id="loanerTerm" onchange="onLoanerTermChange()">
             <option value="">Select loan term</option>
-            <option value="3">3 Months</option>
-            <option value="6">6 Months</option>
-            <option value="12">1 Year</option>
-            <option value="custom">Other / Custom Term</option>
+            <option value="w3">3 Weeks</option>
+            <option value="w4">4 Weeks</option>
+            <option value="w5">5 Weeks</option>
           </select>
         </div>
       </div>
@@ -602,7 +601,7 @@ input:focus,select:focus{border-color:var(--blue);background:#fff;box-shadow:0 0
       <div class="interest-preview" id="loanerInterestPreview" style="display:none">
         <h5>Interest &amp; Total Payable</h5>
         <div class="review-row"><span>Principal Loan Amount</span><strong id="prevPrincipal">₱0</strong></div>
-        <div class="review-row"><span>Monthly Interest Rate</span><strong id="prevRate">0%</strong></div>
+        <div class="review-row"><span>Interest Rate</span><strong id="prevRate">0%</strong></div>
         <div class="review-row"><span>Loan Term</span><strong id="prevTerm">—</strong></div>
         <div class="review-row"><span>Total Interest</span><strong id="prevInterest">₱0</strong></div>
         <div class="review-row"><span>Total Amount to Pay</span><strong id="prevTotal">₱0</strong></div>
@@ -1022,6 +1021,7 @@ function cashierOptions(loan) {
 // ===== Loan Term label helper =====
 function collectorLoanTermLabel(data) {
   if (!data || !data.loanTermType) return "N/A";
+  if (/^w\d+$/.test(String(data.loanTermType))) return `${Number(data.loanTermWeeks) || Number(String(data.loanTermType).slice(1))} Weeks`;
   if (data.loanTermType === "3") return "3 Months";
   if (data.loanTermType === "6") return "6 Months";
   if (data.loanTermType === "12") return "1 Year";
@@ -1336,9 +1336,13 @@ window.closeCamera = () => {
 
 // Keep these interest rules identical to the Cashier's Add Loaner so a loan
 // costs the same regardless of who submits it.
-const LOANER_INTEREST_RATES = { "3": 1, "6": 0.5, "12": 0.4 }; // % per month
+const LOANER_INTEREST_RATES = { "3": 1, "6": 0.5, "12": 0.4, "w3": 0.5, "w4": 0.5, "w5": 0.5 }; // old month terms: % per month | week terms (w3/w4/w5): flat 0.5% of the loan amount
+
+function isLoanerWeekTerm(termType) { return /^w\d+$/.test(String(termType || "")); }
+function getLoanerTermWeeks(termType) { return isLoanerWeekTerm(termType) ? Number(String(termType).slice(1)) : 0; }
 
 function getLoanerTermMonths(termType) {
+  if (isLoanerWeekTerm(termType)) return getLoanerTermWeeks(termType) / 4; // weeks -> months (kept for existing fields/logic)
   if (termType === "custom") return Number(document.getElementById("loanerCustomMonths").value) || 0;
   return Number(termType) || 0;
 }
@@ -1349,6 +1353,7 @@ function getLoanerMonthlyRate(termType) {
 }
 
 function loanerTermLabel(termType, months) {
+  if (isLoanerWeekTerm(termType)) return `${getLoanerTermWeeks(termType)} Weeks`;
   if (termType === "3") return "3 Months";
   if (termType === "6") return "6 Months";
   if (termType === "12") return "1 Year";
@@ -1359,7 +1364,10 @@ function loanerTermLabel(termType, months) {
 function computeLoanerInterest(amount, termType) {
   const months = getLoanerTermMonths(termType);
   const rate = getLoanerMonthlyRate(termType);
-  const totalInterest = amount > 0 && months > 0 ? Math.round(amount * (rate / 100) * months * 100) / 100 : 0;
+  // Week terms: flat 0.5% of the loan amount. Old month terms keep the original formula.
+  const totalInterest = amount > 0 && months > 0
+    ? (isLoanerWeekTerm(termType) ? Math.round(amount * (rate / 100) * 100) / 100 : Math.round(amount * (rate / 100) * months * 100) / 100)
+    : 0;
   const totalPayable = Math.round((amount + totalInterest) * 100) / 100;
   return { months, rate, totalInterest, totalPayable };
 }
@@ -1393,7 +1401,7 @@ window.updateLoanerInterestPreview = () => {
   }
   preview.style.display = "block";
   document.getElementById("prevPrincipal").innerText = peso(amount);
-  document.getElementById("prevRate").innerText = `${rate}% per month`;
+  document.getElementById("prevRate").innerText = isLoanerWeekTerm(termType) ? `${rate}%` : `${rate}% per month`;
   document.getElementById("prevTerm").innerText = loanerTermLabel(termType, months);
   document.getElementById("prevInterest").innerText = peso(totalInterest);
   document.getElementById("prevTotal").innerText = peso(totalPayable);
@@ -1565,7 +1573,7 @@ function buildLoanerReview() {
       <h4>Loan Details</h4>
       <div class="review-row"><span>Loan Amount</span><strong>${peso(amount)}</strong></div>
       <div class="review-row"><span>Loan Term</span><strong>${loanerTermLabel(termType, months)}</strong></div>
-      <div class="review-row"><span>Monthly Interest Rate</span><strong>${rate}% per month</strong></div>
+      <div class="review-row"><span>Interest Rate</span><strong>${isLoanerWeekTerm(termType) ? rate + "%" : rate + "% per month"}</strong></div>
       <div class="review-row"><span>Interest Amount</span><strong>${peso(totalInterest)}</strong></div>
       <div class="review-row"><span>Payment Amount</span><strong>${peso(payment)} / month</strong></div>
       <div class="review-row"><span>Number of Payments</span><strong>${months}</strong></div>
@@ -1691,6 +1699,7 @@ window.submitLoanerApplication = async () => {
       memberNames: null,
       loanTermType: termType,
       loanTermMonths: months,
+      loanTermWeeks: isLoanerWeekTerm(termType) ? getLoanerTermWeeks(termType) : null,
       monthlyInterestRate: rate,
       totalInterest,
       totalPayable,
@@ -2063,11 +2072,11 @@ async function buildKasipagPdf(loan) {
   // ===== Loan information (all values come from the stored loan record) =====
   sectionTitle("LOAN INFORMATION");
   rowLine("Amount Borrowed", pesoPdf(loan.amount));
-  rowLine("Interest Rate", `${loan.monthlyInterestRate || 0}% per month`);
+  rowLine("Interest Rate", `${loan.monthlyInterestRate || 0}%${loan.loanTermWeeks ? "" : " per month"}`);
   rowLine("Interest Amount", pesoPdf(loan.totalInterest));
   rowLine("Loan Term", collectorLoanTermLabel(loan));
-  rowLine("Payment Amount", pesoPdf(loan.paymentAmount != null ? loan.paymentAmount : monthlyPayment(Number(loan.totalPayable) || 0, Number(loan.loanTermMonths) || 0)));
-  rowLine("Number of Payments", loan.numberOfPayments || loan.loanTermMonths || "N/A");
+  rowLine("Payment Amount", pesoPdf(loan.paymentAmount != null ? loan.paymentAmount : monthlyPayment(Number(loan.totalPayable) || 0, Number(loan.loanTermWeeks) || Number(loan.loanTermMonths) || 0)));
+  rowLine("Number of Payments", loan.numberOfPayments || loan.loanTermWeeks || loan.loanTermMonths || "N/A");
   rowLine("Start Date", pdfDateStr(loan.applicationStartDate || loan.approvedAt || loan.createdAt));
   rowLine("Due Date", pdfDateStr(loan.nextDueDate || loan.applicationFirstDueDate));
   rowLine("Final Payment Date", pdfDateStr(loan.applicationFinalDueDate));
@@ -2097,7 +2106,7 @@ async function buildKasipagPdf(loan) {
   };
   sumRow("Amount Borrowed", pesoPdf(loan.amount));
   sumRow("Interest", pesoPdf(loan.totalInterest));
-  sumRow("Payment Amount", pesoPdf(loan.paymentAmount != null ? loan.paymentAmount : monthlyPayment(Number(loan.totalPayable) || 0, Number(loan.loanTermMonths) || 0)));
+  sumRow("Payment Amount", pesoPdf(loan.paymentAmount != null ? loan.paymentAmount : monthlyPayment(Number(loan.totalPayable) || 0, Number(loan.loanTermWeeks) || Number(loan.loanTermMonths) || 0)));
   sumRow("Loan Term", collectorLoanTermLabel(loan));
   sumRow("Start Date", pdfDateStr(loan.applicationStartDate || loan.approvedAt || loan.createdAt));
   sumRow("Final Due Date", pdfDateStr(loan.applicationFinalDueDate));
@@ -2172,7 +2181,9 @@ function computeSchedule(data) {
     termMonths = Number(data.loanTermType) || 0;
   }
   const balance = Number(data.balance) || 0;
-  const installment = termMonths > 0 ? Math.round((totalPayable / termMonths) * 100) / 100 : null;
+  const termWeeks = Number(data.loanTermWeeks) || 0; // week-based loans (3/4/5 weeks): weekly collection
+  const installment = termWeeks > 0 ? Math.round((totalPayable / termWeeks) * 100) / 100
+    : (termMonths > 0 ? Math.round((totalPayable / termMonths) * 100) / 100 : null);
 
   const storedDueDate = toJsDate(data.nextDueDate);
   let dueDate;
@@ -2181,10 +2192,18 @@ function computeSchedule(data) {
   } else {
     const anchor = toJsDate(data.riderAssignedAt) || toJsDate(data.approvedAt) || toJsDate(data.createdAt) || new Date();
     dueDate = new Date(anchor);
+    if (termWeeks > 0) {
+      // weekly collection, Mon-Sat only (Sunday moves to Monday)
+      const nextWeekly = (d) => { d.setDate(d.getDate() + 7); if (d.getDay() === 0) d.setDate(d.getDate() + 1); };
+      nextWeekly(dueDate);
+      const now0 = new Date();
+      while (dueDate < now0 && balance > 0) nextWeekly(dueDate);
+    } else {
     dueDate.setMonth(dueDate.getMonth() + 1);
     const now = new Date();
     while (dueDate < now && balance > 0) {
       dueDate.setMonth(dueDate.getMonth() + 1);
+    }
     }
   }
 
@@ -2195,10 +2214,11 @@ function computeSchedule(data) {
   const amountToCollect = Math.max(Math.round((amountDueBase + penalty) * 100) / 100, 0);
 
   const paidSoFar = Math.max(totalPayable - balance, 0);
-  const periodsPaid = installment ? Math.min(Math.round(paidSoFar / installment), termMonths) : 0;
-  const remainingMonths = termMonths > 0 ? Math.max(termMonths - periodsPaid, 0) : null;
+  const totalPeriods = termWeeks > 0 ? termWeeks : termMonths;
+  const periodsPaid = installment ? Math.min(Math.round(paidSoFar / installment), totalPeriods) : 0;
+  const remainingMonths = totalPeriods > 0 ? Math.max(totalPeriods - periodsPaid, 0) : null;
 
-  return { installment, remainingMonths, dueDate, isLate, penalty, amountDueBase, amountToCollect, totalPayable };
+  return { installment, remainingMonths, isWeekly: termWeeks > 0, dueDate, isLate, penalty, amountDueBase, amountToCollect, totalPayable };
 }
 
 function fmtDate(d) {
@@ -2211,7 +2231,7 @@ function buildCollectHighlight(data) {
     return `<div class="collect-highlight"><span class="label">Status</span><strong>PAID / COMPLETED</strong></div>`;
   }
   const sched = computeSchedule(data);
-  const remainingText = sched.remainingMonths != null ? `${sched.remainingMonths} Month${sched.remainingMonths === 1 ? "" : "s"} remaining` : "N/A";
+  const remainingText = sched.remainingMonths != null ? `${sched.remainingMonths} ${sched.isWeekly ? "Week" : "Month"}${sched.remainingMonths === 1 ? "" : "s"} remaining` : "N/A";
   const upcoming = sched.dueDate && sched.dueDate > new Date();
   return `
     <div class="collect-highlight ${sched.isLate ? "late" : ""} ${upcoming ? "upcoming" : ""}">
@@ -2628,7 +2648,7 @@ function loadTasks() {
       if (data.status === "unpaid") unpaid++;
 
       const termInfo = data.loanTermType
-        ? `<div>Term: <strong>${collectorLoanTermLabel(data)}</strong> · Interest: <strong>${data.monthlyInterestRate || 0}%/mo</strong></div>`
+        ? `<div>Term: <strong>${collectorLoanTermLabel(data)}</strong> · Interest: <strong>${data.monthlyInterestRate || 0}%${data.loanTermWeeks ? "" : "/mo"}</strong></div>`
         : "";
 
       if (data.status === "collected" && data.pendingPaymentId) {
